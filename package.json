@@ -1,0 +1,26 @@
+{
+	"name": "brash",
+	"module": "index.ts",
+	"type": "module",
+	"scripts": {
+		"build": "bun build ./src/index.ts --compile --outfile brash"
+	},
+	"private": true,
+	"devDependencies": {
+		"@biomejs/biome": "2.3.12",
+		"@types/bun": "latest",
+		"@types/node": "^25.0.10"
+	},
+	"peerDependencies": {
+		"typescript": "^5"
+	},
+	"dependencies": {
+		"@tanstack/ai": "^0.2.2",
+		"@tanstack/ai-anthropic": "^0.2.0",
+		"@tanstack/ai-gemini": "^0.3.2",
+		"@tanstack/ai-ollama": "^0.3.0",
+		"@tanstack/ai-openai": "^0.2.1",
+		"chalk": "^5.6.2",
+		"commander": "^14.0.2"
+	}
+}
