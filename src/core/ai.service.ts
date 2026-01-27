@@ -6,6 +6,7 @@ import { ollamaText } from "@tanstack/ai-ollama";
 import { openaiText } from "@tanstack/ai-openai";
 import { config } from "../config";
 import { SYSTEM_PROMPTS } from "./constants";
+import { getEnv, setEnv } from "./environment";
 import { logDebug } from "./logger";
 
 type CommandType = "explain" | "suggest" | "generate";
@@ -19,13 +20,13 @@ function resolveApiKey(providerName: string, apiKey?: string) {
 		return apiKey;
 	}
 	if (providerName === "openai") {
-		return process.env.OPENAI_API_KEY;
+		return getEnv("OPENAI_API_KEY");
 	}
 	if (providerName === "anthropic") {
-		return process.env.ANTHROPIC_API_KEY;
+		return getEnv("ANTHROPIC_API_KEY");
 	}
 	if (providerName === "gemini") {
-		return process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+		return getEnv("GOOGLE_GENERATIVE_AI_API_KEY");
 	}
 	return undefined;
 }
@@ -42,21 +43,20 @@ function getAdapter(commandType: CommandType, model: string) {
 	// and they aren't passed (though tanstack ai usually allows config).
 	const resolvedApiKey = resolveApiKey(providerName, providerConfig?.apiKey);
 	if (resolvedApiKey) {
-		if (providerName === "openai") process.env.OPENAI_API_KEY = resolvedApiKey;
+		if (providerName === "openai") setEnv("OPENAI_API_KEY", resolvedApiKey);
 		if (providerName === "anthropic")
-			process.env.ANTHROPIC_API_KEY = resolvedApiKey;
+			setEnv("ANTHROPIC_API_KEY", resolvedApiKey);
 		if (providerName === "gemini")
-			process.env.GOOGLE_GENERATIVE_AI_API_KEY = resolvedApiKey;
+			setEnv("GOOGLE_GENERATIVE_AI_API_KEY", resolvedApiKey);
 	}
 
 	// For Ollama, we might need base_url
-	const resolvedBaseUrl =
-		providerConfig?.baseUrl ?? process.env.OLLAMA_BASE_URL;
+	const resolvedBaseUrl = providerConfig?.baseUrl ?? getEnv("OLLAMA_BASE_URL");
 	if (providerName === "ollama" && resolvedBaseUrl) {
 		// TanStack AI Ollama might expect base URL in a specific way or use default.
 		// We'll assume standard env var or just rely on default localhost if not set in lib.
 		// There isn't a standard env var for Ollama base url in all libs, often OLLAMA_BASE_URL.
-		process.env.OLLAMA_BASE_URL = resolvedBaseUrl;
+		setEnv("OLLAMA_BASE_URL", resolvedBaseUrl);
 	}
 
 	switch (providerName) {

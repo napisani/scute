@@ -1,3 +1,4 @@
+import { getEnv } from "../environment";
 import { bashShellHelper } from "./bash";
 import { type ShellHelper, type ShellName, supportedShells } from "./common";
 import { shShellHelper } from "./sh";
@@ -8,7 +9,7 @@ function identifyShell(): ShellName | null {
 	if (identifiedShell !== undefined) {
 		return identifiedShell;
 	}
-	const shell = process.env.BRASH_SHELL || process.env.SHELL || "";
+	const shell = getEnv("BRASH_SHELL") || getEnv("SHELL") || "";
 	// get the last part of the shell path
 	// If SHELL is /bin/bash, we want bash
 	identifiedShell = (shell.split("/").pop() || "") as ShellName;

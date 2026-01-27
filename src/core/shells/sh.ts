@@ -1,9 +1,10 @@
+import { getEnv } from "../environment";
 import { type ShellHelper, tokenizeWithShellQuote } from "./common";
 
 export const shShellHelper: ShellHelper = {
-  shell: "sh",
+	shell: "sh",
 	tokenizeInput: tokenizeWithShellQuote,
 	getReadlineLine: () => {
-		return process.env.READLINE_LINE ?? null;
+		return getEnv("READLINE_LINE") ?? null;
 	},
 };

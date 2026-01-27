@@ -1,10 +1,10 @@
 import fs from "node:fs";
+import { isDebugMode } from "./environment";
 
 const LOG_PATH = "/tmp/brash.log";
-const isDebug = process.env.BRASH_DEBUG === "1";
 
 export function logDebug(message: string): void {
-	if (!isDebug) {
+	if (!isDebugMode()) {
 		return;
 	}
 
