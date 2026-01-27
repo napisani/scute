@@ -1,6 +1,6 @@
 // src/commands/suggest-prompt.ts
-import { generateCommandFromPrompt } from "../../core/ai.service";
-import { logDebug } from "../../core/logger";
+import { generateCommandFromPrompt } from "../core/ai.service";
+import { logDebug } from "../core/logger";
 
 /**
  * Handles the 'suggest-prompt' command using the AI service.

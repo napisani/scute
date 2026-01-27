@@ -1,7 +1,7 @@
 // src/commands/explain.ts
 import chalk from "chalk";
-import { explain as explainCommand } from "../../core/ai.service";
-import { logDebug } from "../../core/logger";
+import { explain as explainCommand } from "../core/ai.service";
+import { logDebug } from "../core/logger";
 
 /**
  * Handles the 'explain' command by calling the AI service.
