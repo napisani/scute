@@ -9,7 +9,7 @@ import { logDebug } from "../core/logger";
  * @param line The current READLINE_LINE content.
  * @param point The current READLINE_POINT (cursor position).
  */
-export const explain = async (line: string, point: string) => {
+export async function explain(line: string, point: string) {
 	const terminalHeight = process.stdout.rows;
 	logDebug(`command:explain line="${line}" point=${point}`);
 
@@ -39,4 +39,4 @@ export const explain = async (line: string, point: string) => {
 
 	process.stdout.write(output);
 	logDebug("command:explain output written");
-};
+}

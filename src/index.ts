@@ -1,9 +1,9 @@
 // src/index.ts
 import { Command } from "commander";
+import { build } from "./commands/build";
 import { explain } from "./commands/explain";
 import { init } from "./commands/init";
 import { suggest } from "./commands/suggest";
-import { suggestPrompt } from "./commands/suggest-prompt";
 
 const program = new Command();
 
@@ -15,14 +15,14 @@ program
 	.action(init);
 
 program
+	.command("build")
+	.argument("[input...]", "Input to tokenize")
+	.action(build);
+
+program
 	.command("suggest")
 	.argument("<line>", "The current readline buffer")
 	.action(suggest);
-
-program
-	.command("suggest-prompt")
-	.argument("<line>", "The current readline buffer")
-	.action(suggestPrompt);
 
 program
 	.command("explain")

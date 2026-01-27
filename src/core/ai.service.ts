@@ -14,6 +14,22 @@ function getProviderConfig(providerName: string) {
 	return config.providers.find((p) => p.name === providerName);
 }
 
+function resolveApiKey(providerName: string, apiKey?: string) {
+	if (apiKey) {
+		return apiKey;
+	}
+	if (providerName === "openai") {
+		return process.env.OPENAI_API_KEY;
+	}
+	if (providerName === "anthropic") {
+		return process.env.ANTHROPIC_API_KEY;
+	}
+	if (providerName === "gemini") {
+		return process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+	}
+	return undefined;
+}
+
 function getAdapter(commandType: CommandType, model: string) {
 	const promptConfig = config.prompts[commandType];
 	const providerName = promptConfig.provider;
@@ -24,21 +40,23 @@ function getAdapter(commandType: CommandType, model: string) {
 	// but most allow passing keys or fallback to env vars.
 	// We'll set env vars as a compatibility layer if the library relies on them implicitly
 	// and they aren't passed (though tanstack ai usually allows config).
-	if (providerConfig?.apiKey) {
-		if (providerName === "openai")
-			process.env.OPENAI_API_KEY = providerConfig.apiKey;
+	const resolvedApiKey = resolveApiKey(providerName, providerConfig?.apiKey);
+	if (resolvedApiKey) {
+		if (providerName === "openai") process.env.OPENAI_API_KEY = resolvedApiKey;
 		if (providerName === "anthropic")
-			process.env.ANTHROPIC_API_KEY = providerConfig.apiKey;
+			process.env.ANTHROPIC_API_KEY = resolvedApiKey;
 		if (providerName === "gemini")
-			process.env.GOOGLE_GENERATIVE_AI_API_KEY = providerConfig.apiKey;
+			process.env.GOOGLE_GENERATIVE_AI_API_KEY = resolvedApiKey;
 	}
 
 	// For Ollama, we might need base_url
-	if (providerName === "ollama" && providerConfig?.baseUrl) {
+	const resolvedBaseUrl =
+		providerConfig?.baseUrl ?? process.env.OLLAMA_BASE_URL;
+	if (providerName === "ollama" && resolvedBaseUrl) {
 		// TanStack AI Ollama might expect base URL in a specific way or use default.
 		// We'll assume standard env var or just rely on default localhost if not set in lib.
 		// There isn't a standard env var for Ollama base url in all libs, often OLLAMA_BASE_URL.
-		process.env.OLLAMA_BASE_URL = providerConfig.baseUrl;
+		process.env.OLLAMA_BASE_URL = resolvedBaseUrl;
 	}
 
 	switch (providerName) {
