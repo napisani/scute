@@ -1,11 +1,11 @@
 import { createCliRenderer } from "@opentui/core";
 import { createRoot } from "@opentui/react";
-import type { ParsedCommand } from "../core/command-tokens";
 import {
 	getReadlineLine,
 	hasReadlineLine,
 	tokenizeInput,
 } from "../core/shells";
+import type { ParsedCommand } from "../core/shells/common";
 import { BuildApp } from "../pages/build";
 
 export async function build(inputParts: string[] = []) {

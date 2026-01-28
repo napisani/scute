@@ -1,6 +1,6 @@
 // src/commands/explain.ts
 import chalk from "chalk";
-import { explain as explainCommand } from "../core/ai.service";
+import { explain as explainCommand } from "../core";
 import { logDebug } from "../core/logger";
 
 /**

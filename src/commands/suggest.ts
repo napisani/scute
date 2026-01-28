@@ -1,5 +1,5 @@
 // src/commands/suggest.ts
-import { suggest as suggestCommand } from "../core/ai.service";
+import { suggest as suggestCommand } from "../core";
 import { logDebug } from "../core/logger";
 
 /**

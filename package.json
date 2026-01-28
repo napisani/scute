@@ -3,7 +3,8 @@
 	"module": "index.ts",
 	"type": "module",
 	"scripts": {
-		"build": "bun build ./src/index.ts --compile --outfile brash"
+		"build": "bun build ./src/index.ts --compile --outfile brash",
+		"test": "bun test"
 	},
 	"private": true,
 	"devDependencies": {

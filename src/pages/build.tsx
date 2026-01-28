@@ -1,12 +1,9 @@
 import { useKeyboard } from "@opentui/react";
 import { useEffect, useMemo, useState } from "react";
 import { getKeybindings } from "../config";
-import { getTokenDescription } from "../core/ai.service";
-import {
-	type ParsedCommand,
-	type ParsedToken,
-	parseCommandTokens,
-} from "../core/command-tokens";
+import { fetchTokenDescriptions } from "../core";
+import { parseTokens } from "../core/shells";
+import type { ParsedCommand, ParsedToken } from "../core/shells/common";
 
 type BuildAppProps = {
 	command: ParsedCommand;
@@ -46,7 +43,7 @@ function mapDescriptions(
 
 export function BuildApp({ command }: BuildAppProps) {
 	const parsedTokens = useMemo(
-		() => parseCommandTokens(command.tokens),
+		() => parseTokens(command.tokens),
 		[command.tokens],
 	);
 	const [selectedIndex, setSelectedIndex] = useState(0);
@@ -58,10 +55,10 @@ export function BuildApp({ command }: BuildAppProps) {
 			return { typeWidth: 8, tokenWidth: 12 };
 		}
 		const typeLabelWidths = parsedTokens.map(
-			(token) => formatTokenType(token).length,
+			(token: ParsedToken) => formatTokenType(token).length,
 		);
 		const tokenLabelWidths = parsedTokens.map(
-			(token) => formatToken(token).length,
+			(token: ParsedToken) => formatToken(token).length,
 		);
 		return {
 			typeWidth: Math.max(8, ...typeLabelWidths),
@@ -72,7 +69,7 @@ export function BuildApp({ command }: BuildAppProps) {
 	useEffect(() => {
 		let cancelled = false;
 		const loadDescriptions = async () => {
-			const results = await getTokenDescription(command);
+			const results = await fetchTokenDescriptions(command);
 			if (!cancelled) {
 				setDescriptions(mapDescriptions(results, parsedTokens));
 			}
@@ -105,7 +102,7 @@ export function BuildApp({ command }: BuildAppProps) {
 
 	return (
 		<box style={{ flexDirection: "column" }}>
-			{parsedTokens.map((token, index) => {
+			{parsedTokens.map((token: ParsedToken, index: number) => {
 				const description = descriptions[index] ?? "";
 				const label = formatToken(token);
 				const typeLabel = formatTokenType(token);

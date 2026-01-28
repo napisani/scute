@@ -1,10 +1,19 @@
 import { getEnv } from "../environment";
 import { bashShellHelper } from "./bash";
-import { type ShellHelper, type ShellName, supportedShells } from "./common";
+import {
+	type ParsedToken,
+	parseCommand,
+	type ShellHelper,
+	type ShellName,
+	supportedShells,
+} from "./common";
 import { shShellHelper } from "./sh";
 import { zshShellHelper } from "./zsh";
 
 let identifiedShell: ShellName | null | undefined;
+function resetShellCache() {
+	identifiedShell = undefined;
+}
 function identifyShell(): ShellName | null {
 	if (identifiedShell !== undefined) {
 		return identifiedShell;
@@ -37,6 +46,13 @@ function tokenizeInput(input: string | null | undefined): string[] {
 	const shellHelper = getShellHelper();
 	return shellHelper.tokenizeInput(input);
 }
+
+function parseTokens(tokens: string[]): ParsedToken[] {
+	const shellHelper = getShellHelper();
+	return shellHelper.parseCommand
+		? shellHelper.parseCommand(tokens)
+		: parseCommand(tokens);
+}
 function getReadlineLine(): string | null {
 	const shellHelper = getShellHelper();
 	return shellHelper.getReadlineLine();
@@ -46,4 +62,11 @@ function hasReadlineLine(): boolean {
 	return !!line && typeof line === "string" && line.length > 0;
 }
 
-export { identifyShell, tokenizeInput, getReadlineLine, hasReadlineLine };
+export {
+	identifyShell,
+	resetShellCache,
+	parseTokens,
+	tokenizeInput,
+	getReadlineLine,
+	hasReadlineLine,
+};

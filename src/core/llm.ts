@@ -1,16 +1,22 @@
-// core/ai.service.ts
+// core/llm.ts
+
 import { chat } from "@tanstack/ai";
 import { anthropicText } from "@tanstack/ai-anthropic";
 import { geminiText } from "@tanstack/ai-gemini";
 import { ollamaText } from "@tanstack/ai-ollama";
 import { openaiText } from "@tanstack/ai-openai";
+import { z } from "zod";
 import { config } from "../config";
-import type { ParsedCommand } from "./command-tokens";
 import { SYSTEM_PROMPTS } from "./constants";
 import { getEnv, setEnv } from "./environment";
 import { logDebug } from "./logger";
+import type { ParsedCommand, ParsedToken } from "./shells/common";
 
 type CommandType = "explain" | "suggest" | "generate";
+
+const tokenDescriptionsSchema = z.object({
+	descriptions: z.array(z.string()),
+});
 
 function getProviderConfig(providerName: string) {
 	return config.providers.find((p) => p.name === providerName);
@@ -163,8 +169,76 @@ export async function generateCommandFromPrompt(
 	return generateText("generate", prompt);
 }
 
-export async function getTokenDescription(
+export type TokenDescriptionContext = {
+	name?: string;
+	synopsis?: string;
+	options?: string;
+	docs?: string | null;
+};
+
+export async function fetchTokenDescriptionsFromLlm(
 	parsedCommand: ParsedCommand,
-): Promise<string[]> {
-	return parsedCommand.tokens;
+	parsedTokens: ParsedToken[],
+	context: TokenDescriptionContext,
+): Promise<string[] | null> {
+	const promptConfig = config.prompts.explain;
+	const adapter = getAdapter("explain", promptConfig.model);
+	const systemPrompt =
+		'You are a command-line expert. Respond with strict JSON: {"descriptions": [string]}. The array must match the number and order of tokens.';
+	const contextChunks = [
+		context.name ? `NAME\n${context.name}` : null,
+		context.synopsis ? `SYNOPSIS\n${context.synopsis}` : null,
+		context.options ? `OPTIONS\n${context.options}` : null,
+		context.docs ? `DOCS\n${context.docs}` : null,
+	].filter(Boolean);
+	const userPrompt = JSON.stringify(
+		{
+			originalCommand: parsedCommand.originalCommand,
+			tokens: parsedCommand.tokens,
+			parsedTokens,
+			context: contextChunks.join("\n\n"),
+		},
+		null,
+		2,
+	);
+
+	const response = await requestJsonFromLlm(
+		adapter,
+		systemPrompt,
+		userPrompt,
+		parsedCommand.tokens.length,
+	);
+	if (response) {
+		return response;
+	}
+	return await requestJsonFromLlm(
+		adapter,
+		systemPrompt,
+		userPrompt,
+		parsedCommand.tokens.length,
+	);
 }
+
+async function requestJsonFromLlm(
+	adapter: ReturnType<typeof getAdapter>,
+	systemPrompt: string,
+	userPrompt: string,
+	expectedLength: number,
+): Promise<string[] | null> {
+	try {
+		const response = await chat({
+			adapter,
+			messages: [{ role: "user", content: `${systemPrompt}\n\n${userPrompt}` }],
+			outputSchema: tokenDescriptionsSchema,
+			stream: false,
+		});
+		if (response.descriptions.length !== expectedLength) {
+			return null;
+		}
+		return response.descriptions;
+	} catch {
+		return null;
+	}
+}
+
+export { getAdapter };

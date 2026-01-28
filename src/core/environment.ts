@@ -8,8 +8,21 @@ export type EnvVarName =
 	| "SHELL"
 	| "READLINE_LINE";
 
+type EnvGetter = (name: EnvVarName) => string | undefined;
+
+const defaultEnvGetter: EnvGetter = (name) => process.env[name];
+let envGetter: EnvGetter = defaultEnvGetter;
+
 export function getEnv(name: EnvVarName): string | undefined {
-	return process.env[name];
+	return envGetter(name);
+}
+
+export function setEnvGetter(getter: EnvGetter): void {
+	envGetter = getter;
+}
+
+export function resetEnvGetter(): void {
+	envGetter = defaultEnvGetter;
 }
 
 export function setEnv(name: EnvVarName, value: string): void {
