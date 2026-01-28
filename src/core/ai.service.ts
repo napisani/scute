@@ -5,6 +5,7 @@ import { geminiText } from "@tanstack/ai-gemini";
 import { ollamaText } from "@tanstack/ai-ollama";
 import { openaiText } from "@tanstack/ai-openai";
 import { config } from "../config";
+import type { ParsedCommand } from "./command-tokens";
 import { SYSTEM_PROMPTS } from "./constants";
 import { getEnv, setEnv } from "./environment";
 import { logDebug } from "./logger";
@@ -160,4 +161,10 @@ export async function generateCommandFromPrompt(
 
 	logDebug(`generateCommandFromPrompt:prompt="${prompt}"`);
 	return generateText("generate", prompt);
+}
+
+export async function getTokenDescription(
+	parsedCommand: ParsedCommand,
+): Promise<string[]> {
+	return parsedCommand.tokens;
 }

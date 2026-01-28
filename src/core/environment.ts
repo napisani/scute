@@ -1,4 +1,3 @@
-
 export type EnvVarName =
 	| "OPENAI_API_KEY"
 	| "ANTHROPIC_API_KEY"
@@ -11,6 +10,10 @@ export type EnvVarName =
 
 export function getEnv(name: EnvVarName): string | undefined {
 	return process.env[name];
+}
+
+export function setEnv(name: EnvVarName, value: string): void {
+	process.env[name] = value;
 }
 
 export function isDebugMode(): boolean {

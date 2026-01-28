@@ -25,3 +25,15 @@ export function loadConfig(): Config {
 }
 
 export const config = loadConfig();
+
+export type KeybindingAction = "up" | "down";
+
+const defaultKeybindings: Record<KeybindingAction, string[]> = {
+	up: ["up", "k"],
+	down: ["down", "j"],
+};
+
+export function getKeybindings(action: KeybindingAction): string[] {
+	const configured = config.keybindings?.[action];
+	return configured?.length ? configured : defaultKeybindings[action];
+}

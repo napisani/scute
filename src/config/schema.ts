@@ -25,8 +25,21 @@ export const CommandConfigSchema = z.object({
 
 export type CommandConfig = z.infer<typeof CommandConfigSchema>;
 
+export const KeybindingsSchema = z
+	.object({
+		up: z.array(z.string()).default(["up", "k"]),
+		down: z.array(z.string()).default(["down", "j"]),
+	})
+	.default({
+		up: ["up", "k"],
+		down: ["down", "j"],
+	});
+
+export type KeybindingsConfig = z.infer<typeof KeybindingsSchema>;
+
 export const ConfigSchema = z.object({
 	providers: z.array(ProviderSchema).default([]),
+	keybindings: KeybindingsSchema,
 	prompts: z
 		.object({
 			explain: CommandConfigSchema.default({
