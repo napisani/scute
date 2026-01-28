@@ -1,18 +1,15 @@
-// core/llm.ts
-
 import { chat } from "@tanstack/ai";
 import { anthropicText } from "@tanstack/ai-anthropic";
 import { geminiText } from "@tanstack/ai-gemini";
-import { ollamaText } from "@tanstack/ai-ollama";
+import { createOllamaChat, type ollamaText } from "@tanstack/ai-ollama";
 import { openaiText } from "@tanstack/ai-openai";
 import { z } from "zod";
 import { config } from "../config";
+import type { PromptName } from "../config/schema";
 import { SYSTEM_PROMPTS } from "./constants";
-import { getEnv, setEnv } from "./environment";
+import { getEnv } from "./environment";
 import { logDebug } from "./logger";
 import type { ParsedCommand, ParsedToken } from "./shells/common";
-
-type CommandType = "explain" | "suggest" | "generate";
 
 const tokenDescriptionsSchema = z.object({
 	descriptions: z.array(z.string()),
@@ -22,10 +19,14 @@ function getProviderConfig(providerName: string) {
 	return config.providers.find((p) => p.name === providerName);
 }
 
-function resolveApiKey(providerName: string, apiKey?: string) {
-	if (apiKey) {
-		return apiKey;
+function resolveApiKey(promptName: PromptName) {
+	const promptConfig = config.prompts[promptName];
+	const providerName = promptConfig.provider;
+	const providerConfig = getProviderConfig(providerName);
+	if (providerConfig?.apiKey) {
+		return providerConfig.apiKey;
 	}
+
 	if (providerName === "openai") {
 		return getEnv("OPENAI_API_KEY");
 	}
@@ -33,48 +34,71 @@ function resolveApiKey(providerName: string, apiKey?: string) {
 		return getEnv("ANTHROPIC_API_KEY");
 	}
 	if (providerName === "gemini") {
-		return getEnv("GOOGLE_GENERATIVE_AI_API_KEY");
+		return getEnv("GEMINI_API_KEY");
 	}
 	return undefined;
 }
 
-function getAdapter(commandType: CommandType, model: string) {
-	const promptConfig = config.prompts[commandType];
+function resolveBaseUrl(promptName: PromptName) {
+	const promptConfig = config.prompts[promptName];
 	const providerName = promptConfig.provider;
 	const providerConfig = getProviderConfig(providerName);
-
-	// Ensure API keys are set if provided in config
-	// This is a bit of a hack if the libraries expect env vars,
-	// but most allow passing keys or fallback to env vars.
-	// We'll set env vars as a compatibility layer if the library relies on them implicitly
-	// and they aren't passed (though tanstack ai usually allows config).
-	const resolvedApiKey = resolveApiKey(providerName, providerConfig?.apiKey);
-	if (resolvedApiKey) {
-		if (providerName === "openai") setEnv("OPENAI_API_KEY", resolvedApiKey);
-		if (providerName === "anthropic")
-			setEnv("ANTHROPIC_API_KEY", resolvedApiKey);
-		if (providerName === "gemini")
-			setEnv("GOOGLE_GENERATIVE_AI_API_KEY", resolvedApiKey);
+	if (providerConfig?.baseUrl) {
+		return providerConfig.baseUrl;
 	}
-
-	// For Ollama, we might need base_url
-	const resolvedBaseUrl = providerConfig?.baseUrl ?? getEnv("OLLAMA_BASE_URL");
-	if (providerName === "ollama" && resolvedBaseUrl) {
-		// TanStack AI Ollama might expect base URL in a specific way or use default.
-		// We'll assume standard env var or just rely on default localhost if not set in lib.
-		// There isn't a standard env var for Ollama base url in all libs, often OLLAMA_BASE_URL.
-		setEnv("OLLAMA_BASE_URL", resolvedBaseUrl);
+	if (providerName === "ollama") {
+		return getEnv("OLLAMA_BASE_URL");
 	}
+	return undefined;
+}
+
+function resolveSystemPrompt(promptName: PromptName) {
+	const promptConfig = config.prompts[promptName];
+	return sanitizePrompt(
+		promptConfig.systemPromptOverride || SYSTEM_PROMPTS[promptName],
+	);
+}
+
+function resolveUserPrompt(promptName: PromptName, userPrompt?: string) {
+	const promptConfig = config.prompts[promptName];
+	const prompt = promptConfig.userPrompt
+		? `${promptConfig.userPrompt}\n\n${userPrompt}`
+		: userPrompt;
+	return sanitizePrompt(prompt ?? "");
+}
+function sanitizePrompt(prompt: string) {
+	return prompt.replace(/\s+/g, " ").trim();
+}
+
+function getAdapter(promptName: PromptName, model: string) {
+	const promptConfig = config.prompts[promptName];
+	const providerName = promptConfig.provider;
+
+	const resolvedApiKey = resolveApiKey(promptName);
+
+	const resolvedBaseUrl = resolveBaseUrl(promptName);
 
 	switch (providerName) {
 		case "anthropic":
-			return anthropicText(model as any);
+			return anthropicText(model as Parameters<typeof anthropicText>[0], {
+				apiKey: resolvedApiKey,
+				baseUrl: resolvedBaseUrl,
+			});
 		case "openai":
-			return openaiText(model as any);
+			return openaiText(model as Parameters<typeof openaiText>[0], {
+				apiKey: resolvedApiKey,
+				baseUrl: resolvedBaseUrl,
+			});
 		case "gemini":
-			return geminiText(model as any);
+			return geminiText(model as Parameters<typeof geminiText>[0], {
+				apiKey: resolvedApiKey,
+				baseUrl: resolvedBaseUrl,
+			});
 		case "ollama":
-			return ollamaText(model as any);
+			return createOllamaChat(
+				model as Parameters<typeof ollamaText>[0],
+				resolvedBaseUrl,
+			);
 		default:
 			throw new Error(`Unsupported provider: ${providerName}`);
 	}
@@ -84,38 +108,30 @@ function getAdapter(commandType: CommandType, model: string) {
  * A helper function to generate text using the configured provider.
  */
 async function generateText(
-	commandType: CommandType,
+	promptName: PromptName,
 	userPrompt: string,
 ): Promise<string> {
 	try {
-		const promptConfig = config.prompts[commandType];
+		const promptConfig = config.prompts[promptName];
 		const model = promptConfig.model;
-		const systemPrompt =
-			promptConfig.systemPromptOverride || SYSTEM_PROMPTS[commandType];
+		const systemPrompt = resolveSystemPrompt(promptName);
 
-		// Append configured userPrompt if it exists (as extra instructions)
-		const fullUserPrompt = promptConfig.userPrompt
-			? `${promptConfig.userPrompt}\n\n${userPrompt}`
-			: userPrompt;
+		const fullUserPrompt = resolveUserPrompt(promptName, userPrompt);
 
-		const sanitizedPrompt = userPrompt.replace(/\s+/g, " ").trim();
 		logDebug(
-			`generateText:start type=${commandType} provider=${promptConfig.provider} model=${model} userPrompt="${sanitizedPrompt}"`,
+			`generateText:start type=${promptName} provider=${promptConfig.provider} model=${model} systemPrompt="${systemPrompt}" userPrompt="${fullUserPrompt}"`,
 		);
 
-		const adapter = getAdapter(commandType, model);
+		const adapter = getAdapter(promptName, model);
 
 		const content = await chat({
 			adapter,
-			messages: [
-				{ role: "user", content: `${systemPrompt}\n\n${fullUserPrompt}` },
-			],
-			// We could pass temperature and maxTokens here if chat() supports it per request,
-			// or if the adapter supports it.
-			// Checking tanstack ai docs (mental model), parameters often go into adapter or a separate options object?
-			// `chat` signature: ({ adapter, messages, ... })
-			// It seems options like temperature are platform specific or passed to adapter?
-			// For now we'll stick to basics.
+			systemPrompts: [systemPrompt],
+			...(fullUserPrompt === ""
+				? {}
+				: { messages: [{ role: "user", content: fullUserPrompt }] }),
+			temperature: promptConfig.temperature,
+			maxTokens: promptConfig.maxTokens,
 			stream: false,
 		});
 
@@ -135,10 +151,7 @@ async function generateText(
  */
 export async function suggest(commandLine: string): Promise<string> {
 	logDebug(`suggest:received line="${commandLine}"`);
-	return generateText(
-		"suggest",
-		commandLine || "Suggest a command for listing files.",
-	);
+	return generateText("suggest", commandLine);
 }
 
 /**
@@ -152,21 +165,6 @@ export async function explain(commandLine: string): Promise<string> {
 
 	logDebug(`explain:line="${commandLine}"`);
 	return generateText("explain", commandLine);
-}
-
-/**
- * Generates a shell command from a natural language prompt.
- */
-export async function generateCommandFromPrompt(
-	prompt: string,
-): Promise<string> {
-	if (!prompt.trim()) {
-		logDebug("generateCommandFromPrompt:received empty prompt");
-		return 'echo "brash: Please provide a description of the command you want."';
-	}
-
-	logDebug(`generateCommandFromPrompt:prompt="${prompt}"`);
-	return generateText("generate", prompt);
 }
 
 export type TokenDescriptionContext = {
@@ -183,8 +181,7 @@ export async function fetchTokenDescriptionsFromLlm(
 ): Promise<string[] | null> {
 	const promptConfig = config.prompts.explain;
 	const adapter = getAdapter("explain", promptConfig.model);
-	const systemPrompt =
-		'You are a command-line expert. Respond with strict JSON: {"descriptions": [string]}. The array must match the number and order of tokens.';
+	const systemPrompt = resolveSystemPrompt("describeTokens");
 	const contextChunks = [
 		context.name ? `NAME\n${context.name}` : null,
 		context.synopsis ? `SYNOPSIS\n${context.synopsis}` : null,
@@ -236,9 +233,12 @@ async function requestJsonFromLlm(
 			return null;
 		}
 		return response.descriptions;
-	} catch {
+	} catch (e: unknown) {
+		if (!(e instanceof Error)) {
+			logDebug(`requestJsonFromLlm:error Unknown error: ${JSON.stringify(e)}`);
+		} else {
+			logDebug(`requestJsonFromLlm:error ${e.message}: ${e.stack}`);
+		}
 		return null;
 	}
 }
-
-export { getAdapter };

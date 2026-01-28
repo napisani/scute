@@ -14,7 +14,7 @@ export const ProviderSchema = z.object({
 
 export type ProviderConfig = z.infer<typeof ProviderSchema>;
 
-export const CommandConfigSchema = z.object({
+export const PromptConfigSchema = z.object({
 	provider: z.string().default(DEFAULT_PROVIDER),
 	model: z.string().default(DEFAULT_MODEL),
 	temperature: z.number().default(DEFAULT_TEMPERATURE),
@@ -23,7 +23,7 @@ export const CommandConfigSchema = z.object({
 	systemPromptOverride: z.string().optional(),
 });
 
-export type CommandConfig = z.infer<typeof CommandConfigSchema>;
+export type PromptConfig = z.infer<typeof PromptConfigSchema>;
 
 export const KeybindingsSchema = z
 	.object({
@@ -37,50 +37,32 @@ export const KeybindingsSchema = z
 
 export type KeybindingsConfig = z.infer<typeof KeybindingsSchema>;
 
+function buildDefaultPromptConfig() {
+	return {
+		provider: DEFAULT_PROVIDER,
+		model: DEFAULT_MODEL,
+		temperature: DEFAULT_TEMPERATURE,
+		maxTokens: DEFAULT_MAX_TOKENS,
+	};
+}
+
 export const ConfigSchema = z.object({
 	providers: z.array(ProviderSchema).default([]),
 	keybindings: KeybindingsSchema,
 	prompts: z
 		.object({
-			explain: CommandConfigSchema.default({
-				provider: DEFAULT_PROVIDER,
-				model: DEFAULT_MODEL,
-				temperature: DEFAULT_TEMPERATURE,
-				maxTokens: DEFAULT_MAX_TOKENS,
-			}),
-			suggest: CommandConfigSchema.default({
-				provider: DEFAULT_PROVIDER,
-				model: DEFAULT_MODEL,
-				temperature: DEFAULT_TEMPERATURE,
-				maxTokens: DEFAULT_MAX_TOKENS,
-			}),
-			generate: CommandConfigSchema.default({
-				provider: DEFAULT_PROVIDER,
-				model: DEFAULT_MODEL,
-				temperature: DEFAULT_TEMPERATURE,
-				maxTokens: DEFAULT_MAX_TOKENS,
-			}),
+			explain: PromptConfigSchema.default(buildDefaultPromptConfig()),
+			suggest: PromptConfigSchema.default(buildDefaultPromptConfig()),
+			generate: PromptConfigSchema.default(buildDefaultPromptConfig()),
+			describeTokens: PromptConfigSchema.default(buildDefaultPromptConfig()),
 		})
 		.default({
-			explain: {
-				provider: DEFAULT_PROVIDER,
-				model: DEFAULT_MODEL,
-				temperature: DEFAULT_TEMPERATURE,
-				maxTokens: DEFAULT_MAX_TOKENS,
-			},
-			suggest: {
-				provider: DEFAULT_PROVIDER,
-				model: DEFAULT_MODEL,
-				temperature: DEFAULT_TEMPERATURE,
-				maxTokens: DEFAULT_MAX_TOKENS,
-			},
-			generate: {
-				provider: DEFAULT_PROVIDER,
-				model: DEFAULT_MODEL,
-				temperature: DEFAULT_TEMPERATURE,
-				maxTokens: DEFAULT_MAX_TOKENS,
-			},
+			explain: buildDefaultPromptConfig(),
+			suggest: buildDefaultPromptConfig(),
+			generate: buildDefaultPromptConfig(),
+			describeTokens: buildDefaultPromptConfig(),
 		}),
 });
+export type PromptName = keyof z.infer<typeof ConfigSchema>["prompts"];
 
 export type Config = z.infer<typeof ConfigSchema>;

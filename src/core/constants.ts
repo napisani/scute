@@ -1,7 +1,7 @@
 export const DEFAULT_PROVIDER = "openai";
 export const DEFAULT_MODEL = "gpt-4o-mini";
 export const DEFAULT_TEMPERATURE = 0.7;
-export const DEFAULT_MAX_TOKENS = 1000;
+export const DEFAULT_MAX_TOKENS = 128_000;
 
 export const SYSTEM_PROMPTS = {
 	suggest: `
@@ -21,4 +21,7 @@ The user will provide a natural language prompt describing a task.
 Generate the single, most likely shell command that achieves their goal. 
 Output only the command itself, with no additional explanation or formatting.
 `.trim(),
+	describeTokens: `
+You are a command-line expert. Respond with strict JSON: {"descriptions": [string]}. The array must match the number and order of tokens.
+  `.trim(),
 };
