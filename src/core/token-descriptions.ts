@@ -33,7 +33,7 @@ export async function fetchTokenDescriptions(
 	const sourceHash = hashSource([
 		manSections.name,
 		manSections.synopsis,
-		manSections.options,
+		manSections.description,
 		context7Docs,
 	]);
 
@@ -53,7 +53,7 @@ export async function fetchTokenDescriptions(
 			{
 				name: manSections.name,
 				synopsis: manSections.synopsis,
-				options: manSections.options,
+				description: manSections.description,
 				docs: context7Docs,
 			},
 		);

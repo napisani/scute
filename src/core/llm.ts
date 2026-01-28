@@ -170,7 +170,7 @@ export async function explain(commandLine: string): Promise<string> {
 export type TokenDescriptionContext = {
 	name?: string;
 	synopsis?: string;
-	options?: string;
+	description?: string;
 	docs?: string | null;
 };
 
@@ -185,7 +185,7 @@ export async function fetchTokenDescriptionsFromLlm(
 	const contextChunks = [
 		context.name ? `NAME\n${context.name}` : null,
 		context.synopsis ? `SYNOPSIS\n${context.synopsis}` : null,
-		context.options ? `OPTIONS\n${context.options}` : null,
+		context.description ? `DESCRIPTION\n${context.description}` : null,
 		context.docs ? `DOCS\n${context.docs}` : null,
 	].filter(Boolean);
 	const userPrompt = JSON.stringify(
