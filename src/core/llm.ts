@@ -12,7 +12,6 @@ import { type ManPage, manPageToContextString } from "./manpage";
 import {
 	getDescribeTokensPrompt,
 	getExplainSystemPrompt,
-	getGenerateSystemPrompt,
 	getSuggestSystemPrompt,
 } from "./prompts";
 import type { ParsedCommand, ParsedToken } from "./shells/common";
@@ -89,21 +88,25 @@ function getAdapter(promptName: PromptName, model: string) {
 
 	switch (providerName) {
 		case "anthropic":
+			logDebug(`Using Anthropics adapter with model: ${model}`);
 			return anthropicText(model as Parameters<typeof anthropicText>[0], {
 				apiKey: resolvedApiKey,
 				baseUrl: resolvedBaseUrl,
 			});
 		case "openai":
+			logDebug(`Using OpenAI adapter with model: ${model}`);
 			return openaiText(model as Parameters<typeof openaiText>[0], {
 				apiKey: resolvedApiKey,
 				baseUrl: resolvedBaseUrl,
 			});
 		case "gemini":
+			logDebug(`Using Gemini adapter with model: ${model}`);
 			return geminiText(model as Parameters<typeof geminiText>[0], {
 				apiKey: resolvedApiKey,
 				baseUrl: resolvedBaseUrl,
 			});
 		case "ollama":
+			logDebug(`Using Ollama adapter with model: ${model}`);
 			return createOllamaChat(
 				model as Parameters<typeof ollamaText>[0],
 				resolvedBaseUrl,
@@ -197,7 +200,7 @@ export async function fetchTokenDescriptionsFromLlm({
 
 	const userPrompt = JSON.stringify(
 		{
-			parsedTokens: parsedTokens.map((token) => (token.value)),
+			parsedTokens: parsedTokens.map((token) => token.value),
 			context,
 		},
 		null,
@@ -247,11 +250,7 @@ async function requestJsonFromLlm(
 		}
 		return response.descriptions;
 	} catch (e: unknown) {
-		if (!(e instanceof Error)) {
-			logDebug(`requestJsonFromLlm:error Unknown error: ${JSON.stringify(e)}`);
-		} else {
-			logDebug(`requestJsonFromLlm:error ${e.message}: ${e.stack}`);
-		}
+		logDebug(`requestJsonFromLlm:error Unknown error: ${JSON.stringify(e)}`);
 		return null;
 	}
 }

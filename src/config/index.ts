@@ -24,7 +24,17 @@ export function loadConfig(): Config {
 	}
 }
 
-export const config = loadConfig();
+let config = loadConfig();
+
+export function setConfigOverride(override?: Config): void {
+	config = override ?? loadConfig();
+}
+
+export function resetConfigOverride(): void {
+	config = loadConfig();
+}
+
+export { config };
 
 export type KeybindingAction = "up" | "down";
 

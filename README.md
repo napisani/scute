@@ -90,6 +90,18 @@ export BRASH_DEBUG=1
 tail -f /tmp/brash.log
 ```
 
+## Testing
+
+Test files use the `.test.ts` suffix. Evaluation tests use `.eval.test.ts` and live in the `evals/` directory.
+
+```sh
+# Run standard unit tests
+bun run test
+
+# Run evaluation tests
+bun run test:evals
+```
+
 ## Usage
 
 Once installed and configured, you can use the following keyboard shortcuts in your terminal:

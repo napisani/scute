@@ -78,3 +78,8 @@ export function saveDescriptions(
 		);
 	}
 }
+
+export function clearCache(): void {
+	const db = getDb();
+	db.exec("DELETE FROM token_descriptions;");
+}
