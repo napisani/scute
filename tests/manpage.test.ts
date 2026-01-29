@@ -8,7 +8,7 @@ describe("man page parsing", () => {
 		it(`parses options for ${command}`, () => {
 			const page = getManPage(command);
 			expect(page).not.toBeNull();
-			const sections = extractManSections(page as string);
+			const sections = extractManSections(command, page as string);
 			expect(sections.parsedOptions).toBeDefined();
 			expect(sections.parsedOptions?.length ?? 0).toBeGreaterThan(0);
 		});

@@ -197,8 +197,7 @@ export async function fetchTokenDescriptionsFromLlm({
 
 	const userPrompt = JSON.stringify(
 		{
-			originalCommand: parsedCommand.originalCommand,
-			parsedTokens,
+			parsedTokens: parsedTokens.map((token) => (token.value)),
 			context,
 		},
 		null,

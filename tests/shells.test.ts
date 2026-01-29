@@ -32,13 +32,11 @@ describe("shell parsing", () => {
 						const tokens = module.tokenizeInput("grep -f file pattern");
 						const parsed = module.parseTokens(tokens);
 						expect(parsed.map((token: { type: string }) => token.type)).toEqual(
-							["command", "option", "argument"],
+							["command", "option", "argument", "argument"],
 						);
-						expect(parsed[1]).toMatchObject({
-							value: "-f",
-							optionValue: "file",
-						});
-						expect(parsed[2]).toMatchObject({ value: "pattern" });
+						expect(parsed[1]).toMatchObject({ value: "-f" });
+						expect(parsed[2]).toMatchObject({ value: "file" });
+						expect(parsed[3]).toMatchObject({ value: "pattern" });
 					},
 				);
 			});

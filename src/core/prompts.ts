@@ -52,10 +52,10 @@ ${responseStructure}
 Your task is to analyze the provided ${shell} command, which has already parsed into its individual tokens.
 ONLY provide descriptions for the parsed tokens provided. The result should contain a description for every token in the parsedTokens array. 
 If you can't describe a token, provide an empty string as its description. 
-ALWAYS provide a description for every token, even if it's an empty string.
+ALWAYS provide a description for every token, if you can't describe it, use an empty string.
+The length of the descriptions array MUST match the length of the parsedTokens array.
 You will be provided with the following context:
-originalCommand: the full original, shell command.
-parsedTokens: an array of objects representing each token in the command
+parsedTokens: an array of strings representing each token in the command
 context: relevant man pages and relevant documentation exerps available for any of the identifiable commands. 
 `.trim();
 }

@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto";
 import { getCachedDescriptions, saveDescriptions } from "./cache";
-import { fetchCommandDocs } from "./context7";
 import { fetchTokenDescriptionsFromLlm } from "./llm";
 import { logDebug } from "./logger";
 import { extractManSections, getManPage, type ManPage } from "./manpage";
@@ -23,23 +22,22 @@ export async function fetchTokenDescriptions(
 	parsedCommand: ParsedCommand,
 ): Promise<string[]> {
 	const parsedTokens = parseTokens(parsedCommand.tokens);
-	const commandToken = parsedTokens.find(
-		(token: ParsedToken) => token.type === "command",
+	const commandNames = Array.from(
+		new Set(
+			parsedTokens
+				.filter((token: ParsedToken) => token.type === "command")
+				.map((token) => token.value),
+		),
 	);
-	const manPage = commandToken ? getManPage(commandToken.value) : null;
-	const parsedManPage: ManPage | null =
-		manPage && commandToken
-			? extractManSections(commandToken.value, manPage)
-			: null;
-	const context7Docs = commandToken
-		? await fetchCommandDocs(commandToken.value)
-		: null;
-	const sourceHash = hashSource([
-		parsedManPage?.name,
-		parsedManPage?.synopsis,
-		parsedManPage?.description,
-		context7Docs,
-	]);
+	const manPages = commandNames
+		.map((commandName) => {
+			const manPage = getManPage(commandName);
+			return manPage ? extractManSections(commandName, manPage) : null;
+		})
+		.filter((page): page is ManPage => !!page);
+	const sourceHash = hashSource(
+		manPages.flatMap((page) => [page.name, page.synopsis, page.description]),
+	);
 
 	const cached = getCachedDescriptions(parsedCommand, sourceHash);
 	if (cached) {
@@ -55,7 +53,7 @@ export async function fetchTokenDescriptions(
 		const llmDescriptions = await fetchTokenDescriptionsFromLlm({
 			parsedCommand,
 			parsedTokens,
-			manPages: parsedManPage ? [parsedManPage] : [],
+			manPages,
 		});
 		logDebug(`LLM descriptions: ${JSON.stringify(llmDescriptions, null, 2)}`);
 		if (llmDescriptions) {
@@ -65,7 +63,7 @@ export async function fetchTokenDescriptions(
 
 	for (let i = 0; i < rawDescriptions.length; i++) {
 		if (!rawDescriptions[i]) {
-			rawDescriptions[i] = parsedCommand.tokens[i] ?? "";
+			rawDescriptions[i] = "(no description available)";
 		}
 	}
 
@@ -93,18 +91,12 @@ function applyStaticDescriptions(
 	logDebug(
 		`Initial raw descriptions: ${JSON.stringify(rawDescriptions, null, 2)}`,
 	);
-	let rawIndex = 0;
-	for (const token of parsedTokens) {
+	parsedTokens.forEach((token, index) => {
 		const staticDescription = getStaticTokenDescription(token);
 		if (staticDescription) {
-			rawDescriptions[rawIndex] = staticDescription;
+			rawDescriptions[index] = staticDescription;
 		}
-		if (token.optionValue) {
-			rawIndex += 2;
-			continue;
-		}
-		rawIndex += 1;
-	}
+	});
 	logDebug(
 		`Final raw descriptions after static application: ${JSON.stringify(rawDescriptions, null, 2)}`,
 	);
@@ -115,24 +107,13 @@ function mergeDescriptions(
 	llmDescriptions: string[],
 	parsedTokens: ParsedToken[],
 ): void {
-	let rawIndex = 0;
-	for (const token of parsedTokens) {
+	parsedTokens.forEach((token, index) => {
 		const staticDescription = getStaticTokenDescription(token);
 		if (!staticDescription) {
-			rawDescriptions[rawIndex] =
-				llmDescriptions[rawIndex] ?? rawDescriptions[rawIndex] ?? "";
+			rawDescriptions[index] =
+				llmDescriptions[index] ?? rawDescriptions[index] ?? "";
 		}
-		if (token.optionValue) {
-			const valueIndex = rawIndex + 1;
-			if (!staticDescription) {
-				rawDescriptions[valueIndex] =
-					llmDescriptions[valueIndex] ?? rawDescriptions[valueIndex] ?? "";
-			}
-			rawIndex += 2;
-			continue;
-		}
-		rawIndex += 1;
-	}
+	});
 	logDebug(
 		`Final raw descriptions after merging LLM: ${JSON.stringify(rawDescriptions, null, 2)}`,
 	);

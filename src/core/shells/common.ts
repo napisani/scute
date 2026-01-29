@@ -17,7 +17,6 @@ export type TokenType =
 export type ParsedToken = {
 	value: string;
 	type: TokenType;
-	optionValue?: string;
 };
 
 export type ParsedCommand = {
@@ -129,11 +128,13 @@ function refineTokens(rawTokens: RawToken[]): ParsedToken[] {
 			if (isPipeOperator(token.raw)) {
 				parsed.push({ value: token.raw, type: "pipe" });
 				expectingCommand = true;
+				commandSeen = false;
 				continue;
 			}
 			if (isControlOperator(token.raw)) {
 				parsed.push({ value: token.raw, type: "controlOperator" });
 				expectingCommand = true;
+				commandSeen = false;
 				continue;
 			}
 			if (isRedirectOperator(token.raw)) {
@@ -162,20 +163,6 @@ function refineTokens(rawTokens: RawToken[]): ParsedToken[] {
 		}
 
 		if (token.raw.startsWith("-")) {
-			const nextToken = rawTokens[i + 1];
-			if (
-				nextToken &&
-				nextToken.kind === "word" &&
-				!nextToken.raw.startsWith("-")
-			) {
-				parsed.push({
-					value: token.raw,
-					type: "option",
-					optionValue: nextToken.raw,
-				});
-				i++;
-				continue;
-			}
 			parsed.push({ value: token.raw, type: "option" });
 			continue;
 		}

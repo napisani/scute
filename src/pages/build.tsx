@@ -10,35 +10,15 @@ type BuildAppProps = {
 };
 
 function formatToken(token: ParsedToken): string {
-	return token.optionValue
-		? `${token.value} ${token.optionValue}`
-		: token.value;
+	return token.value;
 }
 
 function formatTokenType(token: ParsedToken): string {
-	return token.optionValue ? "option+value" : token.type;
+	return token.type;
 }
 
-function mapDescriptions(
-	rawDescriptions: string[],
-	parsedTokens: ParsedToken[],
-): string[] {
-	const mapped: string[] = [];
-	let index = 0;
-	for (const token of parsedTokens) {
-		if (token.optionValue) {
-			const optionDescription = rawDescriptions[index] ?? "";
-			const valueDescription = rawDescriptions[index + 1] ?? "";
-			mapped.push(
-				[optionDescription, valueDescription].filter(Boolean).join(" "),
-			);
-			index += 2;
-			continue;
-		}
-		mapped.push(rawDescriptions[index] ?? "");
-		index += 1;
-	}
-	return mapped;
+function mapDescriptions(rawDescriptions: string[]): string[] {
+	return rawDescriptions;
 }
 
 export function BuildApp({ command }: BuildAppProps) {
@@ -71,14 +51,14 @@ export function BuildApp({ command }: BuildAppProps) {
 		const loadDescriptions = async () => {
 			const results = await fetchTokenDescriptions(command);
 			if (!cancelled) {
-				setDescriptions(mapDescriptions(results, parsedTokens));
+				setDescriptions(mapDescriptions(results));
 			}
 		};
 		loadDescriptions();
 		return () => {
 			cancelled = true;
 		};
-	}, [command, parsedTokens]);
+	}, [command]);
 
 	useEffect(() => {
 		setSelectedIndex((index) =>
@@ -107,7 +87,7 @@ export function BuildApp({ command }: BuildAppProps) {
 				const label = formatToken(token);
 				const typeLabel = formatTokenType(token);
 				const isSelected = index === selectedIndex;
-				const key = `${token.type}-${label}-${token.optionValue ?? ""}`;
+				const key = `${token.type}-${label}-${index}`;
 				return (
 					<box key={key} style={{ flexDirection: "row" }}>
 						<text fg={isSelected ? "cyan" : undefined}>
