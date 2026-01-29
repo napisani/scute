@@ -2,7 +2,8 @@ import { createHash } from "node:crypto";
 import { getCachedDescriptions, saveDescriptions } from "./cache";
 import { fetchCommandDocs } from "./context7";
 import { fetchTokenDescriptionsFromLlm } from "./llm";
-import { extractManSections, getManPage } from "./manpage";
+import { logDebug } from "./logger";
+import { extractManSections, getManPage, type ManPage } from "./manpage";
 import { parseTokens } from "./shells";
 import type { ParsedCommand, ParsedToken } from "./shells/common";
 
@@ -26,14 +27,17 @@ export async function fetchTokenDescriptions(
 		(token: ParsedToken) => token.type === "command",
 	);
 	const manPage = commandToken ? getManPage(commandToken.value) : null;
-	const manSections = manPage ? extractManSections(manPage) : {};
+	const parsedManPage: ManPage | null =
+		manPage && commandToken
+			? extractManSections(commandToken.value, manPage)
+			: null;
 	const context7Docs = commandToken
 		? await fetchCommandDocs(commandToken.value)
 		: null;
 	const sourceHash = hashSource([
-		manSections.name,
-		manSections.synopsis,
-		manSections.description,
+		parsedManPage?.name,
+		parsedManPage?.synopsis,
+		parsedManPage?.description,
 		context7Docs,
 	]);
 
@@ -47,16 +51,13 @@ export async function fetchTokenDescriptions(
 
 	const hasMissing = rawDescriptions.some((description) => !description);
 	if (hasMissing) {
-		const llmDescriptions = await fetchTokenDescriptionsFromLlm(
+		logDebug("Fetching token descriptions from LLM");
+		const llmDescriptions = await fetchTokenDescriptionsFromLlm({
 			parsedCommand,
 			parsedTokens,
-			{
-				name: manSections.name,
-				synopsis: manSections.synopsis,
-				description: manSections.description,
-				docs: context7Docs,
-			},
-		);
+			manPages: parsedManPage ? [parsedManPage] : [],
+		});
+		logDebug(`LLM descriptions: ${JSON.stringify(llmDescriptions, null, 2)}`);
 		if (llmDescriptions) {
 			mergeDescriptions(rawDescriptions, llmDescriptions, parsedTokens);
 		}
@@ -87,6 +88,11 @@ function applyStaticDescriptions(
 	rawDescriptions: string[],
 	parsedTokens: ParsedToken[],
 ): void {
+	logDebug("Applying static descriptions to tokens");
+	logDebug(`Parsed tokens: ${JSON.stringify(parsedTokens, null, 2)}`);
+	logDebug(
+		`Initial raw descriptions: ${JSON.stringify(rawDescriptions, null, 2)}`,
+	);
 	let rawIndex = 0;
 	for (const token of parsedTokens) {
 		const staticDescription = getStaticTokenDescription(token);
@@ -99,6 +105,9 @@ function applyStaticDescriptions(
 		}
 		rawIndex += 1;
 	}
+	logDebug(
+		`Final raw descriptions after static application: ${JSON.stringify(rawDescriptions, null, 2)}`,
+	);
 }
 
 function mergeDescriptions(
@@ -124,4 +133,7 @@ function mergeDescriptions(
 		}
 		rawIndex += 1;
 	}
+	logDebug(
+		`Final raw descriptions after merging LLM: ${JSON.stringify(rawDescriptions, null, 2)}`,
+	);
 }

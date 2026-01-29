@@ -6,9 +6,15 @@ import { openaiText } from "@tanstack/ai-openai";
 import { z } from "zod";
 import { config } from "../config";
 import type { PromptName } from "../config/schema";
-import { SYSTEM_PROMPTS } from "./constants";
 import { getEnv } from "./environment";
 import { logDebug } from "./logger";
+import { type ManPage, manPageToContextString } from "./manpage";
+import {
+	getDescribeTokensPrompt,
+	getExplainSystemPrompt,
+	getGenerateSystemPrompt,
+	getSuggestSystemPrompt,
+} from "./prompts";
 import type { ParsedCommand, ParsedToken } from "./shells/common";
 
 const tokenDescriptionsSchema = z.object({
@@ -52,10 +58,13 @@ function resolveBaseUrl(promptName: PromptName) {
 	return undefined;
 }
 
-function resolveSystemPrompt(promptName: PromptName) {
+function resolveSystemPrompt(
+	promptName: PromptName,
+	defaultSystemPrompt: string,
+) {
 	const promptConfig = config.prompts[promptName];
 	return sanitizePrompt(
-		promptConfig.systemPromptOverride || SYSTEM_PROMPTS[promptName],
+		promptConfig.systemPromptOverride ?? defaultSystemPrompt,
 	);
 }
 
@@ -110,11 +119,11 @@ function getAdapter(promptName: PromptName, model: string) {
 async function generateText(
 	promptName: PromptName,
 	userPrompt: string,
+	systemPrompt: string,
 ): Promise<string> {
 	try {
 		const promptConfig = config.prompts[promptName];
 		const model = promptConfig.model;
-		const systemPrompt = resolveSystemPrompt(promptName);
 
 		const fullUserPrompt = resolveUserPrompt(promptName, userPrompt);
 
@@ -151,7 +160,7 @@ async function generateText(
  */
 export async function suggest(commandLine: string): Promise<string> {
 	logDebug(`suggest:received line="${commandLine}"`);
-	return generateText("suggest", commandLine);
+	return generateText("suggest", commandLine, getSuggestSystemPrompt());
 }
 
 /**
@@ -164,56 +173,57 @@ export async function explain(commandLine: string): Promise<string> {
 	}
 
 	logDebug(`explain:line="${commandLine}"`);
-	return generateText("explain", commandLine);
+	return generateText("explain", commandLine, getExplainSystemPrompt());
 }
 
-export type TokenDescriptionContext = {
-	name?: string;
-	synopsis?: string;
-	description?: string;
-	docs?: string | null;
-};
-
-export async function fetchTokenDescriptionsFromLlm(
-	parsedCommand: ParsedCommand,
-	parsedTokens: ParsedToken[],
-	context: TokenDescriptionContext,
-): Promise<string[] | null> {
+export async function fetchTokenDescriptionsFromLlm({
+	parsedCommand,
+	parsedTokens,
+	manPages,
+}: {
+	parsedCommand: ParsedCommand;
+	parsedTokens: ParsedToken[];
+	manPages: ManPage[];
+}): Promise<string[] | null> {
 	const promptConfig = config.prompts.explain;
-	const adapter = getAdapter("explain", promptConfig.model);
-	const systemPrompt = resolveSystemPrompt("describeTokens");
-	const contextChunks = [
-		context.name ? `NAME\n${context.name}` : null,
-		context.synopsis ? `SYNOPSIS\n${context.synopsis}` : null,
-		context.description ? `DESCRIPTION\n${context.description}` : null,
-		context.docs ? `DOCS\n${context.docs}` : null,
-	].filter(Boolean);
+	const promptType = "describeTokens";
+	const adapter = getAdapter(promptType, promptConfig.model);
+	const defaultSystemPrompt = getDescribeTokensPrompt({
+		responseStructure: "{descriptions: [string]}",
+	});
+
+	const systemPrompt = resolveSystemPrompt(promptType, defaultSystemPrompt);
+	const context = manPages.map(manPageToContextString).join("\n\n");
+
 	const userPrompt = JSON.stringify(
 		{
 			originalCommand: parsedCommand.originalCommand,
-			tokens: parsedCommand.tokens,
 			parsedTokens,
-			context: contextChunks.join("\n\n"),
+			context,
 		},
 		null,
 		2,
 	);
 
+	logDebug(`fetchTokenDescriptionsFromLlm:systemPrompt="${systemPrompt}"`);
+	logDebug(`fetchTokenDescriptionsFromLlm:userPrompt="${userPrompt}"`);
+	logDebug(
+		`fetchTokenDescriptionsFromLlm:expectedTokens=${parsedCommand.tokens.length}`,
+	);
 	const response = await requestJsonFromLlm(
 		adapter,
 		systemPrompt,
 		userPrompt,
-		parsedCommand.tokens.length,
+		parsedTokens.length,
 	);
-	if (response) {
-		return response;
-	}
-	return await requestJsonFromLlm(
-		adapter,
-		systemPrompt,
-		userPrompt,
-		parsedCommand.tokens.length,
+	logDebug(
+		`fetchTokenDescriptionsFromLlm:response=${JSON.stringify(
+			response,
+			null,
+			2,
+		)}`,
 	);
+	return response;
 }
 
 async function requestJsonFromLlm(
@@ -229,7 +239,11 @@ async function requestJsonFromLlm(
 			outputSchema: tokenDescriptionsSchema,
 			stream: false,
 		});
+		logDebug(`requestJsonFromLlm: Raw response: ${JSON.stringify(response)}`);
 		if (response.descriptions.length !== expectedLength) {
+			logDebug(
+				`requestJsonFromLlm: Unexpected number of descriptions. Expected ${expectedLength}, got ${response.descriptions.length}`,
+			);
 			return null;
 		}
 		return response.descriptions;

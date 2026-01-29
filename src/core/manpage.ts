@@ -6,11 +6,13 @@ export type ParsedManPageOption = {
 	description: string;
 };
 
-export type ManPageSections = {
+export type ManPage = {
+	command: string;
 	name?: string;
 	synopsis?: string;
 	description?: string;
 	parsedOptions?: ParsedManPageOption[];
+	fullText: string;
 };
 
 export function getManPage(command: string): string | null {
@@ -21,11 +23,11 @@ export function getManPage(command: string): string | null {
 	return result.stdout;
 }
 
-export function extractManSections(text: string): ManPageSections {
-	const sections: ManPageSections = {};
-	const cleaned = stripFormatting(text);
+export function extractManSections(command: string, fullText: string): ManPage {
+	const sections: ManPage = { command, fullText };
+	const cleaned = stripFormatting(fullText);
 	const lines = cleaned.split("\n");
-	let currentSection: keyof ManPageSections | null = null;
+	let currentSection: keyof ManPage | null = null;
 
 	for (const line of lines) {
 		const trimmed = line.trim();
@@ -114,4 +116,10 @@ export function parseManOptions(text: string): ParsedManPageOption[] {
 		});
 	}
 	return options;
+}
+
+export function manPageToContextString(man: ManPage): string {
+	let context = "Man page information for `" + man.command + "`:\n";
+	context += stripFormatting(man.fullText);
+	return context;
 }
