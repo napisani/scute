@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import yaml from "js-yaml";
+import type { TokenType } from "../core/shells/common";
 import { type Config, ConfigSchema } from "./schema";
 
 const CONFIG_DIR = path.join(os.homedir(), ".config", "brash");
@@ -26,14 +27,30 @@ export function loadConfig(): Config {
 
 export const config = loadConfig();
 
-export type KeybindingAction = "up" | "down";
+export type KeybindingAction = "up" | "down" | "explain";
 
 const defaultKeybindings: Record<KeybindingAction, string[]> = {
 	up: ["up", "k"],
 	down: ["down", "j"],
+	explain: ["e"],
+};
+
+const defaultTokenColors: Record<TokenType, string> = {
+	command: "#A6E3A1",
+	option: "#FAB387",
+	argument: "#89B4FA",
+	assignment: "#CBA6F7",
+	pipe: "#94E2D5",
+	controlOperator: "#F38BA8",
+	redirect: "#CDD6F4",
+	unknown: "#6C7086",
 };
 
 export function getKeybindings(action: KeybindingAction): string[] {
 	const configured = config.keybindings?.[action];
 	return configured?.length ? configured : defaultKeybindings[action];
+}
+
+export function getTokenColor(tokenType: TokenType): string {
+	return config.tokenColors?.[tokenType] ?? defaultTokenColors[tokenType];
 }
