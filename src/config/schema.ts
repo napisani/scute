@@ -30,11 +30,37 @@ export const KeybindingsSchema = z
 	.object({
 		up: z.array(z.string()).default(["up", "k"]),
 		down: z.array(z.string()).default(["down", "j"]),
+		explain: z.array(z.string()).default(["e"]),
 	})
 	.default({
 		up: ["up", "k"],
 		down: ["down", "j"],
+		explain: ["e"],
 	});
+
+export const TokenColorsSchema = z
+	.object({
+		command: z.string().default("#A6E3A1"),
+		option: z.string().default("#FAB387"),
+		argument: z.string().default("#89B4FA"),
+		assignment: z.string().default("#CBA6F7"),
+		pipe: z.string().default("#94E2D5"),
+		controlOperator: z.string().default("#F38BA8"),
+		redirect: z.string().default("#CDD6F4"),
+		unknown: z.string().default("#6C7086"),
+	})
+	.default({
+		command: "#A6E3A1",
+		option: "#FAB387",
+		argument: "#89B4FA",
+		assignment: "#CBA6F7",
+		pipe: "#94E2D5",
+		controlOperator: "#F38BA8",
+		redirect: "#CDD6F4",
+		unknown: "#6C7086",
+	});
+
+export type TokenColorsConfig = z.infer<typeof TokenColorsSchema>;
 
 export type KeybindingsConfig = z.infer<typeof KeybindingsSchema>;
 
@@ -50,6 +76,7 @@ function buildDefaultPromptConfig() {
 export const ConfigSchema = z.object({
 	providers: z.array(ProviderSchema).default([]),
 	keybindings: KeybindingsSchema,
+	tokenColors: TokenColorsSchema,
 	prompts: z
 		.object({
 			explain: PromptConfigSchema.default(buildDefaultPromptConfig()),
