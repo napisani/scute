@@ -1,3 +1,4 @@
+import { getThemeColorFor } from "../config";
 import type { ColoredToken } from "../hooks/useColoredTokens";
 import type { TokenWidths } from "../hooks/useTokenWidth";
 import { formatToken, formatTokenType } from "../utils/tokenFormatters";
@@ -14,6 +15,7 @@ export function TokenListView({
 	tokenWidths,
 }: TokenListViewProps) {
 	const { typeWidth, tokenWidth } = tokenWidths;
+	const descriptionColor = getThemeColorFor("tokenDescription");
 
 	return (
 		<scrollbox height="100%">
@@ -30,7 +32,7 @@ export function TokenListView({
 							{typeLabel.padEnd(typeWidth + 2, " ")}
 							{label.padEnd(tokenWidth + 2, " ")}
 						</text>
-						<text fg={color}>{description}</text>
+						<text fg={descriptionColor}>{description}</text>
 					</box>
 				);
 			})}

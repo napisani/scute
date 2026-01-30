@@ -64,6 +64,27 @@ export const TokenColorsSchema = z
 
 export type TokenColorsConfig = z.infer<typeof TokenColorsSchema>;
 
+export const ThemeSchema = z
+	.object({
+		tokenColors: TokenColorsSchema,
+		tokenDescription: z.string().default("#CDD6F4"),
+	})
+	.default({
+		tokenColors: {
+			command: "#A6E3A1",
+			option: "#FAB387",
+			argument: "#89B4FA",
+			assignment: "#CBA6F7",
+			pipe: "#94E2D5",
+			controlOperator: "#F38BA8",
+			redirect: "#CDD6F4",
+			unknown: "#6C7086",
+		},
+		tokenDescription: "#CDD6F4",
+	});
+
+export type ThemeConfig = z.infer<typeof ThemeSchema>;
+
 export type KeybindingsConfig = z.infer<typeof KeybindingsSchema>;
 
 function buildDefaultPromptConfig() {
@@ -78,7 +99,7 @@ function buildDefaultPromptConfig() {
 export const ConfigSchema = z.object({
 	providers: z.array(ProviderSchema).default([]),
 	keybindings: KeybindingsSchema,
-	tokenColors: TokenColorsSchema,
+	theme: ThemeSchema,
 	prompts: z
 		.object({
 			explain: PromptConfigSchema.default(buildDefaultPromptConfig()),

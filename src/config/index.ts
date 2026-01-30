@@ -5,7 +5,7 @@ import yaml from "js-yaml";
 import { SUPPORTED_PROVIDERS } from "../core/constants";
 import { getEnv, resetEnvGetter, setEnvGetter } from "../core/environment";
 import type { TokenType } from "../core/shells/common";
-import type { PromptName } from "./schema";
+import type { PromptName, ThemeConfig } from "./schema";
 import { type Config, ConfigSchema } from "./schema";
 
 const CONFIG_DIR = path.join(os.homedir(), ".config", "brash");
@@ -111,13 +111,26 @@ const defaultTokenColors: Record<TokenType, string> = {
 	unknown: "#6C7086",
 };
 
+const defaultTheme: ThemeConfig = {
+	tokenColors: defaultTokenColors,
+	tokenDescription: "#CDD6F4",
+};
+
 export function getKeybindings(action: KeybindingAction): string[] {
 	const configured = config.keybindings?.[action];
 	return configured?.length ? [...configured] : [...defaultKeybindings[action]];
 }
 
 export function getTokenColor(tokenType: TokenType): string {
-	return config.tokenColors?.[tokenType] ?? defaultTokenColors[tokenType];
+	return (
+		config.theme?.tokenColors?.[tokenType] ?? defaultTokenColors[tokenType]
+	);
+}
+
+export type ThemeColorAttribute = Exclude<keyof ThemeConfig, "tokenColors">;
+
+export function getThemeColorFor(attr: ThemeColorAttribute): string {
+	return config.theme?.[attr] ?? defaultTheme[attr];
 }
 
 export function getPromptConfig(name: PromptName) {
