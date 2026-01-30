@@ -12,7 +12,7 @@ describe("shell parsing", () => {
 		describe(shell, () => {
 			it("identifies shell and tokenizes", async () => {
 				await withMockedEnv(
-					{ BRASH_SHELL: shell, SHELL: `/bin/${shell}` },
+					{ env: { BRASH_SHELL: shell, SHELL: `/bin/${shell}` } },
 					async () => {
 						const module = await loadShellModule(shell);
 						module.resetShellCache();
@@ -25,7 +25,7 @@ describe("shell parsing", () => {
 
 			it("parses options and arguments", async () => {
 				await withMockedEnv(
-					{ BRASH_SHELL: shell, SHELL: `/bin/${shell}` },
+					{ env: { BRASH_SHELL: shell, SHELL: `/bin/${shell}` } },
 					async () => {
 						const module = await loadShellModule(shell);
 						module.resetShellCache();
@@ -43,7 +43,7 @@ describe("shell parsing", () => {
 
 			it("parses pipes, control operators, and redirects", async () => {
 				await withMockedEnv(
-					{ BRASH_SHELL: shell, SHELL: `/bin/${shell}` },
+					{ env: { BRASH_SHELL: shell, SHELL: `/bin/${shell}` } },
 					async () => {
 						const module = await loadShellModule(shell);
 						module.resetShellCache();
@@ -72,9 +72,11 @@ describe("shell parsing", () => {
 			it("exposes readline helpers", async () => {
 				await withMockedEnv(
 					{
-						BRASH_SHELL: shell,
-						SHELL: `/bin/${shell}`,
-						READLINE_LINE: "ls -la",
+						env: {
+							BRASH_SHELL: shell,
+							SHELL: `/bin/${shell}`,
+							READLINE_LINE: "ls -la",
+						},
 					},
 					async () => {
 						const module = await loadShellModule(shell);
@@ -84,7 +86,7 @@ describe("shell parsing", () => {
 					},
 				);
 				await withMockedEnv(
-					{ BRASH_SHELL: shell, SHELL: `/bin/${shell}` },
+					{ env: { BRASH_SHELL: shell, SHELL: `/bin/${shell}` } },
 					async () => {
 						const module = await loadShellModule(shell);
 						module.resetShellCache();

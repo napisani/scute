@@ -4,7 +4,9 @@
 	"type": "module",
 	"scripts": {
 		"build": "bun build ./src/index.ts --compile --outfile brash",
-		"test": "bun test"
+		"test": "bun test tests --pattern \\\"\\.test\\.ts$\\\"",
+		"evals": "bun test evals --pattern \\\"\\.eval\\.test\\.ts$\\\"",
+		"test:evals": "bun test evals --pattern \\\"\\.eval\\.test\\.ts$\\\""
 	},
 	"private": true,
 	"devDependencies": {

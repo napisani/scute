@@ -2,11 +2,21 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import yaml from "js-yaml";
+import { SUPPORTED_PROVIDERS } from "../core/constants";
+import { getEnv, resetEnvGetter, setEnvGetter } from "../core/environment";
 import type { TokenType } from "../core/shells/common";
+import type { PromptName } from "./schema";
 import { type Config, ConfigSchema } from "./schema";
 
 const CONFIG_DIR = path.join(os.homedir(), ".config", "brash");
 const CONFIG_FILE = path.join(CONFIG_DIR, "config.yaml");
+
+type RuntimeEnv = {
+	brashDebug?: string;
+	brashShell?: string;
+	shell?: string;
+	readlineLine?: string;
+};
 
 export function loadConfig(): Config {
 	if (!fs.existsSync(CONFIG_FILE)) {
@@ -25,7 +35,61 @@ export function loadConfig(): Config {
 	}
 }
 
-export const config = loadConfig();
+let config = applyEnvOverrides(loadConfig());
+let runtimeEnv = loadRuntimeEnv();
+
+function loadRuntimeEnv(): RuntimeEnv {
+	return {
+		brashDebug: getEnv("BRASH_DEBUG"),
+		brashShell: getEnv("BRASH_SHELL"),
+		shell: getEnv("SHELL"),
+		readlineLine: getEnv("READLINE_LINE"),
+	};
+}
+
+function applyEnvOverrides(baseConfig: Config): Config {
+	const mergedProviders = [...baseConfig.providers];
+	for (const provider of SUPPORTED_PROVIDERS) {
+		const envValue = getEnv(
+			provider === "openai"
+				? "OPENAI_API_KEY"
+				: provider === "anthropic"
+					? "ANTHROPIC_API_KEY"
+					: provider === "gemini"
+						? "GEMINI_API_KEY"
+						: "OLLAMA_BASE_URL",
+		);
+		if (!envValue) {
+			continue;
+		}
+		const index = mergedProviders.findIndex((entry) => entry.name === provider);
+		const updated = {
+			name: provider,
+			apiKey: provider === "ollama" ? undefined : envValue,
+			baseUrl: provider === "ollama" ? envValue : undefined,
+		};
+		if (index >= 0) {
+			mergedProviders[index] = { ...mergedProviders[index], ...updated };
+		} else {
+			mergedProviders.push(updated);
+		}
+	}
+	return { ...baseConfig, providers: mergedProviders };
+}
+
+export function setConfigOverride(override?: Config): void {
+	config = applyEnvOverrides(override ?? loadConfig());
+	runtimeEnv = loadRuntimeEnv();
+}
+
+export function resetConfigOverride(): void {
+	config = applyEnvOverrides(loadConfig());
+	runtimeEnv = loadRuntimeEnv();
+}
+
+export function getConfigSnapshot(): Config {
+	return structuredClone(config);
+}
 
 export type KeybindingAction = "up" | "down" | "explain" | "toggleView";
 
@@ -49,9 +113,54 @@ const defaultTokenColors: Record<TokenType, string> = {
 
 export function getKeybindings(action: KeybindingAction): string[] {
 	const configured = config.keybindings?.[action];
-	return configured?.length ? configured : defaultKeybindings[action];
+	return configured?.length ? [...configured] : [...defaultKeybindings[action]];
 }
 
 export function getTokenColor(tokenType: TokenType): string {
 	return config.tokenColors?.[tokenType] ?? defaultTokenColors[tokenType];
 }
+
+export function getPromptConfig(name: PromptName) {
+	return { ...config.prompts[name] };
+}
+
+export function getProviders() {
+	return config.providers.map((provider) => ({ ...provider }));
+}
+
+export function getProviderConfig(name: string) {
+	const provider = config.providers.find((entry) => entry.name === name);
+	return provider ? { ...provider } : undefined;
+}
+
+export function getProviderApiKey(name: string): string | undefined {
+	return getProviderConfig(name)?.apiKey;
+}
+
+export function getProviderBaseUrl(name: string): string | undefined {
+	return getProviderConfig(name)?.baseUrl;
+}
+
+export function getShellName(): string | undefined {
+	const shell = runtimeEnv.brashShell ?? runtimeEnv.shell;
+	if (!shell) {
+		return undefined;
+	}
+	const parts = shell.split("/");
+	return parts[parts.length - 1] || shell;
+}
+
+export function getReadlineLine(): string | undefined {
+	return runtimeEnv.readlineLine;
+}
+
+export function hasReadlineLine(): boolean {
+	const line = getReadlineLine();
+	return !!line && line.length > 0;
+}
+
+export function isDebugMode(): boolean {
+	return runtimeEnv.brashDebug === "1";
+}
+
+export { resetEnvGetter, setEnvGetter };

@@ -4,10 +4,11 @@ import {
 	DEFAULT_MODEL,
 	DEFAULT_PROVIDER,
 	DEFAULT_TEMPERATURE,
+	SUPPORTED_PROVIDERS,
 } from "../core/constants";
 
 export const ProviderSchema = z.object({
-	name: z.enum(["openai", "anthropic", "gemini", "ollama"]),
+	name: z.enum(SUPPORTED_PROVIDERS),
 	apiKey: z.string().optional(),
 	baseUrl: z.string().optional(),
 });

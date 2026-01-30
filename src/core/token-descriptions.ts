@@ -67,6 +67,8 @@ export async function fetchTokenDescriptions(
 		}
 	}
 
+	printTokenDescriptions(parsedTokens, rawDescriptions);
+
 	saveDescriptions(parsedCommand, sourceHash, rawDescriptions);
 	return rawDescriptions;
 }
@@ -117,4 +119,14 @@ function mergeDescriptions(
 	logDebug(
 		`Final raw descriptions after merging LLM: ${JSON.stringify(rawDescriptions, null, 2)}`,
 	);
+}
+
+function printTokenDescriptions(
+	parsedTokens: ParsedToken[],
+	descriptions: string[],
+): void {
+	parsedTokens.forEach((token, index) => {
+		const description = descriptions[index] ?? "(no description available)";
+		console.log(`${token.type}\t${token.value}\t${description}`);
+	});
 }

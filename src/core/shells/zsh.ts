@@ -1,4 +1,4 @@
-import { getEnv } from "../environment";
+import { getReadlineLine } from "../../config";
 import {
 	parseCommand,
 	type ShellHelper,
@@ -10,6 +10,6 @@ export const zshShellHelper: ShellHelper = {
 	tokenizeInput: tokenizeWithShellQuote,
 	parseCommand,
 	getReadlineLine: () => {
-		return getEnv("READLINE_LINE") ?? null;
+		return getReadlineLine() ?? null;
 	},
 };

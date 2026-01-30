@@ -4,15 +4,17 @@ import { geminiText } from "@tanstack/ai-gemini";
 import { createOllamaChat, type ollamaText } from "@tanstack/ai-ollama";
 import { openaiText } from "@tanstack/ai-openai";
 import { z } from "zod";
-import { config } from "../config";
+import {
+	getPromptConfig,
+	getProviderApiKey,
+	getProviderBaseUrl,
+} from "../config";
 import type { PromptName } from "../config/schema";
-import { getEnv } from "./environment";
 import { logDebug } from "./logger";
 import { type ManPage, manPageToContextString } from "./manpage";
 import {
 	getDescribeTokensPrompt,
 	getExplainSystemPrompt,
-	getGenerateSystemPrompt,
 	getSuggestSystemPrompt,
 } from "./prompts";
 import type { ParsedCommand, ParsedToken } from "./shells/common";
@@ -21,55 +23,28 @@ const tokenDescriptionsSchema = z.object({
 	descriptions: z.array(z.string()),
 });
 
-function getProviderConfig(providerName: string) {
-	return config.providers.find((p) => p.name === providerName);
-}
-
 function resolveApiKey(promptName: PromptName) {
-	const promptConfig = config.prompts[promptName];
-	const providerName = promptConfig.provider;
-	const providerConfig = getProviderConfig(providerName);
-	if (providerConfig?.apiKey) {
-		return providerConfig.apiKey;
-	}
-
-	if (providerName === "openai") {
-		return getEnv("OPENAI_API_KEY");
-	}
-	if (providerName === "anthropic") {
-		return getEnv("ANTHROPIC_API_KEY");
-	}
-	if (providerName === "gemini") {
-		return getEnv("GEMINI_API_KEY");
-	}
-	return undefined;
+	const promptConfig = getPromptConfig(promptName);
+	return getProviderApiKey(promptConfig.provider);
 }
 
 function resolveBaseUrl(promptName: PromptName) {
-	const promptConfig = config.prompts[promptName];
-	const providerName = promptConfig.provider;
-	const providerConfig = getProviderConfig(providerName);
-	if (providerConfig?.baseUrl) {
-		return providerConfig.baseUrl;
-	}
-	if (providerName === "ollama") {
-		return getEnv("OLLAMA_BASE_URL");
-	}
-	return undefined;
+	const promptConfig = getPromptConfig(promptName);
+	return getProviderBaseUrl(promptConfig.provider);
 }
 
 function resolveSystemPrompt(
 	promptName: PromptName,
 	defaultSystemPrompt: string,
 ) {
-	const promptConfig = config.prompts[promptName];
+	const promptConfig = getPromptConfig(promptName);
 	return sanitizePrompt(
 		promptConfig.systemPromptOverride ?? defaultSystemPrompt,
 	);
 }
 
 function resolveUserPrompt(promptName: PromptName, userPrompt?: string) {
-	const promptConfig = config.prompts[promptName];
+	const promptConfig = getPromptConfig(promptName);
 	const prompt = promptConfig.userPrompt
 		? `${promptConfig.userPrompt}\n\n${userPrompt}`
 		: userPrompt;
@@ -80,7 +55,7 @@ function sanitizePrompt(prompt: string) {
 }
 
 function getAdapter(promptName: PromptName, model: string) {
-	const promptConfig = config.prompts[promptName];
+	const promptConfig = getPromptConfig(promptName);
 	const providerName = promptConfig.provider;
 
 	const resolvedApiKey = resolveApiKey(promptName);
@@ -89,21 +64,25 @@ function getAdapter(promptName: PromptName, model: string) {
 
 	switch (providerName) {
 		case "anthropic":
+			logDebug(`Using Anthropics adapter with model: ${model}`);
 			return anthropicText(model as Parameters<typeof anthropicText>[0], {
 				apiKey: resolvedApiKey,
 				baseUrl: resolvedBaseUrl,
 			});
 		case "openai":
+			logDebug(`Using OpenAI adapter with model: ${model}`);
 			return openaiText(model as Parameters<typeof openaiText>[0], {
 				apiKey: resolvedApiKey,
 				baseUrl: resolvedBaseUrl,
 			});
 		case "gemini":
+			logDebug(`Using Gemini adapter with model: ${model}`);
 			return geminiText(model as Parameters<typeof geminiText>[0], {
 				apiKey: resolvedApiKey,
 				baseUrl: resolvedBaseUrl,
 			});
 		case "ollama":
+			logDebug(`Using Ollama adapter with model: ${model}`);
 			return createOllamaChat(
 				model as Parameters<typeof ollamaText>[0],
 				resolvedBaseUrl,
@@ -122,7 +101,7 @@ async function generateText(
 	systemPrompt: string,
 ): Promise<string> {
 	try {
-		const promptConfig = config.prompts[promptName];
+		const promptConfig = getPromptConfig(promptName);
 		const model = promptConfig.model;
 
 		const fullUserPrompt = resolveUserPrompt(promptName, userPrompt);
@@ -185,8 +164,8 @@ export async function fetchTokenDescriptionsFromLlm({
 	parsedTokens: ParsedToken[];
 	manPages: ManPage[];
 }): Promise<string[] | null> {
-	const promptConfig = config.prompts.explain;
 	const promptType = "describeTokens";
+	const promptConfig = getPromptConfig(promptType);
 	const adapter = getAdapter(promptType, promptConfig.model);
 	const defaultSystemPrompt = getDescribeTokensPrompt({
 		responseStructure: "{descriptions: [string]}",
@@ -197,7 +176,7 @@ export async function fetchTokenDescriptionsFromLlm({
 
 	const userPrompt = JSON.stringify(
 		{
-			parsedTokens: parsedTokens.map((token) => (token.value)),
+			parsedTokens: parsedTokens.map((token) => token.value),
 			context,
 		},
 		null,
@@ -247,11 +226,7 @@ async function requestJsonFromLlm(
 		}
 		return response.descriptions;
 	} catch (e: unknown) {
-		if (!(e instanceof Error)) {
-			logDebug(`requestJsonFromLlm:error Unknown error: ${JSON.stringify(e)}`);
-		} else {
-			logDebug(`requestJsonFromLlm:error ${e.message}: ${e.stack}`);
-		}
+		logDebug(`requestJsonFromLlm:error Unknown error: ${JSON.stringify(e)}`);
 		return null;
 	}
 }
