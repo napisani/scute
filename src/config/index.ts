@@ -27,12 +27,13 @@ export function loadConfig(): Config {
 
 export const config = loadConfig();
 
-export type KeybindingAction = "up" | "down" | "explain";
+export type KeybindingAction = "up" | "down" | "explain" | "toggleView";
 
 const defaultKeybindings: Record<KeybindingAction, string[]> = {
 	up: ["up", "k"],
 	down: ["down", "j"],
 	explain: ["e"],
+	toggleView: ["v"],
 };
 
 const defaultTokenColors: Record<TokenType, string> = {

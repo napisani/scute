@@ -30,11 +30,13 @@ export const KeybindingsSchema = z
 		up: z.array(z.string()).default(["up", "k"]),
 		down: z.array(z.string()).default(["down", "j"]),
 		explain: z.array(z.string()).default(["e"]),
+		toggleView: z.array(z.string()).default(["v"]),
 	})
 	.default({
 		up: ["up", "k"],
 		down: ["down", "j"],
 		explain: ["e"],
+		toggleView: ["v"],
 	});
 
 export const TokenColorsSchema = z
