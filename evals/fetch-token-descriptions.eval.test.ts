@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { config } from "../src/config";
+import { getConfigSnapshot } from "../src/config";
 import { clearCache } from "../src/core/cache";
 import {
 	SUPPORTED_PROVIDERS,
@@ -11,8 +11,6 @@ import { fetchTokenDescriptions } from "../src/core/token-descriptions";
 import { withMockedEnv } from "../tests/utils/env";
 
 const PLACEHOLDER = "(no description available)";
-const ollamaURL = "https://ollama.napisani.xyz";
-
 const evalCases = [
 	{ name: "simple", command: "ls -la /tmp" },
 	{
@@ -63,12 +61,13 @@ function hasRequiredEnv(provider: SupportedProvider): boolean {
 		return !!process.env.GEMINI_API_KEY;
 	}
 	if (provider === "ollama") {
-		return true;
+		return !!process.env.OLLAMA_BASE_URL;
 	}
 	return false;
 }
 
 function buildConfigOverride(provider: SupportedProvider) {
+	const baseConfig = getConfigSnapshot();
 	let apiKey: string | undefined;
 	let baseUrl: string | undefined;
 	let model: string | undefined;
@@ -85,7 +84,7 @@ function buildConfigOverride(provider: SupportedProvider) {
 		model = "gemini-2.5-flash";
 	}
 	if (provider === "ollama") {
-		baseUrl = ollamaURL;
+		baseUrl = process.env.OLLAMA_BASE_URL;
 		model = "qwen:0.6b";
 	}
 	const providerEntry = {
@@ -93,15 +92,16 @@ function buildConfigOverride(provider: SupportedProvider) {
 		apiKey,
 		baseUrl,
 	};
+	const resolvedModel = model ?? baseConfig.prompts.describeTokens.model;
 	const c = {
-		...config,
+		...baseConfig,
 		providers: [providerEntry],
 		prompts: {
-			...config.prompts,
+			...baseConfig.prompts,
 			describeTokens: {
-				...config.prompts.describeTokens,
+				...baseConfig.prompts.describeTokens,
 				provider,
-				model: model,
+				model: resolvedModel,
 			},
 		},
 	};

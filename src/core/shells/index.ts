@@ -1,4 +1,4 @@
-import { getEnv } from "../environment";
+import { getShellName } from "../../config";
 import { bashShellHelper } from "./bash";
 import {
 	type ParsedToken,
@@ -18,10 +18,10 @@ function identifyShell(): ShellName | null {
 	if (identifiedShell !== undefined) {
 		return identifiedShell;
 	}
-	const shell = getEnv("BRASH_SHELL") || getEnv("SHELL") || "";
+	const shell = getShellName() || "";
 	// get the last part of the shell path
 	// If SHELL is /bin/bash, we want bash
-	identifiedShell = (shell.split("/").pop() || "") as ShellName;
+	identifiedShell = shell as ShellName;
 	if (!supportedShells.includes(identifiedShell)) {
 		return null;
 	}

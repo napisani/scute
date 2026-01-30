@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { isDebugMode } from "./environment";
+import { isDebugMode } from "../config";
 
 const LOG_PATH = "/tmp/brash.log";
 
