@@ -9,6 +9,10 @@ import { logDebug } from "../core/logger";
 export async function suggest(line: string) {
 	logDebug(`command:suggest line="${line}"`);
 	const suggestion = await suggestCommand(line);
+	if (suggestion === null) {
+		logDebug("command:suggest result=null");
+		return;
+	}
 	logDebug(`command:suggest result="${suggestion}"`);
 	process.stdout.write(suggestion);
 }
