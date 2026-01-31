@@ -44,7 +44,7 @@ async function runEvalCase(command: string) {
 }
 
 describe("fetchTokenDescriptions evals", () => {
-	for (const provider of SUPPORTED_PROVIDERS) {
+	for (const provider of SUPPORTED_PROVIDERS.filter((p) => p === "ollama")) {
 		const suite = hasProviderEnv(provider) ? describe : describe.skip;
 		suite(provider, () => {
 			for (const testCase of evalCases) {

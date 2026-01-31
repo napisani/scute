@@ -100,59 +100,62 @@ async function generateText(
 	userPrompt: string,
 	systemPrompt: string,
 ): Promise<string> {
-	try {
-		const promptConfig = getPromptConfig(promptName);
-		const model = promptConfig.model;
+	const promptConfig = getPromptConfig(promptName);
+	const model = promptConfig.model;
 
-		const fullUserPrompt = resolveUserPrompt(promptName, userPrompt);
+	const fullUserPrompt = resolveUserPrompt(promptName, userPrompt);
 
-		logDebug(
-			`generateText:start type=${promptName} provider=${promptConfig.provider} model=${model} systemPrompt="${systemPrompt}" userPrompt="${fullUserPrompt}"`,
-		);
+	logDebug(
+		`generateText:start type=${promptName} provider=${promptConfig.provider} model=${model} systemPrompt="${systemPrompt}" userPrompt="${fullUserPrompt}"`,
+	);
 
-		const adapter = getAdapter(promptName, model);
+	const adapter = getAdapter(promptName, model);
 
-		const content = await chat({
-			adapter,
-			systemPrompts: [systemPrompt],
-			...(fullUserPrompt === ""
-				? {}
-				: { messages: [{ role: "user", content: fullUserPrompt }] }),
-			temperature: promptConfig.temperature,
-			maxTokens: promptConfig.maxTokens,
-			stream: false,
-		});
+	const content = await chat({
+		adapter,
+		systemPrompts: [systemPrompt],
+		...(fullUserPrompt === ""
+			? {}
+			: { messages: [{ role: "user", content: fullUserPrompt }] }),
+		temperature: promptConfig.temperature,
+		maxTokens: promptConfig.maxTokens,
+		stream: false,
+	});
 
-		logDebug(`generateText:success bytes=${content.length}`);
-		logDebug(`generateText:content="${content}"`);
-		return content;
-	} catch (error) {
-		const errorMessage =
-			error instanceof Error ? error.message : "An unknown error occurred";
-		logDebug(`generateText:error message="${errorMessage}"`);
-		return `[brash] AI Error: ${errorMessage}`;
-	}
+	logDebug(`generateText:success bytes=${content.length}`);
+	logDebug(`generateText:content="${content}"`);
+	return content;
 }
 
 /**
  * Generates a shell command suggestion.
  */
-export async function suggest(commandLine: string): Promise<string> {
+export async function suggest(commandLine: string): Promise<string | null> {
 	logDebug(`suggest:received line="${commandLine}"`);
-	return generateText("suggest", commandLine, getSuggestSystemPrompt());
+	try {
+		return await generateText("suggest", commandLine, getSuggestSystemPrompt());
+	} catch (error) {
+		logDebug("suggest:error", error);
+		return null;
+	}
 }
 
 /**
  * Explains a given shell command.
  */
-export async function explain(commandLine: string): Promise<string> {
+export async function explain(commandLine: string): Promise<string | null> {
 	if (!commandLine.trim()) {
 		logDebug("explain:received empty line");
 		return "No command to explain.";
 	}
 
 	logDebug(`explain:line="${commandLine}"`);
-	return generateText("explain", commandLine, getExplainSystemPrompt());
+	try {
+		return await generateText("explain", commandLine, getExplainSystemPrompt());
+	} catch (error) {
+		logDebug("explain:error", error);
+		return null;
+	}
 }
 
 export async function fetchTokenDescriptionsFromLlm({
@@ -226,7 +229,7 @@ async function requestJsonFromLlm(
 		}
 		return response.descriptions;
 	} catch (e: unknown) {
-		logDebug(`requestJsonFromLlm:error Unknown error: ${JSON.stringify(e)}`);
+		logDebug("requestJsonFromLlm:error", e);
 		return null;
 	}
 }

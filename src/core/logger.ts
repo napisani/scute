@@ -3,11 +3,27 @@ import { isDebugMode } from "../config";
 
 const LOG_PATH = "/tmp/brash.log";
 
-export function logDebug(message: string): void {
+function formatArg(arg: unknown): string {
+	if (arg instanceof Error) {
+		const stack = arg.stack ? `\n${arg.stack}` : "";
+		return `${arg.message}${stack}`.trim();
+	}
+	if (typeof arg === "string") {
+		return arg;
+	}
+	try {
+		return JSON.stringify(arg);
+	} catch {
+		return String(arg);
+	}
+}
+
+export function logDebug(...args: unknown[]): void {
 	if (!isDebugMode()) {
 		return;
 	}
 
+	const message = args.map(formatArg).join(" ");
 	const entry = `[${new Date().toISOString()}] ${message}\n`;
 
 	try {

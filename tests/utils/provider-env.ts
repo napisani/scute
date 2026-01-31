@@ -5,13 +5,15 @@ import type { SupportedProvider } from "../../src/core/constants";
 const DEFAULT_SHELL_ENV = {
 	BRASH_SHELL: "bash",
 	SHELL: "/bin/bash",
+	BRASH_DEBUG: "1",
 };
 
 const PROVIDER_MODELS: Record<SupportedProvider, string> = {
 	openai: "gpt-4o-mini",
 	anthropic: "claude-3-haiku-20240307",
 	gemini: "gemini-2.5-flash",
-	ollama: "qwen:0.6b",
+	ollama: "qwen3:0.6b",
+	// ollama: "qwen3:1.7b",
 };
 
 export function hasProviderEnv(provider: SupportedProvider): boolean {
@@ -51,7 +53,7 @@ export function buildProviderEnv(
 
 export function buildProviderConfig(
 	provider: SupportedProvider,
-	prompt: "suggest" | "describeTokens",
+	prompt: "suggest" | "describeTokens" | "explain",
 	modelOverride?: string,
 ): Config {
 	const baseConfig = getConfigSnapshot();
@@ -84,7 +86,7 @@ export function buildProviderConfig(
 
 export function buildProviderTestContext(
 	provider: SupportedProvider,
-	prompt: "suggest" | "describeTokens",
+	prompt: "suggest" | "describeTokens" | "explain",
 	modelOverride?: string,
 ): { env: Record<string, string | undefined>; config: Config } {
 	return {
