@@ -91,13 +91,43 @@ export function getConfigSnapshot(): Config {
 	return structuredClone(config);
 }
 
-export type KeybindingAction = "up" | "down" | "explain" | "toggleView";
+export type KeybindingAction =
+	| "up"
+	| "down"
+	| "left"
+	| "right"
+	| "wordForward"
+	| "wordBackward"
+	| "lineStart"
+	| "lineEnd"
+	| "firstToken"
+	| "lastToken"
+	| "explain"
+	| "toggleView"
+	| "insert"
+	| "append"
+	| "change"
+	| "exitInsert"
+	| "save";
 
 const defaultKeybindings: Record<KeybindingAction, string[]> = {
-	up: ["up", "k"],
-	down: ["down", "j"],
+	up: ["up"],
+	down: ["down"],
+	left: ["left", "h"],
+	right: ["right", "l"],
+	wordForward: ["w"],
+	wordBackward: ["b"],
+	lineStart: ["0", "^"],
+	lineEnd: ["$"],
+	firstToken: ["g"],
+	lastToken: ["G"],
 	explain: ["e"],
-	toggleView: ["v"],
+	toggleView: ["m"],
+	insert: ["i"],
+	append: ["a"],
+	change: ["c"],
+	exitInsert: ["escape"],
+	save: ["return"],
 };
 
 const defaultTokenColors: Record<TokenType, string> = {

@@ -1,17 +1,14 @@
-import { useKeyboard } from "@opentui/react";
 import { useMemo } from "react";
 import { Footer } from "../components/Footer";
 import { Spinner } from "../components/Spinner";
 import { TokenAnnotatedView } from "../components/TokenAnnotatedView";
 import { TokenListView } from "../components/TokenListView";
-import { getKeybindings } from "../config";
 import { parseTokens } from "../core/shells";
 import type { ParsedCommand } from "../core/shells/common";
 import { useColoredTokens } from "../hooks/useColoredTokens";
 import { useTokenDescriptions } from "../hooks/useTokenDescriptions";
-import { useTokenNavigation } from "../hooks/useTokenNavigation";
 import { useTokenWidth } from "../hooks/useTokenWidth";
-import { useViewMode } from "../hooks/useViewMode";
+import { useVimMode } from "../hooks/useVimMode";
 import { calculateTokenPositions } from "../utils/tokenPositions";
 
 type BuildAppProps = {
@@ -24,12 +21,21 @@ export function BuildApp({ command }: BuildAppProps) {
 		[command.tokens],
 	);
 
-	const { selectedIndex } = useTokenNavigation(parsedTokens.length);
 	const { descriptions, isLoading, loadDescriptions } = useTokenDescriptions(
 		command,
 		parsedTokens.length,
 	);
-	const { viewMode } = useViewMode();
+
+	const {
+		mode,
+		selectedIndex,
+		viewMode,
+		editingTokenIndex,
+		editingValue,
+		cursorPosition,
+		exitInsertMode,
+		updateEditingValue,
+	} = useVimMode(parsedTokens, loadDescriptions);
 	const tokenWidths = useTokenWidth(parsedTokens);
 	const coloredTokens = useColoredTokens(parsedTokens, selectedIndex);
 
@@ -37,14 +43,6 @@ export function BuildApp({ command }: BuildAppProps) {
 		() => calculateTokenPositions(parsedTokens, descriptions),
 		[parsedTokens, descriptions],
 	);
-
-	const explainKeys = useMemo(() => getKeybindings("explain"), []);
-
-	useKeyboard((key) => {
-		if (explainKeys.includes(key.name)) {
-			void loadDescriptions();
-		}
-	});
 
 	if (!parsedTokens.length) {
 		return <text>(no tokens)</text>;
@@ -65,16 +63,28 @@ export function BuildApp({ command }: BuildAppProps) {
 					<TokenAnnotatedView
 						tokenPositions={tokenPositions}
 						selectedIndex={selectedIndex}
+						mode={mode}
+						editingTokenIndex={editingTokenIndex}
+						editingValue={editingValue}
+						cursorPosition={cursorPosition}
+						onTokenChange={updateEditingValue}
+						onExitEdit={exitInsertMode}
 					/>
 				) : (
 					<TokenListView
 						coloredTokens={coloredTokens}
 						descriptions={descriptions}
 						tokenWidths={tokenWidths}
+						mode={mode}
+						editingTokenIndex={editingTokenIndex}
+						editingValue={editingValue}
+						cursorPosition={cursorPosition}
+						onTokenChange={updateEditingValue}
+						onExitEdit={exitInsertMode}
 					/>
 				)}
 			</box>
-			<Footer isLoading={isLoading} />
+			<Footer mode={mode} viewMode={viewMode} isLoading={isLoading} />
 		</box>
 	);
 }

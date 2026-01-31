@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { getThemeColorFor, getTokenColor } from "../config";
+import type { VimMode } from "../hooks/useVimMode";
 import { formatToken } from "./tokenFormatters";
 import type { TokenPosition } from "./tokenPositions";
 
@@ -10,6 +11,12 @@ export interface AnnotatedLine {
 export function renderAnnotatedCommand(
 	tokenPositions: TokenPosition[],
 	selectedIndex: number,
+	mode: VimMode,
+	editingTokenIndex: number | null,
+	editingValue: string,
+	cursorPosition: number,
+	onTokenChange: (value: string) => void,
+	onExitEdit: (save: boolean) => void,
 ): AnnotatedLine[] {
 	if (tokenPositions.length === 0) return [];
 
@@ -74,15 +81,25 @@ export function renderAnnotatedCommand(
 	const topBorderLineElement = buildBorderLineElement(
 		tokenPositions,
 		selectedIndex,
+		mode,
+		editingTokenIndex,
 		"top",
 	);
 	const contentLineElement = buildContentLineElement(
 		tokenPositions,
 		selectedIndex,
+		mode,
+		editingTokenIndex,
+		editingValue,
+		cursorPosition,
+		onTokenChange,
+		onExitEdit,
 	);
 	const bottomBorderLineElement = buildBorderLineElement(
 		tokenPositions,
 		selectedIndex,
+		mode,
+		editingTokenIndex,
 		"bottom",
 	);
 
@@ -98,6 +115,8 @@ export function renderAnnotatedCommand(
 function buildBorderLineElement(
 	tokenPositions: TokenPosition[],
 	selectedIndex: number,
+	mode: VimMode,
+	editingTokenIndex: number | null,
 	borderType: "top" | "bottom",
 ): ReactNode {
 	const elements: ReactNode[] = [];
@@ -108,9 +127,10 @@ function buildBorderLineElement(
 
 		const value = formatToken(tp.token);
 		const isSelected = i === selectedIndex;
+		const isEditing = mode === "insert" && editingTokenIndex === i;
 		const tokenColor = getTokenColor(tp.token.type);
 
-		if (isSelected) {
+		if (isSelected && !isEditing) {
 			const borderChar = borderType === "top" ? "─" : "─";
 			const leftCorner = borderType === "top" ? "┌" : "└";
 			const rightCorner = borderType === "top" ? "┐" : "┘";
@@ -118,6 +138,19 @@ function buildBorderLineElement(
 				<text key={`border-${i}`} fg={tokenColor}>
 					{leftCorner}
 					{borderChar.repeat(value.length)}
+					{rightCorner}
+				</text>,
+			);
+		} else if (isEditing) {
+			// When editing, show border around the editing value length
+			const editingValue = tp.description || value;
+			const borderChar = borderType === "top" ? "─" : "─";
+			const leftCorner = borderType === "top" ? "┌" : "└";
+			const rightCorner = borderType === "top" ? "┐" : "┘";
+			elements.push(
+				<text key={`border-${i}`} fg={tokenColor}>
+					{leftCorner}
+					{borderChar.repeat(Math.max(editingValue.length, value.length))}
 					{rightCorner}
 				</text>,
 			);
@@ -141,6 +174,12 @@ function buildBorderLineElement(
 function buildContentLineElement(
 	tokenPositions: TokenPosition[],
 	selectedIndex: number,
+	mode: VimMode,
+	editingTokenIndex: number | null,
+	editingValue: string,
+	cursorPosition: number,
+	onTokenChange: (value: string) => void,
+	onExitEdit: (save: boolean) => void,
 ): ReactNode {
 	const elements: ReactNode[] = [];
 
@@ -150,9 +189,24 @@ function buildContentLineElement(
 
 		const value = formatToken(tp.token);
 		const isSelected = i === selectedIndex;
+		const isEditing = mode === "insert" && editingTokenIndex === i;
 		const tokenColor = getTokenColor(tp.token.type);
 
-		if (isSelected) {
+		if (isEditing) {
+			// Show input field when editing
+			elements.push(
+				<input
+					key={`content-${i}`}
+					value={editingValue}
+					onChange={onTokenChange}
+					focused
+					width={Math.max(editingValue.length + 2, value.length + 2, 10)}
+					textColor={tokenColor}
+					cursorColor="#FFFFFF"
+					backgroundColor="transparent"
+				/>,
+			);
+		} else if (isSelected) {
 			elements.push(
 				<text key={`content-${i}`} fg={tokenColor}>
 					{"│"}

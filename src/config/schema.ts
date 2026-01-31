@@ -28,16 +28,42 @@ export type PromptConfig = z.infer<typeof PromptConfigSchema>;
 
 export const KeybindingsSchema = z
 	.object({
-		up: z.array(z.string()).default(["up", "k"]),
-		down: z.array(z.string()).default(["down", "j"]),
+		up: z.array(z.string()).default(["up"]),
+		down: z.array(z.string()).default(["down"]),
+		left: z.array(z.string()).default(["left", "h"]),
+		right: z.array(z.string()).default(["right", "l"]),
+		wordForward: z.array(z.string()).default(["w"]),
+		wordBackward: z.array(z.string()).default(["b"]),
+		lineStart: z.array(z.string()).default(["0", "^"]),
+		lineEnd: z.array(z.string()).default(["$"]),
+		firstToken: z.array(z.string()).default(["g"]),
+		lastToken: z.array(z.string()).default(["G"]),
 		explain: z.array(z.string()).default(["e"]),
-		toggleView: z.array(z.string()).default(["v"]),
+		toggleView: z.array(z.string()).default(["m"]),
+		insert: z.array(z.string()).default(["i"]),
+		append: z.array(z.string()).default(["a"]),
+		change: z.array(z.string()).default(["c"]),
+		exitInsert: z.array(z.string()).default(["escape"]),
+		save: z.array(z.string()).default(["return"]),
 	})
 	.default({
-		up: ["up", "k"],
-		down: ["down", "j"],
+		up: ["up"],
+		down: ["down"],
+		left: ["left", "h"],
+		right: ["right", "l"],
+		wordForward: ["w"],
+		wordBackward: ["b"],
+		lineStart: ["0", "^"],
+		lineEnd: ["$"],
+		firstToken: ["g"],
+		lastToken: ["G"],
 		explain: ["e"],
-		toggleView: ["v"],
+		toggleView: ["m"],
+		insert: ["i"],
+		append: ["a"],
+		change: ["c"],
+		exitInsert: ["escape"],
+		save: ["return"],
 	});
 
 export const TokenColorsSchema = z
