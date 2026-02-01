@@ -38,12 +38,14 @@ export function TokenAnnotatedView({
 	);
 
 	return (
-		<scrollbox height="100%">
-			{annotatedLines.map((line, index) => (
-				<box key={`annotated-line-${index}-${Math.random()}`}>
-					{line.content}
-				</box>
-			))}
-		</scrollbox>
+		<box width="100%" height="100%" justifyContent="center" alignItems="center">
+			<scrollbox height="100%">
+				{annotatedLines.map((line, index) => (
+					<box key={`annotated-line-${index}-${Math.random()}`}>
+						{line.content}
+					</box>
+				))}
+			</scrollbox>
+		</box>
 	);
 }

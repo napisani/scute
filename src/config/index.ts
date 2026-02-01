@@ -145,6 +145,7 @@ const defaultTokenColors: Record<TokenType, string> = {
 const defaultTheme: ThemeConfig = {
 	tokenColors: defaultTokenColors,
 	tokenDescription: "#CDD6F4",
+	markerColor: "#CDD6F4",
 };
 
 export function getKeybindings(action: KeybindingAction): string[] {

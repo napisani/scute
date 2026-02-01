@@ -1,29 +1,45 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { Footer } from "../components/Footer";
-import { Spinner } from "../components/Spinner";
 import { TokenAnnotatedView } from "../components/TokenAnnotatedView";
 import { TokenListView } from "../components/TokenListView";
 import { parseTokens } from "../core/shells";
-import type { ParsedCommand } from "../core/shells/common";
 import { useColoredTokens } from "../hooks/useColoredTokens";
+import { useParsedCommand } from "../hooks/useParsedCommand";
 import { useTokenDescriptions } from "../hooks/useTokenDescriptions";
 import { useTokenWidth } from "../hooks/useTokenWidth";
 import { useVimMode } from "../hooks/useVimMode";
 import { calculateTokenPositions } from "../utils/tokenPositions";
 
 type BuildAppProps = {
-	command: ParsedCommand;
+	command: string;
 };
 
 export function BuildApp({ command }: BuildAppProps) {
+	const { parsedCommand, setParsedCommand } = useParsedCommand(command);
+
 	const parsedTokens = useMemo(
-		() => parseTokens(command.tokens),
-		[command.tokens],
+		() => parseTokens(parsedCommand.tokens),
+		[parsedCommand.tokens],
 	);
 
 	const { descriptions, isLoading, loadDescriptions } = useTokenDescriptions(
-		command,
+		parsedCommand,
 		parsedTokens.length,
+	);
+
+	// Handle token edits by updating the parsed command
+	const handleTokenEdit = useCallback(
+		(tokenIndex: number, newValue: string) => {
+			setParsedCommand((prev) => {
+				const newTokens = [...prev.tokens];
+				newTokens[tokenIndex] = newValue;
+				return {
+					...prev,
+					tokens: newTokens,
+				};
+			});
+		},
+		[setParsedCommand],
 	);
 
 	const {
@@ -35,7 +51,7 @@ export function BuildApp({ command }: BuildAppProps) {
 		cursorPosition,
 		exitInsertMode,
 		updateEditingValue,
-	} = useVimMode(parsedTokens, loadDescriptions);
+	} = useVimMode(parsedTokens, loadDescriptions, handleTokenEdit);
 	const tokenWidths = useTokenWidth(parsedTokens);
 	const coloredTokens = useColoredTokens(parsedTokens, selectedIndex);
 
@@ -57,8 +73,13 @@ export function BuildApp({ command }: BuildAppProps) {
 			width="100%"
 			padding={1}
 		>
-			<Spinner isActive={isLoading} />
-			<box flexGrow={1} width="100%">
+			<box
+				flexGrow={1}
+				width="100%"
+				height="100%"
+				justifyContent="center"
+				alignItems="center"
+			>
 				{viewMode === "annotated" ? (
 					<TokenAnnotatedView
 						tokenPositions={tokenPositions}

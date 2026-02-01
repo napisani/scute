@@ -21,6 +21,7 @@ export function renderAnnotatedCommand(
 	if (tokenPositions.length === 0) return [];
 
 	const descriptionColor = getThemeColorFor("tokenDescription");
+	const markerColor = getThemeColorFor("markerColor");
 
 	// Build command line with proper spacing tracking
 	let commandLine = "";
@@ -66,13 +67,13 @@ export function renderAnnotatedCommand(
 			const beforeConnector = " ".repeat(connectorPos - 1);
 			const descLine = `${beforeConnector}┌─${selectedTp.description}`;
 			lines.push({
-				content: <text fg={descriptionColor}>{descLine}</text>,
+				content: <text fg={markerColor}>{descLine}</text>,
 			});
 
 			// Build the vertical connector line
 			const verticalLine = `${beforeConnector}│`;
 			lines.push({
-				content: <text fg={descriptionColor}>{verticalLine}</text>,
+				content: <text fg={markerColor}>{verticalLine}</text>,
 			});
 		}
 	}
@@ -83,6 +84,7 @@ export function renderAnnotatedCommand(
 		selectedIndex,
 		mode,
 		editingTokenIndex,
+		markerColor,
 		"top",
 	);
 	const contentLineElement = buildContentLineElement(
@@ -100,6 +102,7 @@ export function renderAnnotatedCommand(
 		selectedIndex,
 		mode,
 		editingTokenIndex,
+		markerColor,
 		"bottom",
 	);
 
@@ -117,6 +120,7 @@ function buildBorderLineElement(
 	selectedIndex: number,
 	mode: VimMode,
 	editingTokenIndex: number | null,
+	markerColor: string,
 	borderType: "top" | "bottom",
 ): ReactNode {
 	const elements: ReactNode[] = [];
@@ -135,7 +139,7 @@ function buildBorderLineElement(
 			const leftCorner = borderType === "top" ? "┌" : "└";
 			const rightCorner = borderType === "top" ? "┐" : "┘";
 			elements.push(
-				<text key={`border-${i}`} fg={tokenColor}>
+				<text key={`border-${i}`} fg={markerColor}>
 					{leftCorner}
 					{borderChar.repeat(value.length)}
 					{rightCorner}
@@ -148,7 +152,7 @@ function buildBorderLineElement(
 			const leftCorner = borderType === "top" ? "┌" : "└";
 			const rightCorner = borderType === "top" ? "┐" : "┘";
 			elements.push(
-				<text key={`border-${i}`} fg={tokenColor}>
+				<text key={`border-${i}`} fg={markerColor}>
 					{leftCorner}
 					{borderChar.repeat(Math.max(editingValue.length, value.length))}
 					{rightCorner}
@@ -207,8 +211,9 @@ function buildContentLineElement(
 				/>,
 			);
 		} else if (isSelected) {
+			const markerColor = getThemeColorFor("markerColor");
 			elements.push(
-				<text key={`content-${i}`} fg={tokenColor}>
+				<text key={`content-${i}`} fg={markerColor}>
 					{"│"}
 					{value}
 					{"│"}

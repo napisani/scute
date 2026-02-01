@@ -33,6 +33,7 @@ export interface VimModeActions {
 export function useVimMode(
 	parsedTokens: ParsedToken[],
 	loadDescriptions: () => void,
+	onTokenEdit?: (tokenIndex: number, newValue: string) => void,
 ): VimModeState & VimModeActions {
 	const [mode, setMode] = useState<VimMode>("normal");
 	const [selectedIndex, setSelectedIndex] = useState(0);
@@ -84,20 +85,15 @@ export function useVimMode(
 	const exitInsertMode = useCallback(
 		(save: boolean) => {
 			if (editingTokenIndex !== null) {
-				if (save) {
-					// Save the edited value
+				if (save && editingValue.length > 0) {
+					// Save the edited value to internal state
 					setTokenValues((values) => {
 						const newValues = [...values];
 						newValues[editingTokenIndex] = editingValue;
-						// Remove empty tokens
-						return newValues.filter((v) => v.length > 0);
+						return newValues;
 					});
-					// Adjust selected index if tokens were removed
-					if (editingValue.length === 0) {
-						setSelectedIndex((idx) =>
-							Math.max(0, Math.min(idx, tokenValues.length - 2)),
-						);
-					}
+					// Notify parent component about the edit
+					onTokenEdit?.(editingTokenIndex, editingValue);
 				}
 				// Reset editing state
 				setEditingTokenIndex(null);
@@ -106,7 +102,7 @@ export function useVimMode(
 			}
 			setMode("normal");
 		},
-		[editingTokenIndex, editingValue, tokenValues.length],
+		[editingTokenIndex, editingValue, onTokenEdit],
 	);
 
 	const updateEditingValue = useCallback((value: string) => {

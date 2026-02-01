@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getThemeColorFor } from "../config";
 
 type SpinnerProps = {
 	isActive: boolean;
@@ -11,6 +12,7 @@ function getSpinnerFrame(index: number): string {
 
 export function Spinner({ isActive }: SpinnerProps) {
 	const [spinnerIndex, setSpinnerIndex] = useState(0);
+	const markerColor = getThemeColorFor("markerColor");
 
 	useEffect(() => {
 		if (!isActive) {
@@ -35,7 +37,7 @@ export function Spinner({ isActive }: SpinnerProps) {
 				width: "100%",
 			}}
 		>
-			<text>{getSpinnerFrame(spinnerIndex)}</text>
+			<text fg={markerColor}>{getSpinnerFrame(spinnerIndex)}</text>
 		</box>
 	);
 }

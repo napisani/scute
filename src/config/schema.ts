@@ -94,6 +94,7 @@ export const ThemeSchema = z
 	.object({
 		tokenColors: TokenColorsSchema,
 		tokenDescription: z.string().default("#CDD6F4"),
+		markerColor: z.string().default("#CDD6F4"),
 	})
 	.default({
 		tokenColors: {
@@ -107,6 +108,7 @@ export const ThemeSchema = z
 			unknown: "#6C7086",
 		},
 		tokenDescription: "#CDD6F4",
+		markerColor: "#CDD6F4",
 	});
 
 export type ThemeConfig = z.infer<typeof ThemeSchema>;
