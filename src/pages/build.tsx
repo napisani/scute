@@ -1,35 +1,57 @@
-import { useKeyboard } from "@opentui/react";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { Footer } from "../components/Footer";
-import { Spinner } from "../components/Spinner";
 import { TokenAnnotatedView } from "../components/TokenAnnotatedView";
 import { TokenListView } from "../components/TokenListView";
-import { getKeybindings } from "../config";
 import { parseTokens } from "../core/shells";
-import type { ParsedCommand } from "../core/shells/common";
 import { useColoredTokens } from "../hooks/useColoredTokens";
+import { useParsedCommand } from "../hooks/useParsedCommand";
 import { useTokenDescriptions } from "../hooks/useTokenDescriptions";
-import { useTokenNavigation } from "../hooks/useTokenNavigation";
 import { useTokenWidth } from "../hooks/useTokenWidth";
-import { useViewMode } from "../hooks/useViewMode";
+import { useVimMode } from "../hooks/useVimMode";
 import { calculateTokenPositions } from "../utils/tokenPositions";
 
 type BuildAppProps = {
-	command: ParsedCommand;
+	command: string;
 };
 
 export function BuildApp({ command }: BuildAppProps) {
+	const { parsedCommand, setParsedCommand } = useParsedCommand(command);
+
 	const parsedTokens = useMemo(
-		() => parseTokens(command.tokens),
-		[command.tokens],
+		() => parseTokens(parsedCommand.tokens),
+		[parsedCommand.tokens],
 	);
 
-	const { selectedIndex } = useTokenNavigation(parsedTokens.length);
 	const { descriptions, isLoading, loadDescriptions } = useTokenDescriptions(
-		command,
+		parsedCommand,
 		parsedTokens.length,
 	);
-	const { viewMode } = useViewMode();
+
+	// Handle token edits by updating the parsed command
+	const handleTokenEdit = useCallback(
+		(tokenIndex: number, newValue: string) => {
+			setParsedCommand((prev) => {
+				const newTokens = [...prev.tokens];
+				newTokens[tokenIndex] = newValue;
+				return {
+					...prev,
+					tokens: newTokens,
+				};
+			});
+		},
+		[setParsedCommand],
+	);
+
+	const {
+		mode,
+		selectedIndex,
+		viewMode,
+		editingTokenIndex,
+		editingValue,
+		cursorPosition,
+		exitInsertMode,
+		updateEditingValue,
+	} = useVimMode(parsedTokens, loadDescriptions, handleTokenEdit);
 	const tokenWidths = useTokenWidth(parsedTokens);
 	const coloredTokens = useColoredTokens(parsedTokens, selectedIndex);
 
@@ -37,14 +59,6 @@ export function BuildApp({ command }: BuildAppProps) {
 		() => calculateTokenPositions(parsedTokens, descriptions),
 		[parsedTokens, descriptions],
 	);
-
-	const explainKeys = useMemo(() => getKeybindings("explain"), []);
-
-	useKeyboard((key) => {
-		if (explainKeys.includes(key.name)) {
-			void loadDescriptions();
-		}
-	});
 
 	if (!parsedTokens.length) {
 		return <text>(no tokens)</text>;
@@ -59,22 +73,39 @@ export function BuildApp({ command }: BuildAppProps) {
 			width="100%"
 			padding={1}
 		>
-			<Spinner isActive={isLoading} />
-			<box flexGrow={1} width="100%">
+			<box
+				flexGrow={1}
+				width="100%"
+				height="100%"
+				justifyContent="center"
+				alignItems="center"
+			>
 				{viewMode === "annotated" ? (
 					<TokenAnnotatedView
 						tokenPositions={tokenPositions}
 						selectedIndex={selectedIndex}
+						mode={mode}
+						editingTokenIndex={editingTokenIndex}
+						editingValue={editingValue}
+						cursorPosition={cursorPosition}
+						onTokenChange={updateEditingValue}
+						onExitEdit={exitInsertMode}
 					/>
 				) : (
 					<TokenListView
 						coloredTokens={coloredTokens}
 						descriptions={descriptions}
 						tokenWidths={tokenWidths}
+						mode={mode}
+						editingTokenIndex={editingTokenIndex}
+						editingValue={editingValue}
+						cursorPosition={cursorPosition}
+						onTokenChange={updateEditingValue}
+						onExitEdit={exitInsertMode}
 					/>
 				)}
 			</box>
-			<Footer isLoading={isLoading} />
+			<Footer mode={mode} viewMode={viewMode} isLoading={isLoading} />
 		</box>
 	);
 }
