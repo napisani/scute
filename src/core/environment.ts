@@ -6,7 +6,9 @@ export type EnvVarName =
 	| "BRASH_DEBUG"
 	| "BRASH_SHELL"
 	| "SHELL"
-	| "READLINE_LINE";
+	| "READLINE_LINE"
+	| "BRASH_DEFAULT_MODEL"
+	| "BRASH_DEFAULT_PROVIDER";
 
 type EnvGetter = (name: EnvVarName) => string | undefined;
 

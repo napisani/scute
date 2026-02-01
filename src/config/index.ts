@@ -36,6 +36,21 @@ export function loadConfig(): Config {
 	}
 }
 
+export function loadConfigFromPath(configFile: string): Config {
+	if (!fs.existsSync(configFile)) {
+		throw new Error(`Config file not found: ${configFile}`);
+	}
+
+	try {
+		const fileContents = fs.readFileSync(configFile, "utf8");
+		const data = yaml.load(fileContents);
+		return ConfigSchema.parse(data);
+	} catch (error) {
+		const message = error instanceof Error ? error.message : "Unknown error";
+		throw new Error(`Error loading config from ${configFile}: ${message}`);
+	}
+}
+
 let config = applyEnvOverrides(loadConfig());
 let runtimeEnv = loadRuntimeEnv();
 

@@ -6,6 +6,29 @@ import {
 	DEFAULT_TEMPERATURE,
 	SUPPORTED_PROVIDERS,
 } from "../core/constants";
+import { getEnv } from "../core/environment";
+
+function isSupportedProviderName(
+	value: string,
+): value is (typeof SUPPORTED_PROVIDERS)[number] {
+	return (SUPPORTED_PROVIDERS as readonly string[]).includes(value);
+}
+
+function resolveDefaultProvider(): (typeof SUPPORTED_PROVIDERS)[number] {
+	const envDefaultProvider = getEnv("BRASH_DEFAULT_PROVIDER");
+	if (envDefaultProvider && isSupportedProviderName(envDefaultProvider)) {
+		return envDefaultProvider;
+	}
+	return DEFAULT_PROVIDER;
+}
+
+function resolveDefaultModel(): string {
+	const envDefaultModel = getEnv("BRASH_DEFAULT_MODEL");
+	return envDefaultModel ?? DEFAULT_MODEL;
+}
+
+const resolvedDefaultProvider = resolveDefaultProvider();
+const resolvedDefaultModel = resolveDefaultModel();
 
 export const ProviderSchema = z.object({
 	name: z.enum(SUPPORTED_PROVIDERS),
@@ -16,8 +39,8 @@ export const ProviderSchema = z.object({
 export type ProviderConfig = z.infer<typeof ProviderSchema>;
 
 export const PromptConfigSchema = z.object({
-	provider: z.string().default(DEFAULT_PROVIDER),
-	model: z.string().default(DEFAULT_MODEL),
+	provider: z.string().default(resolvedDefaultProvider),
+	model: z.string().default(resolvedDefaultModel),
 	temperature: z.number().default(DEFAULT_TEMPERATURE),
 	maxTokens: z.number().default(DEFAULT_MAX_TOKENS),
 	userPrompt: z.string().optional(),
@@ -89,8 +112,8 @@ export type KeybindingsConfig = z.infer<typeof KeybindingsSchema>;
 
 function buildDefaultPromptConfig() {
 	return {
-		provider: DEFAULT_PROVIDER,
-		model: DEFAULT_MODEL,
+		provider: resolvedDefaultProvider,
+		model: resolvedDefaultModel,
 		temperature: DEFAULT_TEMPERATURE,
 		maxTokens: DEFAULT_MAX_TOKENS,
 	};

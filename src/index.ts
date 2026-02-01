@@ -1,13 +1,41 @@
 // src/index.ts
+
+import path from "node:path";
 import { Command } from "commander";
 import { build } from "./commands/build";
 import { explain } from "./commands/explain";
 import { init } from "./commands/init";
 import { suggest } from "./commands/suggest";
+import { loadConfigFromPath, setConfigOverride } from "./config";
 
 const program = new Command();
 
-program.name("brash").description("AI-powered shell assistant");
+program
+	.name("brash")
+	.description("AI-powered shell assistant")
+	.option("-c, --config [file]", "Path to config YAML file");
+
+program.hook("preAction", (thisCommand) => {
+	const { config } = thisCommand.optsWithGlobals() as {
+		config?: boolean | string;
+	};
+	if (!config) {
+		return;
+	}
+	if (config === true) {
+		setConfigOverride();
+		return;
+	}
+	const resolvedPath = path.resolve(process.cwd(), config);
+	try {
+		const override = loadConfigFromPath(resolvedPath);
+		setConfigOverride(override);
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		console.error(message);
+		process.exit(1);
+	}
+});
 
 program
 	.command("init <shell>")

@@ -1,0 +1,16 @@
+providers:
+  - name: ollama
+    baseUrl: http://localhost:11434
+prompts:
+  explain:
+    provider: ollama
+    model: qwen3:0.6b
+  suggest:
+    provider: ollama
+    model: qwen3:0.6b
+  generate:
+    provider: ollama
+    model: qwen3:0.6b
+  describeTokens:
+    provider: ollama
+    model: qwen3:0.6b
