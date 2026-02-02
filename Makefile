@@ -1,7 +1,7 @@
 BRASH_BIN=./brash
 CONFIG_DIR=configs
 
-.PHONY: build clean run-example-ollama run-example-openai run-example-anthropic run-example-gemini
+.PHONY: build clean run-example-ollama run-example-openai run-example-anthropic run-example-gemini terminal-mcp
 
 build: clean $(BRASH_BIN)
 
@@ -22,3 +22,6 @@ run-example-anthropic: build
 
 run-example-gemini: build
 	READLINE_LINE='grep -R "TODO" src' $(BRASH_BIN) --config $(CONFIG_DIR)/gemini-config.yml build
+
+terminal-mcp:
+	terminal-mcp --socket /tmp/terminal-mcp.sock --cols 100 --rows 30 --shell /bin/bash
