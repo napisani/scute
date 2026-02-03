@@ -1,6 +1,8 @@
 import { getShellName } from "../../config";
 import { bashShellHelper } from "./bash";
 import {
+	joinTokensCommon,
+	type ParsedCommand,
 	type ParsedToken,
 	parseCommand,
 	type ShellHelper,
@@ -47,11 +49,31 @@ function tokenizeInput(input: string | null | undefined): string[] {
 	return shellHelper.tokenizeInput(input);
 }
 
+function buildParsedCommand(command: string): ParsedCommand {
+	const tokens = tokenizeInput(command);
+	return {
+		tokens,
+		originalCommand: command,
+	};
+}
+
 function parseTokens(tokens: string[]): ParsedToken[] {
 	const shellHelper = getShellHelper();
 	return shellHelper.parseCommand
 		? shellHelper.parseCommand(tokens)
 		: parseCommand(tokens);
+}
+
+function joinTokens(tokens: string[]): string {
+	const shellHelper = getShellHelper();
+	return shellHelper.joinTokens
+		? shellHelper.joinTokens(tokens)
+		: joinTokensCommon(tokens);
+}
+
+function rebuildParsedCommandFromTokens(tokens: string[]): ParsedCommand {
+	const originalCommand = joinTokens(tokens);
+	return buildParsedCommand(originalCommand);
 }
 function getReadlineLine(): string | null {
 	const shellHelper = getShellHelper();
@@ -66,6 +88,9 @@ export {
 	identifyShell,
 	resetShellCache,
 	parseTokens,
+	buildParsedCommand,
+	rebuildParsedCommandFromTokens,
+	joinTokens,
 	tokenizeInput,
 	getReadlineLine,
 	hasReadlineLine,

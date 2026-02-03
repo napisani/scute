@@ -2,7 +2,12 @@ import { useCallback, useMemo } from "react";
 import { Footer } from "../components/Footer";
 import { TokenAnnotatedView } from "../components/TokenAnnotatedView";
 import { TokenListView } from "../components/TokenListView";
-import { parseTokens, tokenizeInput } from "../core/shells";
+import {
+	parseTokens,
+	rebuildParsedCommandFromTokens,
+	tokenizeInput,
+} from "../core/shells";
+import type { ParsedCommand } from "../core/shells/common";
 import { useColoredTokens } from "../hooks/useColoredTokens";
 import { useParsedCommand } from "../hooks/useParsedCommand";
 import { useTokenDescriptions } from "../hooks/useTokenDescriptions";
@@ -13,6 +18,20 @@ import { calculateTokenPositions } from "../utils/tokenPositions";
 type BuildAppProps = {
 	command: string;
 };
+
+export function applyTokenEdit(
+	prev: ParsedCommand,
+	tokenIndex: number,
+	newValue: string,
+): ParsedCommand {
+	const editedTokens = tokenizeInput(newValue);
+	const splicedTokens = [
+		...prev.tokens.slice(0, tokenIndex),
+		...editedTokens,
+		...prev.tokens.slice(tokenIndex),
+	];
+	return rebuildParsedCommandFromTokens(splicedTokens);
+}
 
 export function BuildApp({ command }: BuildAppProps) {
 	const { parsedCommand, setParsedCommand } = useParsedCommand(command);
@@ -31,14 +50,7 @@ export function BuildApp({ command }: BuildAppProps) {
 	const handleTokenEdit = useCallback(
 		(tokenIndex: number, newValue: string) => {
 			setParsedCommand((prev) => {
-				const newTokens = [...prev.tokens];
-				newTokens[tokenIndex] = newValue;
-				const updatedCommand = newTokens.join(" ");
-				const updatedTokens = tokenizeInput(updatedCommand);
-				return {
-					tokens: updatedTokens,
-					originalCommand: updatedCommand,
-				};
+				return applyTokenEdit(prev, tokenIndex, newValue);
 			});
 		},
 		[setParsedCommand],

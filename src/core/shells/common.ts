@@ -1,5 +1,3 @@
-import { parse } from "shell-quote";
-
 type Tokenizer = (input: string | null | undefined) => string[];
 type ReadlineLineGetter = () => string | null;
 type TokenParser = (tokens: string[]) => ParsedToken[];
@@ -28,6 +26,7 @@ export type ShellHelper = {
 	shell: ShellName;
 	tokenizeInput: Tokenizer;
 	parseCommand: TokenParser;
+	joinTokens: (tokens: string[]) => string;
 	getReadlineLine: ReadlineLineGetter;
 };
 
@@ -39,26 +38,11 @@ export function tokenizeWithShellQuote(
 	if (!input) {
 		return [];
 	}
-	const tokens: string[] = [];
-	for (const token of parse(input)) {
-		if (typeof token === "string") {
-			tokens.push(token);
-			continue;
-		}
-		if (typeof token === "object" && token) {
-			if ("comment" in token) {
-				continue;
-			}
-			if ("op" in token) {
-				if (token.op === "glob" && "pattern" in token) {
-					tokens.push(String(token.pattern));
-					continue;
-				}
-				tokens.push(String(token.op));
-			}
-		}
-	}
-	return tokens;
+	return splitShellTokens(input);
+}
+
+export function joinTokensCommon(tokens: string[]): string {
+	return tokens.join(" ");
 }
 
 const PIPE_OPERATORS = new Set(["|", "|&"]);
@@ -76,6 +60,24 @@ const REDIRECT_OPERATORS = new Set([
 ]);
 const REDIRECT_REGEX = /^(\d+)?(>>|>|<|<<|<<<|&>|<>&|>&)$/;
 
+const OPERATOR_TOKENS = [
+	"<<<",
+	"<>&",
+	"|&",
+	"&&",
+	"||",
+	"<<",
+	">>",
+	"&>",
+	">|",
+	">&",
+	"|",
+	";",
+	"&",
+	"<",
+	">",
+];
+
 function isPipeOperator(token: string): boolean {
 	return PIPE_OPERATORS.has(token);
 }
@@ -86,6 +88,98 @@ function isControlOperator(token: string): boolean {
 
 function isRedirectOperator(token: string): boolean {
 	return REDIRECT_OPERATORS.has(token) || REDIRECT_REGEX.test(token);
+}
+
+function splitShellTokens(input: string): string[] {
+	const tokens: string[] = [];
+	let current = "";
+	let inSingleQuote = false;
+	let inDoubleQuote = false;
+	let i = 0;
+
+	while (i < input.length) {
+		const char = input[i];
+		if (!char) {
+			break;
+		}
+
+		if (!inSingleQuote && !inDoubleQuote) {
+			if (/\s/.test(char)) {
+				if (current) {
+					tokens.push(current);
+					current = "";
+				}
+				i += 1;
+				continue;
+			}
+
+			const operator = readOperatorToken(input, i);
+			if (operator) {
+				if (current) {
+					tokens.push(current);
+					current = "";
+				}
+				tokens.push(operator.value);
+				i += operator.length;
+				continue;
+			}
+		}
+
+		if (char === "'" && !inDoubleQuote) {
+			inSingleQuote = !inSingleQuote;
+			current += char;
+			i += 1;
+			continue;
+		}
+
+		if (char === '"' && !inSingleQuote) {
+			inDoubleQuote = !inDoubleQuote;
+			current += char;
+			i += 1;
+			continue;
+		}
+
+		if (char === "\\" && !inSingleQuote) {
+			current += char;
+			if (i + 1 < input.length) {
+				current += input[i + 1];
+				i += 2;
+				continue;
+			}
+			i += 1;
+			continue;
+		}
+
+		current += char;
+		i += 1;
+	}
+
+	if (current) {
+		tokens.push(current);
+	}
+
+	return tokens;
+}
+
+function readOperatorToken(
+	input: string,
+	index: number,
+): { value: string; length: number } | null {
+	const remaining = input.slice(index);
+	if (/^\d/.test(remaining)) {
+		const match = remaining.match(/^(\d+)(>>|>|<|<<|<<<|&>|<>&|>&)/);
+		if (match && match[0]) {
+			return { value: match[0], length: match[0].length };
+		}
+	}
+
+	for (const op of OPERATOR_TOKENS) {
+		if (remaining.startsWith(op)) {
+			return { value: op, length: op.length };
+		}
+	}
+
+	return null;
 }
 
 type RawTokenKind = "word" | "op" | "unknown";

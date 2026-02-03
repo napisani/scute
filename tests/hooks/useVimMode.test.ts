@@ -256,7 +256,6 @@ describe("useVimMode", () => {
 			expect(capturedEdit).toBeDefined();
 			expect(capturedEdit?.index).toBe(1);
 			expect(capturedEdit?.value).toBe("hello");
-			expect(result.current.tokenValues).toEqual(["echo", "hello"]);
 		});
 
 		it("discards edit on Escape", () => {
@@ -296,6 +295,32 @@ describe("useVimMode", () => {
 		});
 	});
 
+	describe("insert mode - insert (i key)", () => {
+		it("does not insert the triggering i into the buffer", () => {
+			const mockLoadDescriptions = () => {};
+			const { result } = renderHook(() =>
+				useVimMode(
+					mockTokens,
+					mockLoadDescriptions,
+					undefined,
+					mockUseKeyboard,
+				),
+			);
+
+			act(() => {
+				simulateKey("i", "i");
+			});
+
+			act(() => {
+				simulateType("| grep -i test |");
+			});
+
+			expect(result.current.mode).toBe("insert");
+			expect(result.current.editingValue).toBe("| grep -i test |echo");
+			expect(result.current.editingValue.startsWith("i")).toBe(false);
+		});
+	});
+
 	describe("insert mode - append (a key)", () => {
 		it("enters insert mode at position 1", () => {
 			const mockLoadDescriptions = () => {};
@@ -324,11 +349,15 @@ describe("useVimMode", () => {
 
 		it("appends text correctly", () => {
 			const mockLoadDescriptions = () => {};
+			let capturedEdit: { index: number; value: string } | undefined;
+			const onTokenEdit = (tokenIndex: number, newValue: string) => {
+				capturedEdit = { index: tokenIndex, value: newValue };
+			};
 			const { result } = renderHook(() =>
 				useVimMode(
 					mockTokens,
 					mockLoadDescriptions,
-					undefined,
+					onTokenEdit,
 					mockUseKeyboard,
 				),
 			);
@@ -351,7 +380,9 @@ describe("useVimMode", () => {
 
 			// 'a' puts cursor at position 1, so typing "ing" inserts there
 			// "test" with "ing" inserted at position 1 = "tingest"
-			expect(result.current.tokenValues).toEqual(["echo", "tingest"]);
+			expect(capturedEdit).toBeDefined();
+			expect(capturedEdit?.index).toBe(1);
+			expect(capturedEdit?.value).toBe("tingest");
 		});
 	});
 
@@ -383,11 +414,15 @@ describe("useVimMode", () => {
 
 		it("inserts text at beginning", () => {
 			const mockLoadDescriptions = () => {};
+			let capturedEdit: { index: number; value: string } | undefined;
+			const onTokenEdit = (tokenIndex: number, newValue: string) => {
+				capturedEdit = { index: tokenIndex, value: newValue };
+			};
 			const { result } = renderHook(() =>
 				useVimMode(
 					mockTokens,
 					mockLoadDescriptions,
-					undefined,
+					onTokenEdit,
 					mockUseKeyboard,
 				),
 			);
@@ -408,7 +443,39 @@ describe("useVimMode", () => {
 				simulateKey("return");
 			});
 
-			expect(result.current.tokenValues).toEqual(["echo", "retest"]);
+			expect(capturedEdit).toBeDefined();
+			expect(capturedEdit?.index).toBe(1);
+			expect(capturedEdit?.value).toBe("retest");
+		});
+	});
+
+	describe("state reset", () => {
+		it("resets editor state when tokens change", () => {
+			const mockLoadDescriptions = () => {};
+			const { result, rerender } = renderHook(
+				({ tokens }) =>
+					useVimMode(tokens, mockLoadDescriptions, undefined, mockUseKeyboard),
+				{
+					initialProps: { tokens: mockTokens },
+				},
+			);
+
+			act(() => {
+				simulateKey("i");
+				simulateType("changed");
+			});
+
+			const nextTokens: ParsedToken[] = [
+				{ value: "ls", type: "command" },
+				{ value: "-la", type: "option" },
+			];
+			rerender({ tokens: nextTokens });
+
+			expect(result.current.mode).toBe("normal");
+			expect(result.current.editingTokenIndex).toBeNull();
+			expect(result.current.editingValue).toBe("");
+			expect(result.current.selectedIndex).toBe(0);
+			expect(result.current.viewMode).toBe("list");
 		});
 	});
 

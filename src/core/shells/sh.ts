@@ -1,5 +1,6 @@
 import { getReadlineLine } from "../../config";
 import {
+	joinTokensCommon,
 	parseCommand,
 	type ShellHelper,
 	tokenizeWithShellQuote,
@@ -9,6 +10,7 @@ export const shShellHelper: ShellHelper = {
 	shell: "sh",
 	tokenizeInput: tokenizeWithShellQuote,
 	parseCommand,
+	joinTokens: joinTokensCommon,
 	getReadlineLine: () => {
 		return getReadlineLine() ?? null;
 	},

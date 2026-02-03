@@ -1,5 +1,5 @@
 import { useKeyboard as useOpenTuiKeyboard } from "@opentui/react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getKeybindings } from "../config";
 import type { ParsedToken } from "../core/shells/common";
 import type { ViewMode } from "./useViewMode";
@@ -13,7 +13,6 @@ export interface VimModeState {
 	editingTokenIndex: number | null;
 	editingValue: string;
 	cursorPosition: number;
-	tokenValues: string[];
 }
 
 export interface VimModeActions {
@@ -60,9 +59,24 @@ export function useVimMode(
 		value: "",
 		cursor: 0,
 	});
-	const [tokenValues, setTokenValues] = useState<string[]>(
-		parsedTokens.map((t) => t.value),
+	const skipNextInsertCharRef = useRef(false);
+	const insertTriggerRef = useRef<string | null>(null);
+	const parsedTokensKey = useMemo(
+		() => JSON.stringify(parsedTokens.map((token) => token.value)),
+		[parsedTokens],
 	);
+
+	useEffect(() => {
+		void parsedTokensKey;
+		setMode("normal");
+		setSelectedIndex(0);
+		setViewMode("list");
+		setEditingTokenIndex(null);
+		setEditorState({ value: "", cursor: 0 });
+		setGPressed(false);
+		skipNextInsertCharRef.current = false;
+		insertTriggerRef.current = null;
+	}, [parsedTokensKey]);
 
 	// Keybindings
 	const upKeys = useMemo(() => getKeybindings("up"), []);
@@ -91,7 +105,7 @@ export function useVimMode(
 		(tokenIndex: number, cursorPos: number, clearToken = false) => {
 			const initialValue = clearToken
 				? ""
-				: (tokenValues[tokenIndex] ?? parsedTokens[tokenIndex]?.value ?? "");
+				: (parsedTokens[tokenIndex]?.value ?? "");
 			setEditingTokenIndex(tokenIndex);
 			setEditorState({
 				value: initialValue,
@@ -99,19 +113,13 @@ export function useVimMode(
 			});
 			setMode("insert");
 		},
-		[tokenValues, parsedTokens],
+		[parsedTokens],
 	);
 
 	const exitInsertMode = useCallback(
 		(save: boolean) => {
 			if (editingTokenIndex !== null) {
 				if (save && editorState.value.length > 0) {
-					// Save the edited value to internal state
-					setTokenValues((values) => {
-						const newValues = [...values];
-						newValues[editingTokenIndex] = editorState.value;
-						return newValues;
-					});
 					// Notify parent component about the edit
 					onTokenEdit?.(editingTokenIndex, editorState.value);
 				}
@@ -159,20 +167,25 @@ export function useVimMode(
 				return;
 			}
 			setSelectedIndex(lastIndex);
-			const tokenValue =
-				tokenValues[lastIndex] ?? parsedTokens[lastIndex]?.value ?? "";
+			const tokenValue = parsedTokens[lastIndex]?.value ?? "";
 			enterInsertMode(lastIndex, tokenValue.length, false);
 			return;
 		}
 		if (insertKeys.includes(key.name)) {
+			skipNextInsertCharRef.current = true;
+			insertTriggerRef.current = key.sequence ?? key.name;
 			enterInsertMode(selectedIndex, 0, false);
 			return;
 		}
 		if (appendKeys.includes(key.name)) {
+			skipNextInsertCharRef.current = true;
+			insertTriggerRef.current = key.sequence ?? key.name;
 			enterInsertMode(selectedIndex, 1, false);
 			return;
 		}
 		if (changeKeys.includes(key.name)) {
+			skipNextInsertCharRef.current = true;
+			insertTriggerRef.current = key.sequence ?? key.name;
 			enterInsertMode(selectedIndex, 0, true);
 			return;
 		}
@@ -251,6 +264,14 @@ export function useVimMode(
 	// Keyboard handler for insert mode
 	useKeyboard((key) => {
 		if (modeRef.current !== "insert") return;
+		if (skipNextInsertCharRef.current) {
+			skipNextInsertCharRef.current = false;
+			const trigger = insertTriggerRef.current;
+			insertTriggerRef.current = null;
+			if (trigger && (key.sequence === trigger || key.name === trigger)) {
+				return;
+			}
+		}
 
 		// Exit without saving (Esc)
 		if (exitInsertKeys.includes(key.name)) {
@@ -350,7 +371,6 @@ export function useVimMode(
 		editingTokenIndex,
 		editingValue: editorState.value,
 		cursorPosition: editorState.cursor,
-		tokenValues,
 		// Actions
 		enterInsertMode,
 		exitInsertMode,

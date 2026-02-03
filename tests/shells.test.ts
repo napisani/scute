@@ -18,7 +18,46 @@ describe("shell parsing", () => {
 						module.resetShellCache();
 						expect(module.identifyShell()).toBe(shell);
 						const tokens = module.tokenizeInput('echo "hello world"');
-						expect(tokens).toEqual(["echo", "hello world"]);
+						expect(tokens).toEqual(["echo", '"hello world"']);
+					},
+				);
+			});
+
+			it("preserves quotes and escapes when joining", async () => {
+				await withMockedEnv(
+					{ env: { BRASH_SHELL: shell, SHELL: `/bin/${shell}` } },
+					async () => {
+						const module = await loadShellModule(shell);
+						module.resetShellCache();
+						const command = 'echo "test" && echo foo\\ bar';
+						const tokens = module.tokenizeInput(command);
+						expect(tokens).toEqual([
+							"echo",
+							'"test"',
+							"&&",
+							"echo",
+							"foo\\ bar",
+						]);
+						expect(module.joinTokens(tokens)).toBe(command);
+					},
+				);
+			});
+
+			it("rebuilds parsed command from tokens", async () => {
+				await withMockedEnv(
+					{ env: { BRASH_SHELL: shell, SHELL: `/bin/${shell}` } },
+					async () => {
+						const module = await loadShellModule(shell);
+						module.resetShellCache();
+						const command = 'echo "test" && echo foo\\ bar';
+						const parsed = module.buildParsedCommand(command);
+						expect(parsed.originalCommand).toBe(command);
+						expect(parsed.tokens).toEqual(module.tokenizeInput(command));
+						const rebuilt = module.rebuildParsedCommandFromTokens(
+							parsed.tokens,
+						);
+						expect(rebuilt.originalCommand).toBe(command);
+						expect(rebuilt.tokens).toEqual(parsed.tokens);
 					},
 				);
 			});
