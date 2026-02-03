@@ -1,3 +1,4 @@
+import { useTerminalDimensions } from "@opentui/react";
 import type { VimMode } from "../hooks/useVimMode";
 import {
 	type AnnotatedLine,
@@ -26,6 +27,8 @@ export function TokenAnnotatedView({
 	onTokenChange,
 	onExitEdit,
 }: TokenAnnotatedViewProps) {
+	const { width } = useTerminalDimensions();
+	const maxWidth = Math.max(1, width - 4);
 	const annotatedLines = renderAnnotatedCommand(
 		tokenPositions,
 		selectedIndex,
@@ -35,6 +38,7 @@ export function TokenAnnotatedView({
 		cursorPosition,
 		onTokenChange,
 		onExitEdit,
+		maxWidth,
 	);
 
 	return (

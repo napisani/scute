@@ -1,3 +1,5 @@
+import type { ScrollBoxRenderable } from "@opentui/core";
+import { useEffect, useRef } from "react";
 import { getThemeColorFor } from "../config";
 import type { ColoredToken } from "../hooks/useColoredTokens";
 import type { TokenWidths } from "../hooks/useTokenWidth";
@@ -10,6 +12,7 @@ interface TokenListViewProps {
 	descriptions: string[];
 	tokenWidths: TokenWidths;
 	mode: VimMode;
+	selectedIndex: number;
 	editingTokenIndex: number | null;
 	editingValue: string;
 	cursorPosition: number;
@@ -22,6 +25,7 @@ export function TokenListView({
 	descriptions,
 	tokenWidths,
 	mode,
+	selectedIndex,
 	editingTokenIndex,
 	editingValue,
 	cursorPosition,
@@ -30,10 +34,32 @@ export function TokenListView({
 }: TokenListViewProps) {
 	const { typeWidth, tokenWidth } = tokenWidths;
 	const descriptionColor = getThemeColorFor("tokenDescription");
+	const scrollboxRef = useRef<ScrollBoxRenderable | null>(null);
+
+	useEffect(() => {
+		const scrollbox = scrollboxRef.current;
+		if (!scrollbox) {
+			return;
+		}
+		const viewportHeight = scrollbox.viewport.height;
+		if (!viewportHeight) {
+			return;
+		}
+		const currentTop = scrollbox.scrollTop;
+		const currentBottom = currentTop + viewportHeight - 1;
+		if (selectedIndex < currentTop) {
+			scrollbox.scrollTo({ x: scrollbox.scrollLeft, y: selectedIndex });
+			return;
+		}
+		if (selectedIndex > currentBottom) {
+			const nextTop = Math.max(0, selectedIndex - viewportHeight + 1);
+			scrollbox.scrollTo({ x: scrollbox.scrollLeft, y: nextTop });
+		}
+	}, [selectedIndex]);
 
 	return (
 		<box width="100%" height="100%" justifyContent="center" alignItems="center">
-			<scrollbox height="100%">
+			<scrollbox ref={scrollboxRef} height="100%">
 				<box
 					flexDirection="column"
 					minHeight="100%"

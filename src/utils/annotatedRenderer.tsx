@@ -17,121 +17,110 @@ export function renderAnnotatedCommand(
 	cursorPosition: number,
 	onTokenChange: (value: string) => void,
 	onExitEdit: (save: boolean) => void,
+	maxWidth: number,
 ): AnnotatedLine[] {
 	if (tokenPositions.length === 0) return [];
 
 	const descriptionColor = getThemeColorFor("tokenDescription");
 	const markerColor = getThemeColorFor("markerColor");
 
-	// Build command line with proper spacing tracking
-	let commandLine = "";
-	const tokenStartPositions: number[] = [];
-
-	for (let i = 0; i < tokenPositions.length; i++) {
-		const tp = tokenPositions[i];
-		if (!tp) continue;
-
-		// Track where this token starts in the command line
-		tokenStartPositions[i] = commandLine.length;
-
-		const value = formatToken(tp.token);
-		const isSelected = i === selectedIndex;
-
-		if (isSelected) {
-			// Selected token: box with square border
-			commandLine += `┌${"─".repeat(value.length)}┐`;
-		} else {
-			// Non-selected: invisible box (spaces for alignment)
-			commandLine += ` ${" ".repeat(value.length)} `;
-		}
-
-		// Add space between tokens (but not after the last one)
-		if (i < tokenPositions.length - 1) {
-			commandLine += " ";
-		}
-	}
-
-	const lines: AnnotatedLine[] = [];
-
-	// Only show description for the currently selected token
-	const selectedTp = tokenPositions[selectedIndex];
-	if (selectedTp?.description) {
-		const startPos = tokenStartPositions[selectedIndex];
-		if (startPos !== undefined) {
-			// Calculate the middle of the token for the connector
-			const tokenValue = formatToken(selectedTp.token);
-			const boxWidth = tokenValue.length + 2;
-			const connectorPos = startPos + Math.floor(boxWidth / 2);
-
-			// Build the description line: spaces up to connector, then ┌─Description
-			const beforeConnector = " ".repeat(connectorPos - 1);
-			const descLine = `${beforeConnector}┌─${selectedTp.description}`;
-			lines.push({
-				content: <text fg={markerColor}>{descLine}</text>,
-			});
-
-			// Build the vertical connector line
-			const verticalLine = `${beforeConnector}│`;
-			lines.push({
-				content: <text fg={markerColor}>{verticalLine}</text>,
-			});
-		}
-	}
-
-	// Add the three lines of the command display with token colors
-	const topBorderLineElement = buildBorderLineElement(
+	const rows = buildTokenRows(
 		tokenPositions,
-		selectedIndex,
-		mode,
-		editingTokenIndex,
-		markerColor,
-		"top",
-	);
-	const contentLineElement = buildContentLineElement(
-		tokenPositions,
-		selectedIndex,
-		mode,
+		maxWidth,
 		editingTokenIndex,
 		editingValue,
-		cursorPosition,
-		onTokenChange,
-		onExitEdit,
 	);
-	const bottomBorderLineElement = buildBorderLineElement(
-		tokenPositions,
-		selectedIndex,
-		mode,
-		editingTokenIndex,
-		markerColor,
-		"bottom",
-	);
+	const lines: AnnotatedLine[] = [];
 
-	lines.push(
-		{ content: topBorderLineElement },
-		{ content: contentLineElement },
-		{ content: bottomBorderLineElement },
-	);
+	for (const row of rows) {
+		const tokenStartPositions = buildTokenStartPositions(
+			row,
+			editingTokenIndex,
+			editingValue,
+		);
+		const selectedToken = row.find((tp) => tp.index === selectedIndex);
+		if (selectedToken?.description) {
+			const startPos = tokenStartPositions[selectedIndex];
+			if (startPos !== undefined) {
+				const tokenValue = formatToken(selectedToken.token);
+				const selectedLength = getTokenValueLength(
+					selectedToken,
+					editingTokenIndex,
+					editingValue,
+				);
+				const boxWidth = Math.max(selectedLength, tokenValue.length) + 2;
+				const connectorPos = startPos + Math.floor(boxWidth / 2);
+
+				const beforeConnector = " ".repeat(Math.max(0, connectorPos - 1));
+				const descLine = `${beforeConnector}┌─${selectedToken.description}`;
+				lines.push({
+					content: <text fg={markerColor}>{descLine}</text>,
+				});
+
+				const verticalLine = `${beforeConnector}│`;
+				lines.push({
+					content: <text fg={markerColor}>{verticalLine}</text>,
+				});
+			}
+		}
+
+		const topBorderLineElement = buildBorderLineElement(
+			row,
+			selectedIndex,
+			mode,
+			editingTokenIndex,
+			editingValue,
+			markerColor,
+			"top",
+		);
+		const contentLineElement = buildContentLineElement(
+			row,
+			selectedIndex,
+			mode,
+			editingTokenIndex,
+			editingValue,
+			cursorPosition,
+			onTokenChange,
+			onExitEdit,
+		);
+		const bottomBorderLineElement = buildBorderLineElement(
+			row,
+			selectedIndex,
+			mode,
+			editingTokenIndex,
+			editingValue,
+			markerColor,
+			"bottom",
+		);
+
+		lines.push(
+			{ content: topBorderLineElement },
+			{ content: contentLineElement },
+			{ content: bottomBorderLineElement },
+		);
+	}
 
 	return lines;
 }
 
 function buildBorderLineElement(
-	tokenPositions: TokenPosition[],
+	rowTokens: TokenPosition[],
 	selectedIndex: number,
 	mode: VimMode,
 	editingTokenIndex: number | null,
+	editingValue: string,
 	markerColor: string,
 	borderType: "top" | "bottom",
 ): ReactNode {
 	const elements: ReactNode[] = [];
 
-	for (let i = 0; i < tokenPositions.length; i++) {
-		const tp = tokenPositions[i];
+	for (let i = 0; i < rowTokens.length; i++) {
+		const tp = rowTokens[i];
 		if (!tp) continue;
 
 		const value = formatToken(tp.token);
-		const isSelected = i === selectedIndex;
-		const isEditing = mode === "insert" && editingTokenIndex === i;
+		const isSelected = tp.index === selectedIndex;
+		const isEditing = mode === "insert" && editingTokenIndex === tp.index;
 		const tokenColor = getTokenColor(tp.token.type);
 
 		if (isSelected && !isEditing) {
@@ -147,7 +136,6 @@ function buildBorderLineElement(
 			);
 		} else if (isEditing) {
 			// When editing, show border around the editing value length
-			const editingValue = tp.description || value;
 			const borderChar = borderType === "top" ? "─" : "─";
 			const leftCorner = borderType === "top" ? "┌" : "└";
 			const rightCorner = borderType === "top" ? "┐" : "┘";
@@ -167,7 +155,7 @@ function buildBorderLineElement(
 			);
 		}
 
-		if (i < tokenPositions.length - 1) {
+		if (i < rowTokens.length - 1) {
 			elements.push(<text key={`space-${i}`}> </text>);
 		}
 	}
@@ -176,7 +164,7 @@ function buildBorderLineElement(
 }
 
 function buildContentLineElement(
-	tokenPositions: TokenPosition[],
+	rowTokens: TokenPosition[],
 	selectedIndex: number,
 	mode: VimMode,
 	editingTokenIndex: number | null,
@@ -187,13 +175,13 @@ function buildContentLineElement(
 ): ReactNode {
 	const elements: ReactNode[] = [];
 
-	for (let i = 0; i < tokenPositions.length; i++) {
-		const tp = tokenPositions[i];
+	for (let i = 0; i < rowTokens.length; i++) {
+		const tp = rowTokens[i];
 		if (!tp) continue;
 
 		const value = formatToken(tp.token);
-		const isSelected = i === selectedIndex;
-		const isEditing = mode === "insert" && editingTokenIndex === i;
+		const isSelected = tp.index === selectedIndex;
+		const isEditing = mode === "insert" && editingTokenIndex === tp.index;
 		const tokenColor = getTokenColor(tp.token.type);
 
 		if (isEditing) {
@@ -228,10 +216,96 @@ function buildContentLineElement(
 			);
 		}
 
-		if (i < tokenPositions.length - 1) {
+		if (i < rowTokens.length - 1) {
 			elements.push(<text key={`space-${i}`}> </text>);
 		}
 	}
 
 	return <box style={{ flexDirection: "row" }}>{elements}</box>;
+}
+
+function buildTokenRows(
+	tokenPositions: TokenPosition[],
+	maxWidth: number,
+	editingTokenIndex: number | null,
+	editingValue: string,
+): TokenPosition[][] {
+	if (maxWidth <= 0) {
+		return [tokenPositions];
+	}
+
+	const rows: TokenPosition[][] = [];
+	let currentRow: TokenPosition[] = [];
+	let currentWidth = 0;
+
+	for (const token of tokenPositions) {
+		const tokenWidth = getTokenDisplayWidth(
+			token,
+			editingTokenIndex,
+			editingValue,
+		);
+		const nextWidth = currentRow.length
+			? currentWidth + 1 + tokenWidth
+			: tokenWidth;
+		if (currentRow.length && nextWidth > maxWidth) {
+			rows.push(currentRow);
+			currentRow = [token];
+			currentWidth = tokenWidth;
+			continue;
+		}
+		currentRow.push(token);
+		currentWidth = nextWidth;
+	}
+
+	if (currentRow.length) {
+		rows.push(currentRow);
+	}
+
+	return rows;
+}
+
+function buildTokenStartPositions(
+	rowTokens: TokenPosition[],
+	editingTokenIndex: number | null,
+	editingValue: string,
+): Record<number, number> {
+	const positions: Record<number, number> = {};
+	let cursor = 0;
+	for (let i = 0; i < rowTokens.length; i++) {
+		const token = rowTokens[i];
+		if (!token) {
+			continue;
+		}
+		positions[token.index] = cursor;
+		cursor += getTokenDisplayWidth(token, editingTokenIndex, editingValue);
+		if (i < rowTokens.length - 1) {
+			cursor += 1;
+		}
+	}
+	return positions;
+}
+
+function getTokenDisplayWidth(
+	token: TokenPosition,
+	editingTokenIndex: number | null,
+	editingValue: string,
+): number {
+	const value = formatToken(token.token);
+	const valueLength = getTokenValueLength(
+		token,
+		editingTokenIndex,
+		editingValue,
+	);
+	return Math.max(valueLength, value.length) + 2;
+}
+
+function getTokenValueLength(
+	token: TokenPosition,
+	editingTokenIndex: number | null,
+	editingValue: string,
+): number {
+	if (editingTokenIndex === token.index) {
+		return editingValue.length;
+	}
+	return formatToken(token.token).length;
 }

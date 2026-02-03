@@ -111,6 +111,7 @@ export function BuildApp({ command }: BuildAppProps) {
 						descriptions={descriptions}
 						tokenWidths={tokenWidths}
 						mode={mode}
+						selectedIndex={selectedIndex}
 						editingTokenIndex={editingTokenIndex}
 						editingValue={editingValue}
 						cursorPosition={cursorPosition}
