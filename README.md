@@ -90,6 +90,16 @@ export BRASH_DEBUG=1
 tail -f /tmp/brash.log
 ```
 
+### Inspect Resolved Configuration
+
+Use the `config-debug` subcommand to print the fully resolved configuration (including environment overrides). This is useful when troubleshooting provider settings or custom config files:
+
+```sh
+brash --config configs/ollama-config.yml config-debug
+```
+
+The command prints a JSON payload containing the merged configuration and relevant environment variables.
+
 ## Testing
 
 Test files use the `.test.ts` suffix. Evaluation tests use `.eval.test.ts` and live in the `evals/` directory.

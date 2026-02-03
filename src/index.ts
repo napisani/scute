@@ -3,6 +3,7 @@
 import path from "node:path";
 import { Command } from "commander";
 import { build } from "./commands/build";
+import { configDebug } from "./commands/config-debug";
 import { explain } from "./commands/explain";
 import { init } from "./commands/init";
 import { suggest } from "./commands/suggest";
@@ -46,6 +47,13 @@ program
 	.command("build")
 	.argument("[input...]", "Input to tokenize")
 	.action(build);
+
+program
+	.command("config-debug")
+	.description(
+		"Print the resolved configuration and related environment values",
+	)
+	.action(configDebug);
 
 program
 	.command("suggest")

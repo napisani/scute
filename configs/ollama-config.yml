@@ -4,13 +4,13 @@ providers:
 prompts:
   explain:
     provider: ollama
-    model: qwen3:0.6b
+    model: qwen3:1.7b
   suggest:
     provider: ollama
-    model: qwen3:0.6b
+    model: qwen3:1.7b
   generate:
     provider: ollama
-    model: qwen3:0.6b
+    model: qwen3:1.7b
   describeTokens:
     provider: ollama
-    model: qwen3:0.6b
+    model: qwen3:1.7b

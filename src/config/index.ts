@@ -81,13 +81,12 @@ function applyEnvOverrides(baseConfig: Config): Config {
 		const index = mergedProviders.findIndex((entry) => entry.name === provider);
 		const updated = {
 			name: provider,
-			apiKey: provider === "ollama" ? undefined : envValue,
-			baseUrl: provider === "ollama" ? envValue : undefined,
+			...(provider === "ollama" ? { baseUrl: envValue } : { apiKey: envValue }),
 		};
 		if (index >= 0) {
 			mergedProviders[index] = { ...mergedProviders[index], ...updated };
 		} else {
-			mergedProviders.push(updated);
+			mergedProviders.push(updated as (typeof mergedProviders)[0]);
 		}
 	}
 	return { ...baseConfig, providers: mergedProviders };
