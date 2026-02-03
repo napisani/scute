@@ -40,11 +40,19 @@ export function TokenAnnotatedView({
 	return (
 		<box width="100%" height="100%" justifyContent="center" alignItems="center">
 			<scrollbox height="100%">
-				{annotatedLines.map((line, index) => (
-					<box key={`annotated-line-${index}-${Math.random()}`}>
-						{line.content}
-					</box>
-				))}
+				<box
+					flexDirection="column"
+					minHeight="100%"
+					width="100%"
+					justifyContent="center"
+					alignItems="flex-start"
+				>
+					{annotatedLines.map((line, index) => (
+						<box key={`annotated-line-${index}-${Math.random()}`}>
+							{line.content}
+						</box>
+					))}
+				</box>
 			</scrollbox>
 		</box>
 	);

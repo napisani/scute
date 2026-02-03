@@ -1,5 +1,5 @@
-import { useKeyboard } from "@opentui/react";
-import { useCallback, useMemo, useState } from "react";
+import { useKeyboard as useOpenTuiKeyboard } from "@opentui/react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { getKeybindings } from "../config";
 import type { ParsedToken } from "../core/shells/common";
 import type { ViewMode } from "./useViewMode";
@@ -30,19 +30,36 @@ export interface VimModeActions {
 	loadDescriptions: () => void;
 }
 
+interface EditorState {
+	value: string;
+	cursor: number;
+}
+
+// Type for keyboard handler
+export type KeyboardHandler = (key: {
+	name: string;
+	sequence?: string;
+}) => void;
+
+// Hook interface that accepts optional keyboard hook for testing
 export function useVimMode(
 	parsedTokens: ParsedToken[],
 	loadDescriptions: () => void,
 	onTokenEdit?: (tokenIndex: number, newValue: string) => void,
+	useKeyboard: (handler: KeyboardHandler) => void = useOpenTuiKeyboard,
 ): VimModeState & VimModeActions {
 	const [mode, setMode] = useState<VimMode>("normal");
+	const modeRef = useRef(mode);
+	modeRef.current = mode;
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const [viewMode, setViewMode] = useState<ViewMode>("list");
 	const [editingTokenIndex, setEditingTokenIndex] = useState<number | null>(
 		null,
 	);
-	const [editingValue, setEditingValue] = useState("");
-	const [cursorPosition, setCursorPosition] = useState(0);
+	const [editorState, setEditorState] = useState<EditorState>({
+		value: "",
+		cursor: 0,
+	});
 	const [tokenValues, setTokenValues] = useState<string[]>(
 		parsedTokens.map((t) => t.value),
 	);
@@ -58,6 +75,7 @@ export function useVimMode(
 	const lineEndKeys = useMemo(() => getKeybindings("lineEnd"), []);
 	const firstTokenKeys = useMemo(() => getKeybindings("firstToken"), []);
 	const lastTokenKeys = useMemo(() => getKeybindings("lastToken"), []);
+	const appendLineKeys = useMemo(() => getKeybindings("appendLine"), []);
 	const toggleViewKeys = useMemo(() => getKeybindings("toggleView"), []);
 	const explainKeys = useMemo(() => getKeybindings("explain"), []);
 	const insertKeys = useMemo(() => getKeybindings("insert"), []);
@@ -75,8 +93,10 @@ export function useVimMode(
 				? ""
 				: (tokenValues[tokenIndex] ?? parsedTokens[tokenIndex]?.value ?? "");
 			setEditingTokenIndex(tokenIndex);
-			setEditingValue(initialValue);
-			setCursorPosition(Math.min(cursorPos, initialValue.length));
+			setEditorState({
+				value: initialValue,
+				cursor: Math.min(cursorPos, initialValue.length),
+			});
 			setMode("insert");
 		},
 		[tokenValues, parsedTokens],
@@ -85,37 +105,36 @@ export function useVimMode(
 	const exitInsertMode = useCallback(
 		(save: boolean) => {
 			if (editingTokenIndex !== null) {
-				if (save && editingValue.length > 0) {
+				if (save && editorState.value.length > 0) {
 					// Save the edited value to internal state
 					setTokenValues((values) => {
 						const newValues = [...values];
-						newValues[editingTokenIndex] = editingValue;
+						newValues[editingTokenIndex] = editorState.value;
 						return newValues;
 					});
 					// Notify parent component about the edit
-					onTokenEdit?.(editingTokenIndex, editingValue);
+					onTokenEdit?.(editingTokenIndex, editorState.value);
 				}
 				// Reset editing state
 				setEditingTokenIndex(null);
-				setEditingValue("");
-				setCursorPosition(0);
+				setEditorState({ value: "", cursor: 0 });
 			}
 			setMode("normal");
 		},
-		[editingTokenIndex, editingValue, onTokenEdit],
+		[editingTokenIndex, editorState.value, onTokenEdit],
 	);
 
 	const updateEditingValue = useCallback((value: string) => {
-		setEditingValue(value);
+		setEditorState((prev) => ({ ...prev, value }));
 	}, []);
 
 	const moveCursor = useCallback((position: number) => {
-		setCursorPosition(position);
+		setEditorState((prev) => ({ ...prev, cursor: position }));
 	}, []);
 
 	// Keyboard handler for normal mode
 	useKeyboard((key) => {
-		if (mode !== "normal") return;
+		if (modeRef.current !== "normal") return;
 
 		// View toggle (m key)
 		if (toggleViewKeys.includes(key.name)) {
@@ -130,6 +149,21 @@ export function useVimMode(
 		}
 
 		// Edit commands
+		if (
+			viewMode === "annotated" &&
+			(appendLineKeys.includes(key.name) ||
+				(key.sequence && appendLineKeys.includes(key.sequence)))
+		) {
+			const lastIndex = parsedTokens.length - 1;
+			if (lastIndex < 0) {
+				return;
+			}
+			setSelectedIndex(lastIndex);
+			const tokenValue =
+				tokenValues[lastIndex] ?? parsedTokens[lastIndex]?.value ?? "";
+			enterInsertMode(lastIndex, tokenValue.length, false);
+			return;
+		}
 		if (insertKeys.includes(key.name)) {
 			enterInsertMode(selectedIndex, 0, false);
 			return;
@@ -216,7 +250,7 @@ export function useVimMode(
 
 	// Keyboard handler for insert mode
 	useKeyboard((key) => {
-		if (mode !== "insert") return;
+		if (modeRef.current !== "insert") return;
 
 		// Exit without saving (Esc)
 		if (exitInsertKeys.includes(key.name)) {
@@ -232,11 +266,25 @@ export function useVimMode(
 
 		// Cursor movement with arrow keys
 		if (key.name === "left") {
-			setCursorPosition((pos) => Math.max(0, pos - 1));
+			setEditorState((prev) => ({
+				...prev,
+				cursor: Math.max(0, prev.cursor - 1),
+			}));
 			return;
 		}
 		if (key.name === "right") {
-			setCursorPosition((pos) => Math.min(editingValue.length, pos + 1));
+			setEditorState((prev) => ({
+				...prev,
+				cursor: Math.min(prev.value.length, prev.cursor + 1),
+			}));
+			return;
+		}
+		if (key.name === "home") {
+			setEditorState((prev) => ({ ...prev, cursor: 0 }));
+			return;
+		}
+		if (key.name === "end") {
+			setEditorState((prev) => ({ ...prev, cursor: prev.value.length }));
 			return;
 		}
 
@@ -245,36 +293,51 @@ export function useVimMode(
 			const char = key.sequence;
 			// Only accept printable characters
 			if (char >= " " && char <= "~") {
-				const newValue =
-					editingValue.slice(0, cursorPosition) +
-					char +
-					editingValue.slice(cursorPosition);
-				setEditingValue(newValue);
-				setCursorPosition((pos) => pos + 1);
+				setEditorState((prev) => {
+					const newValue =
+						prev.value.slice(0, prev.cursor) +
+						char +
+						prev.value.slice(prev.cursor);
+					return {
+						value: newValue,
+						cursor: prev.cursor + 1,
+					};
+				});
 			}
 			return;
 		}
 
 		// Backspace
 		if (key.name === "backspace") {
-			if (cursorPosition > 0) {
-				const newValue =
-					editingValue.slice(0, cursorPosition - 1) +
-					editingValue.slice(cursorPosition);
-				setEditingValue(newValue);
-				setCursorPosition((pos) => pos - 1);
-			}
+			setEditorState((prev) => {
+				if (prev.cursor > 0) {
+					const newValue =
+						prev.value.slice(0, prev.cursor - 1) +
+						prev.value.slice(prev.cursor);
+					return {
+						value: newValue,
+						cursor: prev.cursor - 1,
+					};
+				}
+				return prev;
+			});
 			return;
 		}
 
 		// Delete
 		if (key.name === "delete") {
-			if (cursorPosition < editingValue.length) {
-				const newValue =
-					editingValue.slice(0, cursorPosition) +
-					editingValue.slice(cursorPosition + 1);
-				setEditingValue(newValue);
-			}
+			setEditorState((prev) => {
+				if (prev.cursor < prev.value.length) {
+					const newValue =
+						prev.value.slice(0, prev.cursor) +
+						prev.value.slice(prev.cursor + 1);
+					return {
+						...prev,
+						value: newValue,
+					};
+				}
+				return prev;
+			});
 			return;
 		}
 	});
@@ -285,8 +348,8 @@ export function useVimMode(
 		selectedIndex,
 		viewMode,
 		editingTokenIndex,
-		editingValue,
-		cursorPosition,
+		editingValue: editorState.value,
+		cursorPosition: editorState.cursor,
 		tokenValues,
 		// Actions
 		enterInsertMode,

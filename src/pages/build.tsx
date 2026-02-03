@@ -2,7 +2,7 @@ import { useCallback, useMemo } from "react";
 import { Footer } from "../components/Footer";
 import { TokenAnnotatedView } from "../components/TokenAnnotatedView";
 import { TokenListView } from "../components/TokenListView";
-import { parseTokens } from "../core/shells";
+import { parseTokens, tokenizeInput } from "../core/shells";
 import { useColoredTokens } from "../hooks/useColoredTokens";
 import { useParsedCommand } from "../hooks/useParsedCommand";
 import { useTokenDescriptions } from "../hooks/useTokenDescriptions";
@@ -33,9 +33,11 @@ export function BuildApp({ command }: BuildAppProps) {
 			setParsedCommand((prev) => {
 				const newTokens = [...prev.tokens];
 				newTokens[tokenIndex] = newValue;
+				const updatedCommand = newTokens.join(" ");
+				const updatedTokens = tokenizeInput(updatedCommand);
 				return {
-					...prev,
-					tokens: newTokens,
+					tokens: updatedTokens,
+					originalCommand: updatedCommand,
 				};
 			});
 		},

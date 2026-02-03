@@ -1,7 +1,7 @@
 BRASH_BIN=./brash
 CONFIG_DIR=configs
 
-.PHONY: build clean run-example-ollama run-example-openai run-example-anthropic run-example-gemini terminal-mcp
+.PHONY: build clean run-example-ollama run-example-openai run-example-anthropic run-example-gemini terminal-mcp test
 
 build: clean $(BRASH_BIN)
 
@@ -25,3 +25,6 @@ run-example-gemini: build
 
 terminal-mcp:
 	terminal-mcp --socket /tmp/terminal-mcp.sock --cols 100 --rows 30 --shell /bin/bash
+
+test: 
+	bun run test

@@ -34,35 +34,43 @@ export function TokenListView({
 	return (
 		<box width="100%" height="100%" justifyContent="center" alignItems="center">
 			<scrollbox height="100%">
-				{coloredTokens.map((coloredToken) => {
-					const { token, index, color, isSelected } = coloredToken;
-					const description = descriptions[index] ?? "";
-					const label = formatToken(token);
-					const typeLabel = formatTokenType(token);
-					const key = `${token.type}-${label}-${index}`;
-					const isEditing = mode === "insert" && editingTokenIndex === index;
+				<box
+					flexDirection="column"
+					minHeight="100%"
+					width="100%"
+					justifyContent="center"
+					alignItems="flex-start"
+				>
+					{coloredTokens.map((coloredToken) => {
+						const { token, index, color, isSelected } = coloredToken;
+						const description = descriptions[index] ?? "";
+						const label = formatToken(token);
+						const typeLabel = formatTokenType(token);
+						const key = `${token.type}-${label}-${index}`;
+						const isEditing = mode === "insert" && editingTokenIndex === index;
 
-					return (
-						<box key={key} style={{ flexDirection: "row" }}>
-							<text fg={color}>
-								{isSelected ? "> " : "  "}
-								{typeLabel.padEnd(typeWidth + 2, " ")}
-							</text>
-							<TokenDisplay
-								token={coloredToken}
-								isEditing={isEditing}
-								editValue={editingValue}
-								cursorPosition={cursorPosition}
-								onChange={onTokenChange}
-								onExit={onExitEdit}
-							/>
-							<text fg={color}>
-								{" ".repeat(tokenWidth - label.length + 2)}
-							</text>
-							<text fg={descriptionColor}>{description}</text>
-						</box>
-					);
-				})}
+						return (
+							<box key={key} style={{ flexDirection: "row" }}>
+								<text fg={color}>
+									{isSelected ? "> " : "  "}
+									{typeLabel.padEnd(typeWidth + 2, " ")}
+								</text>
+								<TokenDisplay
+									token={coloredToken}
+									isEditing={isEditing}
+									editValue={editingValue}
+									cursorPosition={cursorPosition}
+									onChange={onTokenChange}
+									onExit={onExitEdit}
+								/>
+								<text fg={color}>
+									{" ".repeat(tokenWidth - label.length + 2)}
+								</text>
+								<text fg={descriptionColor}>{description}</text>
+							</box>
+						);
+					})}
+				</box>
 			</scrollbox>
 		</box>
 	);

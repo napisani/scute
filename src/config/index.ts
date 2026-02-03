@@ -118,6 +118,7 @@ export type KeybindingAction =
 	| "lineEnd"
 	| "firstToken"
 	| "lastToken"
+	| "appendLine"
 	| "explain"
 	| "toggleView"
 	| "insert"
@@ -137,6 +138,7 @@ const defaultKeybindings: Record<KeybindingAction, string[]> = {
 	lineEnd: ["$"],
 	firstToken: ["g"],
 	lastToken: ["G"],
+	appendLine: ["A"],
 	explain: ["e"],
 	toggleView: ["m"],
 	insert: ["i"],
