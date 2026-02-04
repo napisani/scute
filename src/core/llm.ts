@@ -11,7 +11,7 @@ import {
 } from "../config";
 import type { PromptName } from "../config/schema";
 import { logDebug } from "./logger";
-import { type ManPage, manPageToContextString } from "./manpage";
+import { buildManPageContext, type ManPage } from "./manpage";
 import {
 	getDescribeTokensPrompt,
 	getExplainSystemPrompt,
@@ -194,7 +194,9 @@ export async function fetchTokenDescriptionsFromLlm({
 	});
 
 	const systemPrompt = resolveSystemPrompt(promptType, defaultSystemPrompt);
-	const context = manPages.map(manPageToContextString).join("\n\n");
+	const context = manPages
+		.map((manPage) => buildManPageContext(manPage, parsedTokens))
+		.join("\n\n");
 
 	const userPrompt = JSON.stringify(
 		{
