@@ -705,4 +705,28 @@ describe("useVimMode", () => {
 			expect(result.current.editingValue).toBe(beforeModifier);
 		});
 	});
+
+	it("retains current view mode when tokens change", () => {
+		const mockLoadDescriptions = () => {};
+		const initialTokens = mockTokens;
+		const { result, rerender } = renderHook(
+			({ tokens }: { tokens: ParsedToken[] }) =>
+				useVimMode(tokens, mockLoadDescriptions, undefined, mockUseKeyboard),
+			{ initialProps: { tokens: initialTokens } },
+		);
+
+		act(() => {
+			result.current.setViewMode("annotated");
+		});
+		expect(result.current.viewMode).toBe("annotated");
+
+		const updatedTokens: ParsedToken[] = [
+			{ value: "printf", type: "command" },
+			...mockTokens.slice(1),
+		];
+
+		rerender({ tokens: updatedTokens });
+
+		expect(result.current.viewMode).toBe("annotated");
+	});
 });

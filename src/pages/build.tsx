@@ -19,18 +19,30 @@ type BuildAppProps = {
 	command: string;
 };
 
+export interface ApplyTokenEditResult {
+	command: ParsedCommand;
+	startIndex: number;
+	removedCount: number;
+	insertedCount: number;
+}
+
 export function applyTokenEdit(
 	prev: ParsedCommand,
 	tokenIndex: number,
 	newValue: string,
-): ParsedCommand {
+): ApplyTokenEditResult {
 	const editedTokens = tokenizeInput(newValue);
 	const splicedTokens = [
 		...prev.tokens.slice(0, tokenIndex),
 		...editedTokens,
 		...prev.tokens.slice(tokenIndex + 1),
 	];
-	return rebuildParsedCommandFromTokens(splicedTokens);
+	return {
+		command: rebuildParsedCommandFromTokens(splicedTokens),
+		startIndex: tokenIndex,
+		removedCount: 1,
+		insertedCount: editedTokens.length,
+	};
 }
 
 export function BuildApp({ command }: BuildAppProps) {
@@ -41,19 +53,23 @@ export function BuildApp({ command }: BuildAppProps) {
 		[parsedCommand.tokens],
 	);
 
-	const { descriptions, isLoading, loadDescriptions } = useTokenDescriptions(
-		parsedCommand,
-		parsedTokens.length,
-	);
+	const { descriptions, isLoading, loadDescriptions, resetDescriptions } =
+		useTokenDescriptions(parsedCommand, parsedTokens.length);
 
 	// Handle token edits by updating the parsed command
 	const handleTokenEdit = useCallback(
 		(tokenIndex: number, newValue: string) => {
 			setParsedCommand((prev) => {
-				return applyTokenEdit(prev, tokenIndex, newValue);
+				const { command: nextCommand } = applyTokenEdit(
+					prev,
+					tokenIndex,
+					newValue,
+				);
+				resetDescriptions();
+				return nextCommand;
 			});
 		},
-		[setParsedCommand],
+		[resetDescriptions, setParsedCommand],
 	);
 
 	const {

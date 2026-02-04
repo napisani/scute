@@ -85,7 +85,6 @@ export function useVimMode(
 		});
 		setMode("normal");
 		setSelectedIndex(0);
-		setViewMode("list");
 		setEditingTokenIndex(null);
 		setEditorState({ value: "", cursor: 0 });
 		setGPressed(false);

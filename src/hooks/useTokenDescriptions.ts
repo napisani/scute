@@ -47,9 +47,37 @@ export function useTokenDescriptions(
 		}
 	}, [command, descriptions.length, isLoading]);
 
+	const invalidateDescriptions = useCallback(
+		(startIndex: number, count: number) => {
+			if (count <= 0) {
+				return;
+			}
+			setDescriptions((prev) => {
+				if (!prev.length) {
+					return prev;
+				}
+				const next = prev.slice();
+				const end = Math.min(startIndex + count, next.length);
+				for (let index = startIndex; index < end; index++) {
+					next[index] = "";
+				}
+				return next;
+			});
+		},
+		[],
+	);
+
+	const resetDescriptions = useCallback(() => {
+		setDescriptions([]);
+		setIsLoading(false);
+		requestIdRef.current += 1;
+	}, []);
+
 	return {
 		descriptions,
 		isLoading,
 		loadDescriptions,
+		invalidateDescriptions,
+		resetDescriptions,
 	};
 }

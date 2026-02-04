@@ -28,9 +28,13 @@ export function getManPage(command: string): string | null {
 export function extractManSections(command: string, fullText: string): ManPage {
 	const cleaned = stripFormatting(fullText);
 	const sections = splitIntoSections(cleaned);
-	const parsedOptions = sections.description
-		? parseManOptions(sections.description)
-		: parseManOptions(cleaned);
+	let parsedOptions: ParsedManPageOption[] = [];
+	if (sections.description) {
+		parsedOptions = parseManOptions(sections.description);
+	}
+	if (!parsedOptions.length) {
+		parsedOptions = parseManOptions(cleaned);
+	}
 	return {
 		command,
 		fullText,

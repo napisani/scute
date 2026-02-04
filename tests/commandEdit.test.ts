@@ -14,11 +14,12 @@ describe("command editing", () => {
 					tokens: tokenizeInput(initialCommand),
 					originalCommand: initialCommand,
 				};
-				const updated = applyTokenEdit(
+				const result = applyTokenEdit(
 					prev,
 					0,
 					'cat /var/log/syslog && echo "done" && ls',
 				);
+				const updated = result.command;
 				const expectedCommand =
 					'cat /var/log/syslog && echo "done" && ls -altr /var/log';
 				expect(updated.originalCommand).toBe(expectedCommand);
@@ -37,7 +38,7 @@ describe("command editing", () => {
 					tokens: tokenizeInput(initialCommand),
 					originalCommand: initialCommand,
 				};
-				const updated = applyTokenEdit(prev, 2, "test");
+				const { command: updated } = applyTokenEdit(prev, 2, "test");
 				const expectedCommand = "npm run test";
 				expect(updated.originalCommand).toBe(expectedCommand);
 				expect(updated.tokens).toEqual(tokenizeInput(expectedCommand));
