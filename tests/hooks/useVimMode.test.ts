@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import { act, renderHook } from "@testing-library/react";
 import { JSDOM } from "jsdom";
 import type { ParsedToken } from "../../src/core/shells/common";
-import type { KeyboardHandler } from "../../src/hooks/useVimMode";
+import type { KeyboardHandler, KeyboardKey } from "../../src/hooks/useVimMode";
 
 // Set up JSDOM before importing React
 const dom = new JSDOM("<!DOCTYPE html><html><body></body></html>");
@@ -21,8 +21,12 @@ const mockUseKeyboard = (handler: KeyboardHandler) => {
 	}
 };
 
-const simulateKey = (name: string, sequence?: string) => {
-	const key = { name, sequence };
+const simulateKey = (
+	name: string,
+	sequence?: string,
+	overrides: Partial<KeyboardKey> = {},
+) => {
+	const key: KeyboardKey = { name, sequence, ...overrides };
 	// Call only the most recent handlers
 	latestHandlers.forEach((handler) => {
 		handler(key);
@@ -657,6 +661,48 @@ describe("useVimMode", () => {
 			});
 
 			expect(wasCalled).toBe(true);
+		});
+	});
+
+	describe("modifier keys", () => {
+		it("ignores ctrl-modified key presses in normal mode", () => {
+			const loadDescriptions = () => {};
+			const { result } = renderHook(() =>
+				useVimMode(mockTokens, loadDescriptions, undefined, mockUseKeyboard),
+			);
+
+			act(() => {
+				simulateKey("c", "\u0003", { ctrl: true });
+			});
+
+			expect(result.current.mode).toBe("normal");
+			expect(result.current.editingTokenIndex).toBeNull();
+			expect(result.current.editingValue).toBe("");
+		});
+
+		it("does not mutate insert buffer for ctrl-modified keys", () => {
+			const loadDescriptions = () => {};
+			const { result } = renderHook(() =>
+				useVimMode(mockTokens, loadDescriptions, undefined, mockUseKeyboard),
+			);
+
+			act(() => {
+				simulateKey("i", "i");
+			});
+
+			act(() => {
+				simulateType("abc");
+			});
+
+			expect(result.current.mode).toBe("insert");
+			const beforeModifier = result.current.editingValue;
+
+			act(() => {
+				simulateKey("c", "\u0003", { ctrl: true });
+			});
+
+			expect(result.current.mode).toBe("insert");
+			expect(result.current.editingValue).toBe(beforeModifier);
 		});
 	});
 });

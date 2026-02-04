@@ -17,10 +17,28 @@ describe("command editing", () => {
 				const updated = applyTokenEdit(
 					prev,
 					0,
-					'cat /var/log/syslog && echo "done" && ',
+					'cat /var/log/syslog && echo "done" && ls',
 				);
 				const expectedCommand =
 					'cat /var/log/syslog && echo "done" && ls -altr /var/log';
+				expect(updated.originalCommand).toBe(expectedCommand);
+				expect(updated.tokens).toEqual(tokenizeInput(expectedCommand));
+			},
+		);
+	});
+
+	it("replaces the targeted token when editing", async () => {
+		await withMockedEnv(
+			{ env: { BRASH_SHELL: "bash", SHELL: "/bin/bash" } },
+			async () => {
+				resetShellCache();
+				const initialCommand = "npm run build";
+				const prev = {
+					tokens: tokenizeInput(initialCommand),
+					originalCommand: initialCommand,
+				};
+				const updated = applyTokenEdit(prev, 2, "test");
+				const expectedCommand = "npm run test";
 				expect(updated.originalCommand).toBe(expectedCommand);
 				expect(updated.tokens).toEqual(tokenizeInput(expectedCommand));
 			},

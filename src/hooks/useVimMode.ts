@@ -1,6 +1,7 @@
 import { useKeyboard as useOpenTuiKeyboard } from "@opentui/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getKeybindings } from "../config";
+import { logTrace } from "../core/logger";
 import type { ParsedToken } from "../core/shells/common";
 import type { ViewMode } from "./useViewMode";
 
@@ -35,10 +36,21 @@ interface EditorState {
 }
 
 // Type for keyboard handler
-export type KeyboardHandler = (key: {
+export interface KeyboardKey {
 	name: string;
 	sequence?: string;
-}) => void;
+	ctrl?: boolean;
+	meta?: boolean;
+	shift?: boolean;
+	option?: boolean;
+	alt?: boolean;
+}
+
+export type KeyboardHandler = (key: KeyboardKey) => void;
+
+function hasModifierKey(key: KeyboardKey): boolean {
+	return Boolean(key.ctrl || key.meta || key.option || key.alt);
+}
 
 // Hook interface that accepts optional keyboard hook for testing
 export function useVimMode(
@@ -68,6 +80,9 @@ export function useVimMode(
 
 	useEffect(() => {
 		void parsedTokensKey;
+		logTrace("vim:resetTokens", {
+			tokenCount: parsedTokens.length,
+		});
 		setMode("normal");
 		setSelectedIndex(0);
 		setViewMode("list");
@@ -76,7 +91,7 @@ export function useVimMode(
 		setGPressed(false);
 		skipNextInsertCharRef.current = false;
 		insertTriggerRef.current = null;
-	}, [parsedTokensKey]);
+	}, [parsedTokensKey, parsedTokens.length]);
 
 	// Keybindings
 	const upKeys = useMemo(() => getKeybindings("up"), []);
@@ -106,10 +121,17 @@ export function useVimMode(
 			const initialValue = clearToken
 				? ""
 				: (parsedTokens[tokenIndex]?.value ?? "");
+			const nextCursor = Math.min(cursorPos, initialValue.length);
+			logTrace("vim:enterInsert", {
+				tokenIndex,
+				cursorPos,
+				clearToken,
+				initialValueLength: initialValue.length,
+			});
 			setEditingTokenIndex(tokenIndex);
 			setEditorState({
 				value: initialValue,
-				cursor: Math.min(cursorPos, initialValue.length),
+				cursor: nextCursor,
 			});
 			setMode("insert");
 		},
@@ -118,6 +140,11 @@ export function useVimMode(
 
 	const exitInsertMode = useCallback(
 		(save: boolean) => {
+			logTrace("vim:exitInsert", {
+				save,
+				editingTokenIndex,
+				valueLength: editorState.value.length,
+			});
 			if (editingTokenIndex !== null) {
 				if (save && editorState.value.length > 0) {
 					// Notify parent component about the edit
@@ -132,122 +159,219 @@ export function useVimMode(
 		[editingTokenIndex, editorState.value, onTokenEdit],
 	);
 
-	const updateEditingValue = useCallback((value: string) => {
-		setEditorState((prev) => ({ ...prev, value }));
-	}, []);
+	const updateEditingValue = useCallback(
+		(value: string) => {
+			const preview = value.length > 32 ? `${value.slice(0, 32)}…` : value;
+			logTrace("vim:updateEditingValue", {
+				tokenIndex: editingTokenIndex,
+				valueLength: value.length,
+				preview,
+			});
+			setEditorState((prev) => ({ ...prev, value }));
+		},
+		[editingTokenIndex],
+	);
 
-	const moveCursor = useCallback((position: number) => {
-		setEditorState((prev) => ({ ...prev, cursor: position }));
-	}, []);
+	const moveCursor = useCallback(
+		(position: number) => {
+			logTrace("vim:moveCursor", {
+				tokenIndex: editingTokenIndex,
+				position,
+			});
+			setEditorState((prev) => ({ ...prev, cursor: position }));
+		},
+		[editingTokenIndex],
+	);
 
 	// Keyboard handler for normal mode
 	useKeyboard((key) => {
 		if (modeRef.current !== "normal") return;
 
-		// View toggle (m key)
-		if (toggleViewKeys.includes(key.name)) {
-			setViewMode((m) => (m === "list" ? "annotated" : "list"));
+		if (hasModifierKey(key)) {
+			logTrace("vim:normal:ignoredModifier", {
+				key: key.name,
+			});
 			return;
 		}
 
-		// Explain
+		const currentViewMode = viewMode;
+		const currentSelectedIndex = selectedIndex;
+
+		if (toggleViewKeys.includes(key.name)) {
+			const nextMode = currentViewMode === "list" ? "annotated" : "list";
+			logTrace("vim:toggleView", {
+				key: key.name,
+				from: currentViewMode,
+				to: nextMode,
+			});
+			setViewMode(nextMode);
+			return;
+		}
+
 		if (explainKeys.includes(key.name)) {
+			logTrace("vim:loadDescriptions", {
+				key: key.name,
+				selectedIndex: currentSelectedIndex,
+			});
 			loadDescriptions();
 			return;
 		}
 
-		// Edit commands
 		if (
-			viewMode === "annotated" &&
+			currentViewMode === "annotated" &&
 			(appendLineKeys.includes(key.name) ||
 				(key.sequence && appendLineKeys.includes(key.sequence)))
 		) {
 			const lastIndex = parsedTokens.length - 1;
 			if (lastIndex < 0) {
+				logTrace("vim:appendLineSkipped", { reason: "noTokens" });
 				return;
 			}
+			logTrace("vim:appendLine", {
+				key: key.name,
+				targetIndex: lastIndex,
+				tokenValueLength: parsedTokens[lastIndex]?.value.length ?? 0,
+			});
 			setSelectedIndex(lastIndex);
 			const tokenValue = parsedTokens[lastIndex]?.value ?? "";
 			enterInsertMode(lastIndex, tokenValue.length, false);
 			return;
 		}
+
 		if (insertKeys.includes(key.name)) {
+			logTrace("vim:commandInsert", {
+				key: key.name,
+				targetIndex: currentSelectedIndex,
+			});
 			skipNextInsertCharRef.current = true;
 			insertTriggerRef.current = key.sequence ?? key.name;
-			enterInsertMode(selectedIndex, 0, false);
-			return;
-		}
-		if (appendKeys.includes(key.name)) {
-			skipNextInsertCharRef.current = true;
-			insertTriggerRef.current = key.sequence ?? key.name;
-			enterInsertMode(selectedIndex, 1, false);
-			return;
-		}
-		if (changeKeys.includes(key.name)) {
-			skipNextInsertCharRef.current = true;
-			insertTriggerRef.current = key.sequence ?? key.name;
-			enterInsertMode(selectedIndex, 0, true);
+			enterInsertMode(currentSelectedIndex, 0, false);
 			return;
 		}
 
-		// View-specific navigation
-		if (viewMode === "annotated") {
-			// Horizontal mode: h/l move left/right, j/k unbound
-			// w/b move by word, $/0 move to line end/start
+		if (appendKeys.includes(key.name)) {
+			logTrace("vim:commandAppend", {
+				key: key.name,
+				targetIndex: currentSelectedIndex,
+			});
+			skipNextInsertCharRef.current = true;
+			insertTriggerRef.current = key.sequence ?? key.name;
+			enterInsertMode(currentSelectedIndex, 1, false);
+			return;
+		}
+
+		if (changeKeys.includes(key.name)) {
+			logTrace("vim:commandChange", {
+				key: key.name,
+				targetIndex: currentSelectedIndex,
+			});
+			skipNextInsertCharRef.current = true;
+			insertTriggerRef.current = key.sequence ?? key.name;
+			enterInsertMode(currentSelectedIndex, 0, true);
+			return;
+		}
+
+		if (currentViewMode === "annotated") {
+			const moveSelection = (direction: string, nextIndex: number) => {
+				if (parsedTokens.length === 0) {
+					logTrace("vim:moveSelectionSkipped", {
+						direction,
+						reason: "noTokens",
+					});
+					return;
+				}
+				const boundedIndex = Math.max(
+					0,
+					Math.min(parsedTokens.length - 1, nextIndex),
+				);
+				if (boundedIndex === currentSelectedIndex) {
+					return;
+				}
+				logTrace("vim:moveSelection", {
+					direction,
+					from: currentSelectedIndex,
+					to: boundedIndex,
+				});
+				setSelectedIndex(boundedIndex);
+			};
 
 			if (leftKeys.includes(key.name)) {
-				setSelectedIndex((index) => Math.max(0, index - 1));
+				moveSelection("left", currentSelectedIndex - 1);
 				return;
 			}
+
 			if (rightKeys.includes(key.name)) {
-				setSelectedIndex((index) =>
-					Math.min(parsedTokens.length - 1, index + 1),
-				);
+				moveSelection("right", currentSelectedIndex + 1);
 				return;
 			}
 
 			if (wordBackwardKeys.includes(key.name)) {
-				setSelectedIndex((index) => Math.max(0, index - 1));
+				moveSelection("wordBackward", currentSelectedIndex - 1);
 				return;
 			}
+
 			if (wordForwardKeys.includes(key.name)) {
-				setSelectedIndex((index) =>
-					Math.min(parsedTokens.length - 1, index + 1),
-				);
+				moveSelection("wordForward", currentSelectedIndex + 1);
 				return;
 			}
 
 			if (lineStartKeys.includes(key.name)) {
-				setSelectedIndex(0);
+				moveSelection("lineStart", 0);
 				return;
 			}
+
 			if (lineEndKeys.includes(key.name)) {
-				setSelectedIndex(parsedTokens.length - 1);
+				if (parsedTokens.length === 0) {
+					logTrace("vim:moveSelectionSkipped", {
+						direction: "lineEnd",
+						reason: "noTokens",
+					});
+					return;
+				}
+				moveSelection("lineEnd", parsedTokens.length - 1);
 				return;
 			}
 		} else {
-			// Vertical (list) mode: j/k move up/down, h/l unbound
-			// w/b unbound, gg/G move to first/last token
+			const moveSelection = (direction: string, nextIndex: number) => {
+				if (parsedTokens.length === 0) {
+					logTrace("vim:moveSelectionSkipped", {
+						direction,
+						reason: "noTokens",
+					});
+					return;
+				}
+				const boundedIndex = Math.max(
+					0,
+					Math.min(parsedTokens.length - 1, nextIndex),
+				);
+				if (boundedIndex === currentSelectedIndex) {
+					return;
+				}
+				logTrace("vim:moveSelection", {
+					direction,
+					from: currentSelectedIndex,
+					to: boundedIndex,
+				});
+				setSelectedIndex(boundedIndex);
+			};
 
 			if (upKeys.includes(key.name) || key.name === "k") {
-				setSelectedIndex((index) => Math.max(0, index - 1));
-				return;
-			}
-			if (downKeys.includes(key.name) || key.name === "j") {
-				setSelectedIndex((index) =>
-					Math.min(parsedTokens.length - 1, index + 1),
-				);
+				moveSelection("up", currentSelectedIndex - 1);
 				return;
 			}
 
-			// Handle "gg" command
+			if (downKeys.includes(key.name) || key.name === "j") {
+				moveSelection("down", currentSelectedIndex + 1);
+				return;
+			}
+
 			if (key.name === "g") {
 				if (gPressed) {
-					// Second 'g' - go to first token
+					logTrace("vim:gotoFirst", { via: "gg" });
 					setSelectedIndex(0);
 					setGPressed(false);
 				} else {
-					// First 'g' - set flag and reset after timeout
+					logTrace("vim:awaitSecondG", {});
 					setGPressed(true);
 					setTimeout(() => setGPressed(false), 500);
 				}
@@ -255,7 +379,12 @@ export function useVimMode(
 			}
 
 			if (lastTokenKeys.includes(key.name)) {
-				setSelectedIndex(parsedTokens.length - 1);
+				const lastIndex = parsedTokens.length - 1;
+				if (lastIndex < 0) {
+					logTrace("vim:gotoLastSkipped", { reason: "noTokens" });
+					return;
+				}
+				moveSelection("lastToken", lastIndex);
 				return;
 			}
 		}
@@ -269,72 +398,130 @@ export function useVimMode(
 			const trigger = insertTriggerRef.current;
 			insertTriggerRef.current = null;
 			if (trigger && (key.sequence === trigger || key.name === trigger)) {
+				logTrace("vim:insert:skipTrigger", {
+					key: key.name,
+					trigger,
+				});
 				return;
 			}
+			logTrace("vim:insert:clearTrigger", {
+				key: key.name,
+				trigger,
+			});
+		}
+		if (hasModifierKey(key)) {
+			logTrace("vim:insert:ignoredModifier", {
+				key: key.name,
+			});
+			return;
 		}
 
 		// Exit without saving (Esc)
 		if (exitInsertKeys.includes(key.name)) {
+			logTrace("vim:insert:exitWithoutSave", {
+				key: key.name,
+				tokenIndex: editingTokenIndex,
+			});
 			exitInsertMode(false);
 			return;
 		}
 
 		// Save and exit (Enter)
 		if (saveKeys.includes(key.name)) {
+			logTrace("vim:insert:exitWithSave", {
+				key: key.name,
+				tokenIndex: editingTokenIndex,
+			});
 			exitInsertMode(true);
 			return;
 		}
 
 		// Cursor movement with arrow keys
 		if (key.name === "left") {
-			setEditorState((prev) => ({
-				...prev,
-				cursor: Math.max(0, prev.cursor - 1),
-			}));
+			setEditorState((prev) => {
+				const nextCursor = Math.max(0, prev.cursor - 1);
+				if (nextCursor !== prev.cursor) {
+					logTrace("vim:insert:cursorMove", {
+						direction: "left",
+						from: prev.cursor,
+						to: nextCursor,
+						tokenIndex: editingTokenIndex,
+					});
+				}
+				return {
+					...prev,
+					cursor: nextCursor,
+				};
+			});
 			return;
 		}
 		if (key.name === "right") {
-			setEditorState((prev) => ({
-				...prev,
-				cursor: Math.min(prev.value.length, prev.cursor + 1),
-			}));
+			setEditorState((prev) => {
+				const nextCursor = Math.min(prev.value.length, prev.cursor + 1);
+				if (nextCursor !== prev.cursor) {
+					logTrace("vim:insert:cursorMove", {
+						direction: "right",
+						from: prev.cursor,
+						to: nextCursor,
+						tokenIndex: editingTokenIndex,
+					});
+				}
+				return {
+					...prev,
+					cursor: nextCursor,
+				};
+			});
 			return;
 		}
 		if (key.name === "home") {
-			setEditorState((prev) => ({ ...prev, cursor: 0 }));
+			setEditorState((prev) => {
+				if (prev.cursor !== 0) {
+					logTrace("vim:insert:cursorMove", {
+						direction: "home",
+						from: prev.cursor,
+						to: 0,
+						tokenIndex: editingTokenIndex,
+					});
+				}
+				return { ...prev, cursor: 0 };
+			});
 			return;
 		}
 		if (key.name === "end") {
-			setEditorState((prev) => ({ ...prev, cursor: prev.value.length }));
+			setEditorState((prev) => {
+				const endPosition = prev.value.length;
+				if (prev.cursor !== endPosition) {
+					logTrace("vim:insert:cursorMove", {
+						direction: "end",
+						from: prev.cursor,
+						to: endPosition,
+						tokenIndex: editingTokenIndex,
+					});
+				}
+				return { ...prev, cursor: endPosition };
+			});
 			return;
 		}
 
-		// Handle text input
-		if (key.sequence && key.sequence.length === 1) {
-			const char = key.sequence;
-			// Only accept printable characters
-			if (char >= " " && char <= "~") {
-				setEditorState((prev) => {
-					const newValue =
-						prev.value.slice(0, prev.cursor) +
-						char +
-						prev.value.slice(prev.cursor);
-					return {
-						value: newValue,
-						cursor: prev.cursor + 1,
-					};
-				});
-			}
-			return;
-		}
+		const singleChar =
+			key.sequence && key.sequence.length === 1 ? key.sequence : null;
+		const isBackspaceChar = singleChar === "\u0008" || singleChar === "\u007f";
 
 		// Backspace
-		if (key.name === "backspace") {
+		if (key.name === "backspace" || isBackspaceChar) {
+			let handled = false;
 			setEditorState((prev) => {
 				if (prev.cursor > 0) {
+					handled = true;
 					const newValue =
 						prev.value.slice(0, prev.cursor - 1) +
 						prev.value.slice(prev.cursor);
+					logTrace("vim:insert:backspace", {
+						from: prev.cursor,
+						to: prev.cursor - 1,
+						newLength: newValue.length,
+						tokenIndex: editingTokenIndex,
+					});
 					return {
 						value: newValue,
 						cursor: prev.cursor - 1,
@@ -342,16 +529,28 @@ export function useVimMode(
 				}
 				return prev;
 			});
+			if (!handled) {
+				logTrace("vim:insert:backspaceSkipped", {
+					reason: "cursorAtStart",
+				});
+			}
 			return;
 		}
 
 		// Delete
 		if (key.name === "delete") {
+			let handled = false;
 			setEditorState((prev) => {
 				if (prev.cursor < prev.value.length) {
+					handled = true;
 					const newValue =
 						prev.value.slice(0, prev.cursor) +
 						prev.value.slice(prev.cursor + 1);
+					logTrace("vim:insert:delete", {
+						at: prev.cursor,
+						newLength: newValue.length,
+						tokenIndex: editingTokenIndex,
+					});
 					return {
 						...prev,
 						value: newValue,
@@ -359,6 +558,43 @@ export function useVimMode(
 				}
 				return prev;
 			});
+			if (!handled) {
+				logTrace("vim:insert:deleteSkipped", {
+					reason: "cursorAtEnd",
+				});
+			}
+			return;
+		}
+
+		// Handle text input
+		if (singleChar) {
+			const char = singleChar;
+			// Only accept printable characters
+			if (char >= " " && char <= "~") {
+				setEditorState((prev) => {
+					const newValue =
+						prev.value.slice(0, prev.cursor) +
+						char +
+						prev.value.slice(prev.cursor);
+					const nextCursor = prev.cursor + 1;
+					logTrace("vim:insert:char", {
+						char,
+						from: prev.cursor,
+						to: nextCursor,
+						newLength: newValue.length,
+						tokenIndex: editingTokenIndex,
+					});
+					return {
+						value: newValue,
+						cursor: nextCursor,
+					};
+				});
+			} else {
+				logTrace("vim:insert:skippedChar", {
+					char,
+					reason: "nonPrintable",
+				});
+			}
 			return;
 		}
 	});

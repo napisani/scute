@@ -17,7 +17,6 @@ interface TokenListViewProps {
 	editingValue: string;
 	cursorPosition: number;
 	onTokenChange: (value: string) => void;
-	onExitEdit: (save: boolean) => void;
 }
 
 export function TokenListView({
@@ -30,7 +29,6 @@ export function TokenListView({
 	editingValue,
 	cursorPosition,
 	onTokenChange,
-	onExitEdit,
 }: TokenListViewProps) {
 	const { typeWidth, tokenWidth } = tokenWidths;
 	const descriptionColor = getThemeColorFor("tokenDescription");
@@ -87,7 +85,6 @@ export function TokenListView({
 									editValue={editingValue}
 									cursorPosition={cursorPosition}
 									onChange={onTokenChange}
-									onExit={onExitEdit}
 								/>
 								<text fg={color}>
 									{" ".repeat(tokenWidth - label.length + 2)}

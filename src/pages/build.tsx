@@ -28,7 +28,7 @@ export function applyTokenEdit(
 	const splicedTokens = [
 		...prev.tokens.slice(0, tokenIndex),
 		...editedTokens,
-		...prev.tokens.slice(tokenIndex),
+		...prev.tokens.slice(tokenIndex + 1),
 	];
 	return rebuildParsedCommandFromTokens(splicedTokens);
 }
@@ -103,7 +103,6 @@ export function BuildApp({ command }: BuildAppProps) {
 						editingValue={editingValue}
 						cursorPosition={cursorPosition}
 						onTokenChange={updateEditingValue}
-						onExitEdit={exitInsertMode}
 					/>
 				) : (
 					<TokenListView
@@ -116,7 +115,6 @@ export function BuildApp({ command }: BuildAppProps) {
 						editingValue={editingValue}
 						cursorPosition={cursorPosition}
 						onTokenChange={updateEditingValue}
-						onExitEdit={exitInsertMode}
 					/>
 				)}
 			</box>
