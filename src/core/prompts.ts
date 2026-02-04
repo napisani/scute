@@ -49,13 +49,24 @@ export function getDescribeTokensPrompt({
 ${getRoleVerbiage()}
 Return ONLY valid JSON that matches the following schema:
 ${responseStructure}
-Your task is to analyze the provided ${shell} command, which has already parsed into its individual tokens.
-ONLY provide descriptions for the parsed tokens provided. The result should contain a description for every token in the parsedTokens array. 
-If you can't describe a token, provide an empty string as its description. 
-ALWAYS provide a description for every token, if you can't describe it, use an empty string.
-The length of the descriptions array MUST match the length of the parsedTokens array.
+Your task is to analyze the provided ${shell} command, which has already been parsed into its individual tokens.
+You must return one description entry for every token index that is provided to you.
+- Each entry must include the token index you are describing.
+- Order the entries from the lowest index to the highest index.
+- If you cannot describe a token, set its description to the empty string "".
+- Never omit or add indices beyond the range provided.
+- Keep each description to a single concise sentence (no more than 20 words).
+- Focus on the token's role in the command; do not summarize entire manuals or list unrelated documentation sections.
 You will be provided with the following context:
-parsedTokens: an array of strings representing each token in the command
-context: relevant man pages and relevant documentation exerps available for any of the identifiable commands. 
+parsedTokens: an array of objects, each containing the token index, value, and type.
+context: relevant man pages and documentation excerpts.
+
+Example:
+{
+  "descriptions": [
+    { "index": 0, "description": "Describe the command token." },
+    { "index": 1, "description": "Explain the argument." }
+  ]
+}
 `.trim();
 }
