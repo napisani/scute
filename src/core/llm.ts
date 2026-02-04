@@ -10,6 +10,7 @@ import {
 	getProviderBaseUrl,
 } from "../config";
 import type { PromptName } from "../config/schema";
+import { buildCommandContext } from "./llm-context";
 import { logDebug } from "./logger";
 import { buildManPageContext, type ManPage } from "./manpage";
 import {
@@ -151,7 +152,27 @@ async function generateText(
 export async function suggest(commandLine: string): Promise<string | null> {
 	logDebug(`suggest:received line="${commandLine}"`);
 	try {
-		return await generateText("suggest", commandLine, getSuggestSystemPrompt());
+		const { parsedTokens, context } = buildCommandContext(commandLine, {
+			maxChars: 1_200,
+			maxSnippets: 5,
+		});
+		const payload = {
+			input: commandLine,
+			tokens: parsedTokens.map((token, index) => ({
+				index,
+				type: token.type,
+				value: token.value,
+			})),
+			context,
+		};
+		const userPrompt = JSON.stringify(payload, null, 2);
+		const raw = await generateText(
+			"suggest",
+			userPrompt,
+			getSuggestSystemPrompt(),
+		);
+		const suggestion = extractFirstLine(raw);
+		return suggestion.length ? suggestion : raw.trim() || null;
 	} catch (error) {
 		logDebug("suggest:error", error);
 		return null;
@@ -169,7 +190,27 @@ export async function explain(commandLine: string): Promise<string | null> {
 
 	logDebug(`explain:line="${commandLine}"`);
 	try {
-		return await generateText("explain", commandLine, getExplainSystemPrompt());
+		const { parsedTokens, context } = buildCommandContext(commandLine, {
+			maxChars: 1_500,
+			maxSnippets: 6,
+		});
+		const payload = {
+			command: commandLine,
+			tokens: parsedTokens.map((token, index) => ({
+				index,
+				type: token.type,
+				value: token.value,
+			})),
+			context,
+		};
+		const userPrompt = JSON.stringify(payload, null, 2);
+		const raw = await generateText(
+			"explain",
+			userPrompt,
+			getExplainSystemPrompt(),
+		);
+		const explanation = normalizeSingleSentence(raw);
+		return explanation.length ? explanation : raw.trim() || null;
 	} catch (error) {
 		logDebug("explain:error", error);
 		return null;
@@ -316,4 +357,18 @@ function sanitizeDescription(description: string): string {
 		normalized = normalized.slice(0, MAX_LENGTH).trimEnd();
 	}
 	return normalized;
+}
+
+function extractFirstLine(text: string): string {
+	return (
+		text
+			.split(/\r?\n/)
+			.map((line) => line.trim())
+			.find((line) => line.length > 0) ?? ""
+	);
+}
+
+function normalizeSingleSentence(text: string): string {
+	const sentence = extractFirstLine(text);
+	return sentence.replace(/\s+/g, " ").trim();
 }

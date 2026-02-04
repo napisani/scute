@@ -11,20 +11,29 @@ export function getSuggestSystemPrompt(): string {
 	const shell = identifyShell();
 	return `
 ${getRoleVerbiage()}
-You will be provided with a partial ${shell} command and your task is to complete it. 
-If it contains a comment, the comment will describe the intent of the command and guide how to complete it.
-Otherwise, do your best to infer the intent of the existing part of the command provided. 
-ONLY return the fully completed command, including the part that was provided to you.
-DO NOT return any explanations, notes, or formatting - ONLY the completed command.
+You will be provided with a JSON payload containing:
+- "input": the partial ${shell} command the user has typed (may include inline comments that describe intent)
+- "tokens": an array of parsed tokens for the current input
+- "context": concise excerpts from relevant man pages and documentation
+Your job is to produce the single best complete ${shell} command that satisfies the described intent.
+- You may replace or reorder the tokens as needed; do not merely append text.
+- Honor any intent described in comments or obvious from the tokens.
+- Return exactly one command line with no trailing commentary, explanations, or markdown.
+- Do not include surrounding quotes, code fences, or additional notes.
 `;
 }
 export function getExplainSystemPrompt(): string {
 	const shell = identifyShell();
 	return `
 ${getRoleVerbiage()}
-You will be provided with a complete ${shell} command and your task is to explain it concisely in a single line. 
-Describe what the command and its primary arguments do.
-ONLY return the explanation text, with no additional formatting.
+You will be provided with a JSON payload containing:
+- "command": the complete ${shell} command
+- "tokens": the parsed tokens for the command
+- "context": concise excerpts from relevant man pages and documentation
+Explain what the command does in a single concise sentence (no more than 30 words).
+- Emphasize the overall effect of the command and the role of key tokens.
+- Do not include markdown, lists, or multiple sentences.
+- Return only the explanation text.
 `;
 }
 
