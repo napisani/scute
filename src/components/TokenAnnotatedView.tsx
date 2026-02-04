@@ -14,7 +14,6 @@ interface TokenAnnotatedViewProps {
 	editingValue: string;
 	cursorPosition: number;
 	onTokenChange: (value: string) => void;
-	onExitEdit: (save: boolean) => void;
 }
 
 export function TokenAnnotatedView({
@@ -25,7 +24,6 @@ export function TokenAnnotatedView({
 	editingValue,
 	cursorPosition,
 	onTokenChange,
-	onExitEdit,
 }: TokenAnnotatedViewProps) {
 	const { width } = useTerminalDimensions();
 	const maxWidth = Math.max(1, width - 4);
@@ -37,7 +35,6 @@ export function TokenAnnotatedView({
 		editingValue,
 		cursorPosition,
 		onTokenChange,
-		onExitEdit,
 		maxWidth,
 	);
 

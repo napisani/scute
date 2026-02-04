@@ -8,7 +8,6 @@ interface TokenDisplayProps {
 	editValue: string;
 	cursorPosition: number;
 	onChange: (value: string) => void;
-	onExit: (save: boolean) => void;
 }
 
 export function TokenDisplay({
@@ -17,7 +16,6 @@ export function TokenDisplay({
 	editValue,
 	cursorPosition,
 	onChange,
-	onExit,
 }: TokenDisplayProps) {
 	const { token: tokenData, color } = token;
 	const displayValue = formatToken(tokenData);
@@ -29,7 +27,6 @@ export function TokenDisplay({
 				cursorPosition={cursorPosition}
 				color={color}
 				onChange={onChange}
-				onExit={onExit}
 			/>
 		);
 	}

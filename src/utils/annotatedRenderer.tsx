@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { TokenEditor } from "../components/TokenEditor";
 import { getThemeColorFor, getTokenColor } from "../config";
 import type { VimMode } from "../hooks/useVimMode";
 import { formatToken } from "./tokenFormatters";
@@ -16,7 +17,6 @@ export function renderAnnotatedCommand(
 	editingValue: string,
 	cursorPosition: number,
 	onTokenChange: (value: string) => void,
-	onExitEdit: (save: boolean) => void,
 	maxWidth: number,
 ): AnnotatedLine[] {
 	if (tokenPositions.length === 0) return [];
@@ -81,7 +81,6 @@ export function renderAnnotatedCommand(
 			editingValue,
 			cursorPosition,
 			onTokenChange,
-			onExitEdit,
 		);
 		const bottomBorderLineElement = buildBorderLineElement(
 			row,
@@ -171,7 +170,6 @@ function buildContentLineElement(
 	editingValue: string,
 	cursorPosition: number,
 	onTokenChange: (value: string) => void,
-	onExitEdit: (save: boolean) => void,
 ): ReactNode {
 	const elements: ReactNode[] = [];
 
@@ -187,15 +185,12 @@ function buildContentLineElement(
 		if (isEditing) {
 			// Show input field when editing
 			elements.push(
-				<input
+				<TokenEditor
 					key={`content-${i}`}
 					value={editingValue}
+					cursorPosition={cursorPosition}
+					color={tokenColor}
 					onChange={onTokenChange}
-					focused
-					width={Math.max(editingValue.length + 2, value.length + 2, 10)}
-					textColor={tokenColor}
-					cursorColor="#FFFFFF"
-					backgroundColor="transparent"
 				/>,
 			);
 		} else if (isSelected) {
