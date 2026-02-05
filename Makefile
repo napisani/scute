@@ -3,7 +3,7 @@ CONFIG_DIR=configs
 
 EXAMLE_CMD="docker ps --format 'table {{.Names}}\t{{.Status}}' | grep -v ignored | grep -i postgres"
 
-.PHONY: build clean run-example-ollama run-example-openai run-example-anthropic run-example-gemini terminal-mcp test tool-install
+.PHONY: build clean run-example-ollama run-example-openai run-example-anthropic run-example-gemini terminal-mcp test evals tool-install
 
 build: clean $(SCUTE_BIN)
 
@@ -30,6 +30,9 @@ terminal-mcp:
 
 test: 
 	bun run test
+
+evals:
+	bun run evals
 
 tool-install: build
 	chmod +x $(SCUTE_BIN)

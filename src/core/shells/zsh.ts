@@ -49,6 +49,11 @@ bindkey '^E' scute-suggest
 # --- end scute integration ---
 `;
 
+function normalizeReadlineText(text: string): string {
+	// Remove trailing newlines (both \n and \r\n) and whitespace
+	return text.replace(/\r?\n+$/, "").trimEnd();
+}
+
 export const zshShellHelper: ShellHelper = {
 	shell: "zsh",
 	tokenizeInput: tokenizeWithShellQuote,
@@ -58,4 +63,12 @@ export const zshShellHelper: ShellHelper = {
 		return getReadlineLine() ?? null;
 	},
 	getInitScript: () => ZSH_INIT_SCRIPT,
+	outputToReadline: (text: string): void => {
+		// Zsh uses BUFFER for the current input line
+		// Use ANSI sequences to clear the current line and replace it
+		const normalizedText = normalizeReadlineText(text);
+		const clearLine = "\x1b[2K"; // Clear entire line
+		const carriageReturn = "\r"; // Move cursor to beginning of line
+		process.stdout.write(`${carriageReturn}${clearLine}${normalizedText}`);
+	},
 };

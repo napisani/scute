@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import chalk from "chalk";
 import { getConfigSnapshot } from "../config";
+import { outputToReadline } from "./shells";
 
 export type OutputChannel = "clipboard" | "stdout" | "prompt" | "readline";
 
@@ -23,7 +24,7 @@ export function emitOutput({
 			writeToPrompt(text, promptPrefix);
 			return;
 		case "readline":
-			process.stdout.write(text);
+			outputToReadline(text);
 			return;
 		case "stdout":
 		default:

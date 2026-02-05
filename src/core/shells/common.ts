@@ -29,6 +29,14 @@ export type ShellHelper = {
 	joinTokens: (tokens: string[]) => string;
 	getReadlineLine: ReadlineLineGetter;
 	getInitScript: () => string;
+	/**
+	 * Writes the provided text to stdout using shell-specific ANSI sequences
+	 * to replace the current terminal line. This function should:
+	 * 1. Normalize/clean the text (remove trailing newlines, etc.)
+	 * 2. Use ANSI escape sequences to clear the current line
+	 * 3. Write the normalized text to replace it
+	 */
+	outputToReadline: (text: string) => void;
 };
 
 export const supportedShells = ["bash", "zsh", "sh"] as const;

@@ -88,6 +88,11 @@ function hasReadlineLine(): boolean {
 	return !!line && typeof line === "string" && line.length > 0;
 }
 
+function outputToReadline(text: string): void {
+	const shellHelper = getShellHelper();
+	shellHelper.outputToReadline(text);
+}
+
 export {
 	identifyShell,
 	resetShellCache,
@@ -100,4 +105,5 @@ export {
 	hasReadlineLine,
 	getShellHelperByName,
 	supportedShells,
+	outputToReadline,
 };
