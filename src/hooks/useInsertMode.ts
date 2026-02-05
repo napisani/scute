@@ -14,11 +14,17 @@ export interface InsertModeActions {
 	exitInsertMode: (save: boolean) => void;
 }
 
-export function useInsertMode(
-	initialValue: string,
-	initialCursorPos: number,
-	actions: InsertModeActions,
-) {
+export interface UseInsertModeOptions {
+	initialValue: string;
+	initialCursorPos: number;
+	actions: InsertModeActions;
+}
+
+export function useInsertMode({
+	initialValue,
+	initialCursorPos,
+	actions,
+}: UseInsertModeOptions) {
 	const [editingValue, setEditingValue] = useState(initialValue);
 	const [cursorPosition, setCursorPosition] = useState(initialCursorPos);
 	// biome-ignore lint/correctness/useExhaustiveDependencies: initialValue is only used for initialization

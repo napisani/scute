@@ -6,10 +6,15 @@ function mapDescriptions(rawDescriptions: string[]): string[] {
 	return rawDescriptions;
 }
 
-export function useTokenDescriptions(
-	command: ParsedCommand,
-	tokenCount: number,
-) {
+export interface UseTokenDescriptionsOptions {
+	command: ParsedCommand;
+	tokenCount: number;
+}
+
+export function useTokenDescriptions({
+	command,
+	tokenCount,
+}: UseTokenDescriptionsOptions) {
 	const [descriptions, setDescriptions] = useState<string[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
 	const requestIdRef = useRef(0);

@@ -17,6 +17,7 @@ import { calculateTokenPositions } from "../utils/tokenPositions";
 
 type BuildAppProps = {
 	command: string;
+	onSubmit?: (nextCommand: string) => void;
 };
 
 export interface ApplyTokenEditResult {
@@ -45,8 +46,8 @@ export function applyTokenEdit(
 	};
 }
 
-export function BuildApp({ command }: BuildAppProps) {
-	const { parsedCommand, setParsedCommand } = useParsedCommand(command);
+export function BuildApp({ command, onSubmit }: BuildAppProps) {
+	const { parsedCommand, setParsedCommand } = useParsedCommand({ command });
 
 	const parsedTokens = useMemo(
 		() => parseTokens(parsedCommand.tokens),
@@ -54,7 +55,10 @@ export function BuildApp({ command }: BuildAppProps) {
 	);
 
 	const { descriptions, isLoading, loadDescriptions, resetDescriptions } =
-		useTokenDescriptions(parsedCommand, parsedTokens.length);
+		useTokenDescriptions({
+			command: parsedCommand,
+			tokenCount: parsedTokens.length,
+		});
 
 	// Handle token edits by updating the parsed command
 	const handleTokenEdit = useCallback(
@@ -72,6 +76,18 @@ export function BuildApp({ command }: BuildAppProps) {
 		[resetDescriptions, setParsedCommand],
 	);
 
+	const handleSubmit = useCallback(
+		({ tokenIndex, value }: { tokenIndex: number; value: string }) => {
+			const nextCommand =
+				value.length > 0
+					? applyTokenEdit(parsedCommand, tokenIndex, value).command
+					: parsedCommand;
+			resetDescriptions();
+			onSubmit?.(nextCommand.originalCommand);
+		},
+		[onSubmit, parsedCommand, resetDescriptions],
+	);
+
 	const {
 		mode,
 		selectedIndex,
@@ -81,9 +97,14 @@ export function BuildApp({ command }: BuildAppProps) {
 		cursorPosition,
 		exitInsertMode,
 		updateEditingValue,
-	} = useVimMode(parsedTokens, loadDescriptions, handleTokenEdit);
-	const tokenWidths = useTokenWidth(parsedTokens);
-	const coloredTokens = useColoredTokens(parsedTokens, selectedIndex);
+	} = useVimMode({
+		parsedTokens,
+		loadDescriptions,
+		onTokenEdit: handleTokenEdit,
+		onSubmit: handleSubmit,
+	});
+	const tokenWidths = useTokenWidth({ parsedTokens });
+	const coloredTokens = useColoredTokens({ parsedTokens, selectedIndex });
 
 	const tokenPositions = useMemo(
 		() => calculateTokenPositions(parsedTokens, descriptions),

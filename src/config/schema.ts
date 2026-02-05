@@ -151,6 +151,7 @@ function buildDefaultPromptConfig() {
 
 export const ConfigSchema = z.object({
 	viewMode: z.enum(["horizontal", "vertical"]).default("horizontal"),
+	clipboardCommand: z.string().optional(),
 	providers: z.array(ProviderSchema).default([]),
 	keybindings: KeybindingsSchema,
 	theme: ThemeSchema,

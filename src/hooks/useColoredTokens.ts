@@ -9,10 +9,15 @@ export interface ColoredToken {
 	isSelected: boolean;
 }
 
-export function useColoredTokens(
-	parsedTokens: ParsedToken[],
-	selectedIndex: number,
-): ColoredToken[] {
+export interface UseColoredTokensOptions {
+	parsedTokens: ParsedToken[];
+	selectedIndex: number;
+}
+
+export function useColoredTokens({
+	parsedTokens,
+	selectedIndex,
+}: UseColoredTokensOptions): ColoredToken[] {
 	return useMemo(() => {
 		return parsedTokens.map((token, index) => {
 			const isSelected = index === selectedIndex;

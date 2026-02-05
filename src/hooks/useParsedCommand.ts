@@ -2,7 +2,11 @@ import { useEffect, useState } from "react";
 import { buildParsedCommand } from "../core/shells";
 import type { ParsedCommand } from "../core/shells/common";
 
-export function useParsedCommand(command: string) {
+export interface UseParsedCommandOptions {
+	command: string;
+}
+
+export function useParsedCommand({ command }: UseParsedCommandOptions) {
 	const [parsedCommand, setParsedCommand] = useState<ParsedCommand>(() => {
 		return buildParsedCommand(command);
 	});

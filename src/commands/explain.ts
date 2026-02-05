@@ -1,7 +1,7 @@
 // src/commands/explain.ts
-import chalk from "chalk";
 import { explain as explainCommand } from "../core";
 import { logDebug } from "../core/logger";
+import { emitOutput, type OutputChannel } from "../core/output";
 
 /**
  * Handles the 'explain' command by calling the AI service.
@@ -9,8 +9,15 @@ import { logDebug } from "../core/logger";
  * @param line The current READLINE_LINE content.
  * @param point The current READLINE_POINT (cursor position).
  */
-export async function explain(line: string, point: string) {
-	const terminalHeight = process.stdout.rows;
+export interface ExplainOptions {
+	output: OutputChannel;
+}
+
+export async function explain(
+	line: string,
+	point: string,
+	{ output }: ExplainOptions,
+) {
 	logDebug(`command:explain line="${line}" point=${point}`);
 
 	const explanation = await explainCommand(line);
@@ -18,29 +25,11 @@ export async function explain(line: string, point: string) {
 		logDebug("command:explain result=null");
 		return;
 	}
-	const hint = `[scute] ${explanation}`;
 	logDebug("command:explain hint ready");
-
-	// Fallback for environments where terminal height is not available.
-	if (!terminalHeight) {
-		console.error(`\n${hint}`);
-		return;
-	}
-
-	// ANSI escape codes
-	const saveCursor = "\x1b[s";
-	const restoreCursor = "\x1b[u";
-	const moveToBottom = `\x1b[${terminalHeight};1H`;
-	const clearLine = "\x1b[2K";
-
-	const output = [
-		saveCursor,
-		moveToBottom,
-		clearLine,
-		chalk.gray(hint),
-		restoreCursor,
-	].join("");
-
-	process.stdout.write(output);
+	emitOutput({
+		channel: output,
+		text: explanation,
+		promptPrefix: "[scute] ",
+	});
 	logDebug("command:explain output written");
 }

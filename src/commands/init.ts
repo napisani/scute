@@ -1,7 +1,13 @@
 // src/commands/init.ts
+
+import { emitOutput, type OutputChannel } from "../core/output";
 import { BASH_SCRIPT } from "../shells/bash";
 
-export function init(shell: string) {
+export interface InitOptions {
+	output: OutputChannel;
+}
+
+export function init(shell: string, { output }: InitOptions) {
 	if (shell !== "bash") {
 		console.error(
 			`Error: Unsupported shell '${shell}'. Only 'bash' is currently supported.`,
@@ -9,6 +15,8 @@ export function init(shell: string) {
 		process.exit(1);
 	}
 
-	// Print the bash script to stdout
-	console.log(BASH_SCRIPT);
+	emitOutput({
+		channel: output,
+		text: BASH_SCRIPT,
+	});
 }

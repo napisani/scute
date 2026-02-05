@@ -14,7 +14,13 @@ export interface TokenWidths {
 	tokenWidth: number;
 }
 
-export function useTokenWidth(parsedTokens: ParsedToken[]): TokenWidths {
+export interface UseTokenWidthOptions {
+	parsedTokens: ParsedToken[];
+}
+
+export function useTokenWidth({
+	parsedTokens,
+}: UseTokenWidthOptions): TokenWidths {
 	return useMemo(() => {
 		if (!parsedTokens.length) {
 			return { typeWidth: 8, tokenWidth: 12 };

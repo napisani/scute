@@ -48,17 +48,26 @@ export interface KeyboardKey {
 
 export type KeyboardHandler = (key: KeyboardKey) => void;
 
+export interface UseVimModeOptions {
+	parsedTokens: ParsedToken[];
+	loadDescriptions: () => void;
+	onTokenEdit?: (tokenIndex: number, newValue: string) => void;
+	onSubmit?: (payload: { tokenIndex: number; value: string }) => void;
+	useKeyboard?: (handler: KeyboardHandler) => void;
+}
+
 function hasModifierKey(key: KeyboardKey): boolean {
 	return Boolean(key.ctrl || key.meta || key.option || key.alt);
 }
 
 // Hook interface that accepts optional keyboard hook for testing
-export function useVimMode(
-	parsedTokens: ParsedToken[],
-	loadDescriptions: () => void,
-	onTokenEdit?: (tokenIndex: number, newValue: string) => void,
-	useKeyboard: (handler: KeyboardHandler) => void = useOpenTuiKeyboard,
-): VimModeState & VimModeActions {
+export function useVimMode({
+	parsedTokens,
+	loadDescriptions,
+	onTokenEdit,
+	onSubmit,
+	useKeyboard = useOpenTuiKeyboard,
+}: UseVimModeOptions): VimModeState & VimModeActions {
 	const [mode, setMode] = useState<VimMode>("normal");
 	const modeRef = useRef(mode);
 	modeRef.current = mode;
@@ -147,6 +156,12 @@ export function useVimMode(
 				valueLength: editorState.value.length,
 			});
 			if (editingTokenIndex !== null) {
+				if (save) {
+					onSubmit?.({
+						tokenIndex: editingTokenIndex,
+						value: editorState.value,
+					});
+				}
 				if (save && editorState.value.length > 0) {
 					// Notify parent component about the edit
 					onTokenEdit?.(editingTokenIndex, editorState.value);
@@ -157,7 +172,7 @@ export function useVimMode(
 			}
 			setMode("normal");
 		},
-		[editingTokenIndex, editorState.value, onTokenEdit],
+		[editingTokenIndex, editorState.value, onSubmit, onTokenEdit],
 	);
 
 	const updateEditingValue = useCallback(

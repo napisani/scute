@@ -4,7 +4,9 @@ import { getConfigSnapshot, getKeybindings } from "../config";
 
 export type ViewMode = "list" | "annotated";
 
-export function useViewMode() {
+export type UseViewModeOptions = {};
+
+export function useViewMode(_options: UseViewModeOptions = {}) {
 	const [viewMode, setViewMode] = useState<ViewMode>(() =>
 		getConfigSnapshot().viewMode === "horizontal" ? "annotated" : "list",
 	);

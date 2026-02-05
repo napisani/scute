@@ -24,7 +24,10 @@ describe("useTokenDescriptions", () => {
 		);
 
 		const { result } = renderHook(() =>
-			useTokenDescriptions(command, command.tokens.length),
+			useTokenDescriptions({
+				command,
+				tokenCount: command.tokens.length,
+			}),
 		);
 
 		await act(async () => {
@@ -46,7 +49,10 @@ describe("useTokenDescriptions", () => {
 		);
 
 		const { result } = renderHook(() =>
-			useTokenDescriptions(command, command.tokens.length),
+			useTokenDescriptions({
+				command,
+				tokenCount: command.tokens.length,
+			}),
 		);
 
 		await act(async () => {

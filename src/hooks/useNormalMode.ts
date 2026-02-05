@@ -12,7 +12,12 @@ export interface NormalModeActions {
 	loadDescriptions: () => void;
 }
 
-export function useNormalMode(tokenCount: number, actions: NormalModeActions) {
+export interface UseNormalModeOptions {
+	tokenCount: number;
+	actions: NormalModeActions;
+}
+
+export function useNormalMode({ tokenCount, actions }: UseNormalModeOptions) {
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const [viewMode, setViewMode] = useState<ViewMode>(() =>
 		getConfigSnapshot().viewMode === "horizontal" ? "annotated" : "list",

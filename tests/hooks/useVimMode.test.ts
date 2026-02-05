@@ -56,17 +56,35 @@ describe("useVimMode", () => {
 		{ value: "test", type: "argument" },
 	];
 
+	interface RenderVimModeOptions {
+		tokens?: ParsedToken[];
+		loadDescriptions?: () => void;
+		onTokenEdit?: (tokenIndex: number, newValue: string) => void;
+		useKeyboard?: (handler: KeyboardHandler) => void;
+	}
+
+	function renderVimMode({
+		tokens = mockTokens,
+		loadDescriptions = () => {},
+		onTokenEdit,
+		useKeyboard = mockUseKeyboard,
+	}: RenderVimModeOptions = {}) {
+		return renderHook(() =>
+			useVimMode({
+				parsedTokens: tokens,
+				loadDescriptions,
+				onTokenEdit,
+				useKeyboard,
+			}),
+		);
+	}
+
 	describe("basic navigation", () => {
 		it("starts with first token selected", () => {
 			const mockLoadDescriptions = () => {};
-			const { result } = renderHook(() =>
-				useVimMode(
-					mockTokens,
-					mockLoadDescriptions,
-					undefined,
-					mockUseKeyboard,
-				),
-			);
+			const { result } = renderVimMode({
+				loadDescriptions: mockLoadDescriptions,
+			});
 
 			expect(result.current.selectedIndex).toBe(0);
 			expect(result.current.mode).toBe("normal");
@@ -74,14 +92,9 @@ describe("useVimMode", () => {
 
 		it("moves selection with j and k keys", () => {
 			const mockLoadDescriptions = () => {};
-			const { result } = renderHook(() =>
-				useVimMode(
-					mockTokens,
-					mockLoadDescriptions,
-					undefined,
-					mockUseKeyboard,
-				),
-			);
+			const { result } = renderVimMode({
+				loadDescriptions: mockLoadDescriptions,
+			});
 
 			act(() => {
 				simulateKey("m");
@@ -99,14 +112,9 @@ describe("useVimMode", () => {
 
 		it("stops at boundaries", () => {
 			const mockLoadDescriptions = () => {};
-			const { result } = renderHook(() =>
-				useVimMode(
-					mockTokens,
-					mockLoadDescriptions,
-					undefined,
-					mockUseKeyboard,
-				),
-			);
+			const { result } = renderVimMode({
+				loadDescriptions: mockLoadDescriptions,
+			});
 
 			act(() => {
 				simulateKey("m");
@@ -131,14 +139,9 @@ describe("useVimMode", () => {
 	describe("view mode toggle", () => {
 		it("toggles view mode with m key", () => {
 			const mockLoadDescriptions = () => {};
-			const { result } = renderHook(() =>
-				useVimMode(
-					mockTokens,
-					mockLoadDescriptions,
-					undefined,
-					mockUseKeyboard,
-				),
-			);
+			const { result } = renderVimMode({
+				loadDescriptions: mockLoadDescriptions,
+			});
 
 			expect(result.current.viewMode).toBe("annotated");
 
@@ -152,14 +155,9 @@ describe("useVimMode", () => {
 	describe("insert mode - change (c key)", () => {
 		it("enters insert mode with cleared value", () => {
 			const mockLoadDescriptions = () => {};
-			const { result } = renderHook(() =>
-				useVimMode(
-					mockTokens,
-					mockLoadDescriptions,
-					undefined,
-					mockUseKeyboard,
-				),
-			);
+			const { result } = renderVimMode({
+				loadDescriptions: mockLoadDescriptions,
+			});
 
 			act(() => {
 				simulateKey("right");
@@ -177,14 +175,9 @@ describe("useVimMode", () => {
 
 		it("types text correctly in insert mode", () => {
 			const mockLoadDescriptions = () => {};
-			const { result } = renderHook(() =>
-				useVimMode(
-					mockTokens,
-					mockLoadDescriptions,
-					undefined,
-					mockUseKeyboard,
-				),
-			);
+			const { result } = renderVimMode({
+				loadDescriptions: mockLoadDescriptions,
+			});
 
 			act(() => {
 				simulateKey("right");
@@ -204,14 +197,9 @@ describe("useVimMode", () => {
 
 		it("handles backspace in insert mode", () => {
 			const mockLoadDescriptions = () => {};
-			const { result } = renderHook(() =>
-				useVimMode(
-					mockTokens,
-					mockLoadDescriptions,
-					undefined,
-					mockUseKeyboard,
-				),
-			);
+			const { result } = renderVimMode({
+				loadDescriptions: mockLoadDescriptions,
+			});
 
 			act(() => {
 				simulateKey("right");
@@ -237,14 +225,10 @@ describe("useVimMode", () => {
 				capturedEdit = { index: tokenIndex, value: newValue };
 			};
 
-			const { result } = renderHook(() =>
-				useVimMode(
-					mockTokens,
-					mockLoadDescriptions,
-					onTokenEdit,
-					mockUseKeyboard,
-				),
-			);
+			const { result } = renderVimMode({
+				loadDescriptions: mockLoadDescriptions,
+				onTokenEdit,
+			});
 
 			act(() => {
 				simulateKey("right");
@@ -275,14 +259,10 @@ describe("useVimMode", () => {
 				capturedEdit = { index: tokenIndex, value: newValue };
 			};
 
-			const { result } = renderHook(() =>
-				useVimMode(
-					mockTokens,
-					mockLoadDescriptions,
-					onTokenEdit,
-					mockUseKeyboard,
-				),
-			);
+			const { result } = renderVimMode({
+				loadDescriptions: mockLoadDescriptions,
+				onTokenEdit,
+			});
 
 			act(() => {
 				simulateKey("right");
@@ -308,14 +288,9 @@ describe("useVimMode", () => {
 	describe("insert mode - insert (i key)", () => {
 		it("does not insert the triggering i into the buffer", () => {
 			const mockLoadDescriptions = () => {};
-			const { result } = renderHook(() =>
-				useVimMode(
-					mockTokens,
-					mockLoadDescriptions,
-					undefined,
-					mockUseKeyboard,
-				),
-			);
+			const { result } = renderVimMode({
+				loadDescriptions: mockLoadDescriptions,
+			});
 
 			act(() => {
 				simulateKey("i", "i");
@@ -334,14 +309,9 @@ describe("useVimMode", () => {
 	describe("insert mode - append (a key)", () => {
 		it("enters insert mode at position 1", () => {
 			const mockLoadDescriptions = () => {};
-			const { result } = renderHook(() =>
-				useVimMode(
-					mockTokens,
-					mockLoadDescriptions,
-					undefined,
-					mockUseKeyboard,
-				),
-			);
+			const { result } = renderVimMode({
+				loadDescriptions: mockLoadDescriptions,
+			});
 
 			act(() => {
 				simulateKey("right");
@@ -363,14 +333,10 @@ describe("useVimMode", () => {
 			const onTokenEdit = (tokenIndex: number, newValue: string) => {
 				capturedEdit = { index: tokenIndex, value: newValue };
 			};
-			const { result } = renderHook(() =>
-				useVimMode(
-					mockTokens,
-					mockLoadDescriptions,
-					onTokenEdit,
-					mockUseKeyboard,
-				),
-			);
+			const { result } = renderVimMode({
+				loadDescriptions: mockLoadDescriptions,
+				onTokenEdit,
+			});
 
 			act(() => {
 				simulateKey("right");
@@ -399,14 +365,9 @@ describe("useVimMode", () => {
 	describe("insert mode - insert (i key)", () => {
 		it("enters insert mode at position 0", () => {
 			const mockLoadDescriptions = () => {};
-			const { result } = renderHook(() =>
-				useVimMode(
-					mockTokens,
-					mockLoadDescriptions,
-					undefined,
-					mockUseKeyboard,
-				),
-			);
+			const { result } = renderVimMode({
+				loadDescriptions: mockLoadDescriptions,
+			});
 
 			act(() => {
 				simulateKey("right");
@@ -428,14 +389,10 @@ describe("useVimMode", () => {
 			const onTokenEdit = (tokenIndex: number, newValue: string) => {
 				capturedEdit = { index: tokenIndex, value: newValue };
 			};
-			const { result } = renderHook(() =>
-				useVimMode(
-					mockTokens,
-					mockLoadDescriptions,
-					onTokenEdit,
-					mockUseKeyboard,
-				),
-			);
+			const { result } = renderVimMode({
+				loadDescriptions: mockLoadDescriptions,
+				onTokenEdit,
+			});
 
 			act(() => {
 				simulateKey("right");
@@ -464,7 +421,11 @@ describe("useVimMode", () => {
 			const mockLoadDescriptions = () => {};
 			const { result, rerender } = renderHook(
 				({ tokens }) =>
-					useVimMode(tokens, mockLoadDescriptions, undefined, mockUseKeyboard),
+					useVimMode({
+						parsedTokens: tokens,
+						loadDescriptions: mockLoadDescriptions,
+						useKeyboard: mockUseKeyboard,
+					}),
 				{
 					initialProps: { tokens: mockTokens },
 				},
@@ -497,14 +458,10 @@ describe("useVimMode", () => {
 				capturedEdit = { index: tokenIndex, value: newValue };
 			};
 
-			const { result } = renderHook(() =>
-				useVimMode(
-					mockTokens,
-					mockLoadDescriptions,
-					onTokenEdit,
-					mockUseKeyboard,
-				),
-			);
+			const { result } = renderVimMode({
+				loadDescriptions: mockLoadDescriptions,
+				onTokenEdit,
+			});
 
 			act(() => {
 				simulateKey("right");
@@ -536,14 +493,9 @@ describe("useVimMode", () => {
 	describe("cursor movement", () => {
 		it("moves cursor with arrow keys", () => {
 			const mockLoadDescriptions = () => {};
-			const { result } = renderHook(() =>
-				useVimMode(
-					mockTokens,
-					mockLoadDescriptions,
-					undefined,
-					mockUseKeyboard,
-				),
-			);
+			const { result } = renderVimMode({
+				loadDescriptions: mockLoadDescriptions,
+			});
 
 			act(() => {
 				simulateKey("right");
@@ -569,14 +521,9 @@ describe("useVimMode", () => {
 
 		it("moves to start with home key", () => {
 			const mockLoadDescriptions = () => {};
-			const { result } = renderHook(() =>
-				useVimMode(
-					mockTokens,
-					mockLoadDescriptions,
-					undefined,
-					mockUseKeyboard,
-				),
-			);
+			const { result } = renderVimMode({
+				loadDescriptions: mockLoadDescriptions,
+			});
 
 			act(() => {
 				simulateKey("right");
@@ -603,14 +550,9 @@ describe("useVimMode", () => {
 	describe("appendLine keybinding (A key in annotated mode)", () => {
 		it("selects last token and enters insert at end when in annotated mode", () => {
 			const mockLoadDescriptions = () => {};
-			const { result } = renderHook(() =>
-				useVimMode(
-					mockTokens,
-					mockLoadDescriptions,
-					undefined,
-					mockUseKeyboard,
-				),
-			);
+			const { result } = renderVimMode({
+				loadDescriptions: mockLoadDescriptions,
+			});
 
 			expect(result.current.viewMode).toBe("annotated");
 
@@ -627,14 +569,9 @@ describe("useVimMode", () => {
 
 		it("does not work in list mode", () => {
 			const mockLoadDescriptions = () => {};
-			const { result } = renderHook(() =>
-				useVimMode(
-					mockTokens,
-					mockLoadDescriptions,
-					undefined,
-					mockUseKeyboard,
-				),
-			);
+			const { result } = renderVimMode({
+				loadDescriptions: mockLoadDescriptions,
+			});
 
 			expect(result.current.viewMode).toBe("annotated");
 
@@ -656,14 +593,9 @@ describe("useVimMode", () => {
 	describe("lastToken keybinding (G in annotated mode)", () => {
 		it("moves selection to last token", () => {
 			const mockLoadDescriptions = () => {};
-			const { result } = renderHook(() =>
-				useVimMode(
-					mockTokens,
-					mockLoadDescriptions,
-					undefined,
-					mockUseKeyboard,
-				),
-			);
+			const { result } = renderVimMode({
+				loadDescriptions: mockLoadDescriptions,
+			});
 
 			expect(result.current.viewMode).toBe("annotated");
 
@@ -682,9 +614,9 @@ describe("useVimMode", () => {
 				wasCalled = true;
 			};
 
-			renderHook(() =>
-				useVimMode(mockTokens, loadDescriptions, undefined, mockUseKeyboard),
-			);
+			renderVimMode({
+				loadDescriptions,
+			});
 
 			act(() => {
 				simulateKey("e");
@@ -697,9 +629,9 @@ describe("useVimMode", () => {
 	describe("modifier keys", () => {
 		it("ignores ctrl-modified key presses in normal mode", () => {
 			const loadDescriptions = () => {};
-			const { result } = renderHook(() =>
-				useVimMode(mockTokens, loadDescriptions, undefined, mockUseKeyboard),
-			);
+			const { result } = renderVimMode({
+				loadDescriptions,
+			});
 
 			act(() => {
 				simulateKey("c", "\u0003", { ctrl: true });
@@ -712,9 +644,9 @@ describe("useVimMode", () => {
 
 		it("does not mutate insert buffer for ctrl-modified keys", () => {
 			const loadDescriptions = () => {};
-			const { result } = renderHook(() =>
-				useVimMode(mockTokens, loadDescriptions, undefined, mockUseKeyboard),
-			);
+			const { result } = renderVimMode({
+				loadDescriptions,
+			});
 
 			act(() => {
 				simulateKey("i", "i");
@@ -741,7 +673,11 @@ describe("useVimMode", () => {
 		const initialTokens = mockTokens;
 		const { result, rerender } = renderHook(
 			({ tokens }: { tokens: ParsedToken[] }) =>
-				useVimMode(tokens, mockLoadDescriptions, undefined, mockUseKeyboard),
+				useVimMode({
+					parsedTokens: tokens,
+					loadDescriptions: mockLoadDescriptions,
+					useKeyboard: mockUseKeyboard,
+				}),
 			{ initialProps: { tokens: initialTokens } },
 		);
 

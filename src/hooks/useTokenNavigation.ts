@@ -2,7 +2,11 @@ import { useKeyboard } from "@opentui/react";
 import { useMemo, useState } from "react";
 import { getKeybindings } from "../config";
 
-export function useTokenNavigation(tokenCount: number) {
+export interface UseTokenNavigationOptions {
+	tokenCount: number;
+}
+
+export function useTokenNavigation({ tokenCount }: UseTokenNavigationOptions) {
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const upKeys = useMemo(() => getKeybindings("up"), []);
 	const downKeys = useMemo(() => getKeybindings("down"), []);

@@ -8,13 +8,31 @@ import { explain } from "./commands/explain";
 import { init } from "./commands/init";
 import { suggest } from "./commands/suggest";
 import { loadConfigFromPath, setConfigOverride } from "./config";
+import type { OutputChannel } from "./core/output";
 
 const program = new Command();
 
 program
 	.name("scute")
 	.description("AI-powered shell assistant")
-	.option("-c, --config [file]", "Path to config YAML file");
+	.option("-c, --config [file]", "Path to config YAML file")
+	.option(
+		"-o, --output <channel>",
+		"Output channel (clipboard|stdout|prompt|readline)",
+	);
+
+function resolveOutputChannel(
+	commandName: string,
+	requested?: string,
+): OutputChannel {
+	if (requested) {
+		return requested as OutputChannel;
+	}
+	if (commandName === "suggest") return "readline";
+	if (commandName === "explain") return "prompt";
+	if (commandName === "build") return "readline";
+	return "stdout";
+}
 
 program.hook("preAction", (thisCommand) => {
 	const { config } = thisCommand.optsWithGlobals() as {
@@ -41,29 +59,46 @@ program.hook("preAction", (thisCommand) => {
 program
 	.command("init <shell>")
 	.description('Prints the shell integration script (e.g., "bash")')
-	.action(init);
+	.action((shell, _options, command) => {
+		const { output } = command.optsWithGlobals() as { output?: string };
+		init(shell, { output: resolveOutputChannel("init", output) });
+	});
 
 program
 	.command("build")
 	.argument("[input...]", "Input to tokenize")
-	.action(build);
+	.action((input, _options, command) => {
+		const { output } = command.optsWithGlobals() as { output?: string };
+		void build(input, { output: resolveOutputChannel("build", output) });
+	});
 
 program
 	.command("config-debug")
 	.description(
 		"Print the resolved configuration and related environment values",
 	)
-	.action(configDebug);
+	.action((_options, command) => {
+		const { output } = command.optsWithGlobals() as { output?: string };
+		configDebug({ output: resolveOutputChannel("config-debug", output) });
+	});
 
 program
 	.command("suggest")
 	.argument("<line>", "The current readline buffer")
-	.action(suggest);
+	.action((line, _options, command) => {
+		const { output } = command.optsWithGlobals() as { output?: string };
+		void suggest(line, { output: resolveOutputChannel("suggest", output) });
+	});
 
 program
 	.command("explain")
 	.argument("<line>", "The current readline buffer")
 	.argument("<point>", "The current readline cursor position")
-	.action(explain);
+	.action((line, point, _options, command) => {
+		const { output } = command.optsWithGlobals() as { output?: string };
+		void explain(line, point, {
+			output: resolveOutputChannel("explain", output),
+		});
+	});
 
 program.parse(process.argv);
