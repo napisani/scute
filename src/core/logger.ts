@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import { isDebugMode } from "../config";
 
-const LOG_PATH = "/tmp/brash.log";
-const TRACE_LOG_PATH = "/tmp/brash-trace.log";
+const LOG_PATH = "/tmp/scute.log";
+const TRACE_LOG_PATH = "/tmp/scute-trace.log";
 const TRACE_STRING_LIMIT = 200;
 
 function formatArg(arg: unknown): string {

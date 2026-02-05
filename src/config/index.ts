@@ -9,12 +9,12 @@ import type { TokenType } from "../core/shells/common";
 import type { PromptName, ThemeConfig } from "./schema";
 import { type Config, ConfigSchema } from "./schema";
 
-const CONFIG_DIR = path.join(os.homedir(), ".config", "brash");
+const CONFIG_DIR = path.join(os.homedir(), ".config", "scute");
 const CONFIG_FILE = path.join(CONFIG_DIR, "config.yaml");
 
 type RuntimeEnv = {
-	brashDebug?: string;
-	brashShell?: string;
+	scuteDebug?: string;
+	scuteShell?: string;
 	shell?: string;
 	readlineLine?: string;
 };
@@ -56,8 +56,8 @@ let runtimeEnv = loadRuntimeEnv();
 
 function loadRuntimeEnv(): RuntimeEnv {
 	return {
-		brashDebug: getEnv("BRASH_DEBUG"),
-		brashShell: getEnv("BRASH_SHELL"),
+		scuteDebug: getEnv("SCUTE_DEBUG"),
+		scuteShell: getEnv("SCUTE_SHELL"),
 		shell: getEnv("SHELL"),
 		readlineLine: getEnv("READLINE_LINE"),
 	};
@@ -203,7 +203,7 @@ export function getProviderBaseUrl(name: string): string | undefined {
 }
 
 export function getShellName(): string | undefined {
-	const shell = runtimeEnv.brashShell ?? runtimeEnv.shell;
+	const shell = runtimeEnv.scuteShell ?? runtimeEnv.shell;
 	if (!shell) {
 		return undefined;
 	}
@@ -221,7 +221,8 @@ export function hasReadlineLine(): boolean {
 }
 
 export function isDebugMode(): boolean {
-	return runtimeEnv.brashDebug === "1";
+	const debugFlag = runtimeEnv.scuteDebug;
+	return debugFlag === "1" || debugFlag?.toLowerCase() === "true";
 }
 
 export { resetEnvGetter, setEnvGetter };

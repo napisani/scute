@@ -1,9 +1,9 @@
 {
-	"name": "brash",
+	"name": "scute",
 	"module": "index.ts",
 	"type": "module",
 	"scripts": {
-		"build": "bun build ./src/index.ts --compile --outfile brash",
+		"build": "bun build ./src/index.ts --compile --outfile scute",
 		"test": "bun test tests --pattern \\\"\\.test\\.ts$\\\"",
 		"evals": "bun test evals --pattern \\\"\\.eval\\.test\\.ts$\\\"",
 		"test:evals": "bun test evals --pattern \\\"\\.eval\\.test\\.ts$\\\""

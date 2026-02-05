@@ -18,7 +18,7 @@ export async function explain(line: string, point: string) {
 		logDebug("command:explain result=null");
 		return;
 	}
-	const hint = `[brash] ${explanation}`;
+	const hint = `[scute] ${explanation}`;
 	logDebug("command:explain hint ready");
 
 	// Fallback for environments where terminal height is not available.

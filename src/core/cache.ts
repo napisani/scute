@@ -4,8 +4,8 @@ import os from "node:os";
 import path from "node:path";
 import type { ParsedCommand } from "./shells/common";
 
-const CACHE_DIR = path.join(os.homedir(), ".cache", "brash");
-const CACHE_PATH = path.join(CACHE_DIR, "brash.sqlite");
+const CACHE_DIR = path.join(os.homedir(), ".cache", "scute");
+const CACHE_PATH = path.join(CACHE_DIR, "scute.sqlite");
 
 let cacheDb: Database | null = null;
 

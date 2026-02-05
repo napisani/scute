@@ -3,12 +3,12 @@ export const SUPPORTED_ENV_VARS = [
 	"ANTHROPIC_API_KEY",
 	"GEMINI_API_KEY",
 	"OLLAMA_BASE_URL",
-	"BRASH_DEBUG",
-	"BRASH_SHELL",
+	"SCUTE_DEBUG",
+	"SCUTE_SHELL",
 	"SHELL",
 	"READLINE_LINE",
-	"BRASH_DEFAULT_MODEL",
-	"BRASH_DEFAULT_PROVIDER",
+	"SCUTE_DEFAULT_MODEL",
+	"SCUTE_DEFAULT_PROVIDER",
 ] as const;
 
 export type EnvVarName = (typeof SUPPORTED_ENV_VARS)[number];
@@ -34,5 +34,6 @@ export function setEnv(name: EnvVarName, value: string): void {
 }
 
 export function isDebugMode(): boolean {
-	return getEnv("BRASH_DEBUG") === "1";
+	const debugFlag = getEnv("SCUTE_DEBUG");
+	return debugFlag === "1" || debugFlag?.toLowerCase() === "true";
 }

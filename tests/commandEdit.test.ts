@@ -6,7 +6,7 @@ import { withMockedEnv } from "./utils/env";
 describe("command editing", () => {
 	it("splices edited tokens into the command", async () => {
 		await withMockedEnv(
-			{ env: { BRASH_SHELL: "bash", SHELL: "/bin/bash" } },
+			{ env: { SCUTE_SHELL: "bash", SHELL: "/bin/bash" } },
 			async () => {
 				resetShellCache();
 				const initialCommand = "ls -altr /var/log";
@@ -30,7 +30,7 @@ describe("command editing", () => {
 
 	it("replaces the targeted token when editing", async () => {
 		await withMockedEnv(
-			{ env: { BRASH_SHELL: "bash", SHELL: "/bin/bash" } },
+			{ env: { SCUTE_SHELL: "bash", SHELL: "/bin/bash" } },
 			async () => {
 				resetShellCache();
 				const initialCommand = "npm run build";

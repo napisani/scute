@@ -1,6 +1,6 @@
-# brash - AI Shell Assistant
+# scute - AI Shell Assistant
 
-`brash` is a command-line tool that acts as an AI-powered shell assistant. It integrates with your shell to provide command suggestions, completions, and explanations on the fly, triggered by keyboard shortcuts.
+`scute` is a command-line tool that acts as an AI-powered shell assistant. It integrates with your shell to provide command suggestions, completions, and explanations on the fly, triggered by keyboard shortcuts.
 
 ## Features
 
@@ -18,11 +18,11 @@ First, build the standalone executable from source. A `build` script is provided
 bun run build
 ```
 
-This will create a single binary file named `brash` in the root of the project directory.
+This will create a single binary file named `scute` in the root of the project directory.
 
 ### 2. Configure your OpenAI key
 
-`brash` currently uses OpenAI through the TanStack AI SDK. Set `OPENAI_API_KEY` before running the binary:
+`scute` currently uses OpenAI through the TanStack AI SDK. Set `OPENAI_API_KEY` before running the binary:
 
 ```sh
 export OPENAI_API_KEY="sk-..."
@@ -36,11 +36,11 @@ Next, make the binary executable and move it to a directory in your system's `PA
 
 ```sh
 # Make it executable
-chmod +x brash
+chmod +x scute
 
 # Move it to a standard location
 # Note: This may require sudo privileges.
-sudo mv brash /usr/local/bin/
+sudo mv scute /usr/local/bin/
 ```
 **Alternative:** If you don't have `sudo` access or prefer a user-level installation, you can place it in `~/.local/bin` (ensure this directory is in your `$PATH`).
 
@@ -49,19 +49,19 @@ sudo mv brash /usr/local/bin/
 mkdir -p ~/.local/bin
 
 # Move the binary
-mv brash ~/.local/bin/
+mv scute ~/.local/bin/
 ```
 
 ## Shell Integration
 
-`brash` integrates with your shell via a script that needs to be loaded by your shell's configuration file (e.g., `.bashrc`).
+`scute` integrates with your shell via a script that needs to be loaded by your shell's configuration file (e.g., `.bashrc`).
 
 ### For Bash
 
 Add the following line to the end of your `~/.bashrc` file:
 
 ```sh
-eval "$(brash init bash)"
+eval "$(scute init bash)"
 ```
 
 After adding the line, restart your terminal or run `source ~/.bashrc` to apply the changes.
@@ -74,7 +74,7 @@ If you use `home-manager` to manage your dotfiles, you cannot edit `.bashrc` dir
 programs.bash = {
   enable = true;
   bashrcExtra = ''
-    eval "$(brash init bash)"
+    eval "$(scute init bash)"
   '';
 };
 ```
@@ -83,11 +83,11 @@ Then, run `home-manager switch` to apply the configuration.
 
 ## Debug Logging
 
-Set `BRASH_DEBUG=1` to enable verbose logs. When enabled, `brash` writes detailed traces to `/tmp/brash.log`:
+Set `SCUTE_DEBUG=1` to enable verbose logs. When enabled, `scute` writes detailed traces to `/tmp/scute.log`:
 
 ```sh
-export BRASH_DEBUG=1
-tail -f /tmp/brash.log
+export SCUTE_DEBUG=1
+tail -f /tmp/scute.log
 ```
 
 ### Inspect Resolved Configuration
@@ -95,7 +95,7 @@ tail -f /tmp/brash.log
 Use the `config-debug` subcommand to print the fully resolved configuration (including environment overrides). This is useful when troubleshooting provider settings or custom config files:
 
 ```sh
-brash --config configs/ollama-config.yml config-debug
+scute --config configs/ollama-config.yml config-debug
 ```
 
 The command prints a JSON payload containing the merged configuration and relevant environment variables.

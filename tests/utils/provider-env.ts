@@ -3,9 +3,9 @@ import type { Config } from "../../src/config/schema";
 import type { SupportedProvider } from "../../src/core/constants";
 
 const DEFAULT_SHELL_ENV = {
-	BRASH_SHELL: "bash",
+	SCUTE_SHELL: "bash",
 	SHELL: "/bin/bash",
-	BRASH_DEBUG: "1",
+	SCUTE_DEBUG: "1",
 };
 
 const PROVIDER_MODELS: Record<SupportedProvider, string> = {

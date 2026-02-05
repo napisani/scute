@@ -12,7 +12,7 @@ import { loadConfigFromPath, setConfigOverride } from "./config";
 const program = new Command();
 
 program
-	.name("brash")
+	.name("scute")
 	.description("AI-powered shell assistant")
 	.option("-c, --config [file]", "Path to config YAML file");
 

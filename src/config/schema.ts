@@ -15,7 +15,7 @@ function isSupportedProviderName(
 }
 
 function resolveDefaultProvider(): (typeof SUPPORTED_PROVIDERS)[number] {
-	const envDefaultProvider = getEnv("BRASH_DEFAULT_PROVIDER");
+	const envDefaultProvider = getEnv("SCUTE_DEFAULT_PROVIDER");
 	if (envDefaultProvider && isSupportedProviderName(envDefaultProvider)) {
 		return envDefaultProvider;
 	}
@@ -23,7 +23,7 @@ function resolveDefaultProvider(): (typeof SUPPORTED_PROVIDERS)[number] {
 }
 
 function resolveDefaultModel(): string {
-	const envDefaultModel = getEnv("BRASH_DEFAULT_MODEL");
+	const envDefaultModel = getEnv("SCUTE_DEFAULT_MODEL");
 	return envDefaultModel ?? DEFAULT_MODEL;
 }
 

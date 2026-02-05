@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "brash",
+      "name": "scute",
       "dependencies": {
         "@opentui/core": "^0.1.75",
         "@opentui/react": "^0.1.75",

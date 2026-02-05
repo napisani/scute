@@ -12,7 +12,7 @@ describe("shell parsing", () => {
 		describe(shell, () => {
 			it("identifies shell and tokenizes", async () => {
 				await withMockedEnv(
-					{ env: { BRASH_SHELL: shell, SHELL: `/bin/${shell}` } },
+					{ env: { SCUTE_SHELL: shell, SHELL: `/bin/${shell}` } },
 					async () => {
 						const module = await loadShellModule(shell);
 						module.resetShellCache();
@@ -25,7 +25,7 @@ describe("shell parsing", () => {
 
 			it("preserves quotes and escapes when joining", async () => {
 				await withMockedEnv(
-					{ env: { BRASH_SHELL: shell, SHELL: `/bin/${shell}` } },
+					{ env: { SCUTE_SHELL: shell, SHELL: `/bin/${shell}` } },
 					async () => {
 						const module = await loadShellModule(shell);
 						module.resetShellCache();
@@ -45,7 +45,7 @@ describe("shell parsing", () => {
 
 			it("rebuilds parsed command from tokens", async () => {
 				await withMockedEnv(
-					{ env: { BRASH_SHELL: shell, SHELL: `/bin/${shell}` } },
+					{ env: { SCUTE_SHELL: shell, SHELL: `/bin/${shell}` } },
 					async () => {
 						const module = await loadShellModule(shell);
 						module.resetShellCache();
@@ -64,7 +64,7 @@ describe("shell parsing", () => {
 
 			it("parses options and arguments", async () => {
 				await withMockedEnv(
-					{ env: { BRASH_SHELL: shell, SHELL: `/bin/${shell}` } },
+					{ env: { SCUTE_SHELL: shell, SHELL: `/bin/${shell}` } },
 					async () => {
 						const module = await loadShellModule(shell);
 						module.resetShellCache();
@@ -82,7 +82,7 @@ describe("shell parsing", () => {
 
 			it("parses pipes, control operators, and redirects", async () => {
 				await withMockedEnv(
-					{ env: { BRASH_SHELL: shell, SHELL: `/bin/${shell}` } },
+					{ env: { SCUTE_SHELL: shell, SHELL: `/bin/${shell}` } },
 					async () => {
 						const module = await loadShellModule(shell);
 						module.resetShellCache();
@@ -112,7 +112,7 @@ describe("shell parsing", () => {
 				await withMockedEnv(
 					{
 						env: {
-							BRASH_SHELL: shell,
+							SCUTE_SHELL: shell,
 							SHELL: `/bin/${shell}`,
 							READLINE_LINE: "ls -la",
 						},
@@ -125,7 +125,7 @@ describe("shell parsing", () => {
 					},
 				);
 				await withMockedEnv(
-					{ env: { BRASH_SHELL: shell, SHELL: `/bin/${shell}` } },
+					{ env: { SCUTE_SHELL: shell, SHELL: `/bin/${shell}` } },
 					async () => {
 						const module = await loadShellModule(shell);
 						module.resetShellCache();
