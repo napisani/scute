@@ -36,6 +36,10 @@ const shellRegistry: Record<ShellName, ShellHelper> = {
 	sh: shShellHelper,
 };
 
+function getShellHelperByName(shell: ShellName): ShellHelper {
+	return shellRegistry[shell];
+}
+
 function getShellHelper() {
 	const shell = identifyShell();
 	if (shell && shell in shellRegistry) {
@@ -94,4 +98,6 @@ export {
 	tokenizeInput,
 	getReadlineLine,
 	hasReadlineLine,
+	getShellHelperByName,
+	supportedShells,
 };

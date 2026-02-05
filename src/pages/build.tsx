@@ -76,17 +76,10 @@ export function BuildApp({ command, onSubmit }: BuildAppProps) {
 		[resetDescriptions, setParsedCommand],
 	);
 
-	const handleSubmit = useCallback(
-		({ tokenIndex, value }: { tokenIndex: number; value: string }) => {
-			const nextCommand =
-				value.length > 0
-					? applyTokenEdit(parsedCommand, tokenIndex, value).command
-					: parsedCommand;
-			resetDescriptions();
-			onSubmit?.(nextCommand.originalCommand);
-		},
-		[onSubmit, parsedCommand, resetDescriptions],
-	);
+	const handleSubmit = useCallback(() => {
+		resetDescriptions();
+		onSubmit?.(parsedCommand.originalCommand);
+	}, [onSubmit, parsedCommand, resetDescriptions]);
 
 	const {
 		mode,

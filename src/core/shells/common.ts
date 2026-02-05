@@ -28,6 +28,7 @@ export type ShellHelper = {
 	parseCommand: TokenParser;
 	joinTokens: (tokens: string[]) => string;
 	getReadlineLine: ReadlineLineGetter;
+	getInitScript: () => string;
 };
 
 export const supportedShells = ["bash", "zsh", "sh"] as const;

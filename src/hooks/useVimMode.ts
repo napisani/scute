@@ -52,12 +52,29 @@ export interface UseVimModeOptions {
 	parsedTokens: ParsedToken[];
 	loadDescriptions: () => void;
 	onTokenEdit?: (tokenIndex: number, newValue: string) => void;
-	onSubmit?: (payload: { tokenIndex: number; value: string }) => void;
+	onSubmit?: () => void;
 	useKeyboard?: (handler: KeyboardHandler) => void;
 }
 
 function hasModifierKey(key: KeyboardKey): boolean {
 	return Boolean(key.ctrl || key.meta || key.option || key.alt);
+}
+
+function normalizeKeyId(key: KeyboardKey): string {
+	const sequence = key.sequence;
+	if (sequence === "\r" || sequence === "\n") {
+		return "return";
+	}
+	if (sequence) {
+		return sequence;
+	}
+	if (key.name === "enter") {
+		return "return";
+	}
+	if (key.shift && key.name.length === 1) {
+		return key.name.toUpperCase();
+	}
+	return key.name;
 }
 
 // Hook interface that accepts optional keyboard hook for testing
@@ -156,12 +173,6 @@ export function useVimMode({
 				valueLength: editorState.value.length,
 			});
 			if (editingTokenIndex !== null) {
-				if (save) {
-					onSubmit?.({
-						tokenIndex: editingTokenIndex,
-						value: editorState.value,
-					});
-				}
 				if (save && editorState.value.length > 0) {
 					// Notify parent component about the edit
 					onTokenEdit?.(editingTokenIndex, editorState.value);
@@ -172,7 +183,7 @@ export function useVimMode({
 			}
 			setMode("normal");
 		},
-		[editingTokenIndex, editorState.value, onSubmit, onTokenEdit],
+		[editingTokenIndex, editorState.value, onTokenEdit],
 	);
 
 	const updateEditingValue = useCallback(
@@ -210,11 +221,18 @@ export function useVimMode({
 			return;
 		}
 
-		const keyId =
-			key.sequence ??
-			(key.shift && key.name.length === 1 ? key.name.toUpperCase() : key.name);
+		const keyId = normalizeKeyId(key);
 		const currentViewMode = viewMode;
 		const currentSelectedIndex = selectedIndex;
+
+		if (saveKeys.includes(keyId)) {
+			logTrace("vim:submit", {
+				key: key.name,
+				selectedIndex: currentSelectedIndex,
+			});
+			onSubmit?.();
+			return;
+		}
 
 		if (toggleViewKeys.includes(keyId)) {
 			const nextMode = currentViewMode === "list" ? "annotated" : "list";
@@ -418,6 +436,7 @@ export function useVimMode({
 	// Keyboard handler for insert mode
 	useKeyboard((key) => {
 		if (modeRef.current !== "insert") return;
+		const keyId = normalizeKeyId(key);
 		if (skipNextInsertCharRef.current) {
 			skipNextInsertCharRef.current = false;
 			const trigger = insertTriggerRef.current;
@@ -442,7 +461,7 @@ export function useVimMode({
 		}
 
 		// Exit without saving (Esc)
-		if (exitInsertKeys.includes(key.name)) {
+		if (exitInsertKeys.includes(keyId)) {
 			logTrace("vim:insert:exitWithoutSave", {
 				key: key.name,
 				tokenIndex: editingTokenIndex,
@@ -452,7 +471,7 @@ export function useVimMode({
 		}
 
 		// Save and exit (Enter)
-		if (saveKeys.includes(key.name)) {
+		if (saveKeys.includes(keyId)) {
 			logTrace("vim:insert:exitWithSave", {
 				key: key.name,
 				tokenIndex: editingTokenIndex,
