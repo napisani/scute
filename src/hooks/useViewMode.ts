@@ -1,11 +1,13 @@
 import { useKeyboard } from "@opentui/react";
 import { useMemo, useState } from "react";
-import { getKeybindings } from "../config";
+import { getConfigSnapshot, getKeybindings } from "../config";
 
 export type ViewMode = "list" | "annotated";
 
 export function useViewMode() {
-	const [viewMode, setViewMode] = useState<ViewMode>("list");
+	const [viewMode, setViewMode] = useState<ViewMode>(() =>
+		getConfigSnapshot().viewMode === "horizontal" ? "annotated" : "list",
+	);
 	const toggleViewKeys = useMemo(
 		() => getKeybindings("toggleView") ?? ["v"],
 		[],

@@ -84,6 +84,9 @@ describe("useVimMode", () => {
 			);
 
 			act(() => {
+				simulateKey("m");
+			});
+			act(() => {
 				simulateKey("j");
 			});
 			expect(result.current.selectedIndex).toBe(1);
@@ -105,6 +108,9 @@ describe("useVimMode", () => {
 				),
 			);
 
+			act(() => {
+				simulateKey("m");
+			});
 			act(() => {
 				simulateKey("k");
 			});
@@ -134,12 +140,12 @@ describe("useVimMode", () => {
 				),
 			);
 
-			expect(result.current.viewMode).toBe("list");
+			expect(result.current.viewMode).toBe("annotated");
 
 			act(() => {
 				simulateKey("m");
 			});
-			expect(result.current.viewMode).toBe("annotated");
+			expect(result.current.viewMode).toBe("list");
 		});
 	});
 
@@ -156,7 +162,7 @@ describe("useVimMode", () => {
 			);
 
 			act(() => {
-				simulateKey("j");
+				simulateKey("right");
 			});
 
 			act(() => {
@@ -181,7 +187,7 @@ describe("useVimMode", () => {
 			);
 
 			act(() => {
-				simulateKey("j");
+				simulateKey("right");
 			});
 
 			act(() => {
@@ -208,7 +214,7 @@ describe("useVimMode", () => {
 			);
 
 			act(() => {
-				simulateKey("j");
+				simulateKey("right");
 			});
 
 			act(() => {
@@ -241,7 +247,7 @@ describe("useVimMode", () => {
 			);
 
 			act(() => {
-				simulateKey("j");
+				simulateKey("right");
 			});
 
 			act(() => {
@@ -279,7 +285,7 @@ describe("useVimMode", () => {
 			);
 
 			act(() => {
-				simulateKey("j");
+				simulateKey("right");
 			});
 
 			act(() => {
@@ -338,7 +344,7 @@ describe("useVimMode", () => {
 			);
 
 			act(() => {
-				simulateKey("j");
+				simulateKey("right");
 			});
 
 			act(() => {
@@ -367,7 +373,7 @@ describe("useVimMode", () => {
 			);
 
 			act(() => {
-				simulateKey("j");
+				simulateKey("right");
 			});
 
 			act(() => {
@@ -403,7 +409,7 @@ describe("useVimMode", () => {
 			);
 
 			act(() => {
-				simulateKey("j");
+				simulateKey("right");
 			});
 
 			act(() => {
@@ -432,7 +438,7 @@ describe("useVimMode", () => {
 			);
 
 			act(() => {
-				simulateKey("j");
+				simulateKey("right");
 			});
 
 			act(() => {
@@ -479,7 +485,7 @@ describe("useVimMode", () => {
 			expect(result.current.editingTokenIndex).toBeNull();
 			expect(result.current.editingValue).toBe("");
 			expect(result.current.selectedIndex).toBe(0);
-			expect(result.current.viewMode).toBe("list");
+			expect(result.current.viewMode).toBe("annotated");
 		});
 	});
 
@@ -501,7 +507,7 @@ describe("useVimMode", () => {
 			);
 
 			act(() => {
-				simulateKey("j");
+				simulateKey("right");
 			});
 
 			// Use 'i' to enter insert mode at position 0, then move to end
@@ -540,7 +546,7 @@ describe("useVimMode", () => {
 			);
 
 			act(() => {
-				simulateKey("j");
+				simulateKey("right");
 			});
 
 			act(() => {
@@ -573,7 +579,7 @@ describe("useVimMode", () => {
 			);
 
 			act(() => {
-				simulateKey("j");
+				simulateKey("right");
 			});
 
 			act(() => {
@@ -606,10 +612,6 @@ describe("useVimMode", () => {
 				),
 			);
 
-			act(() => {
-				simulateKey("m");
-			});
-
 			expect(result.current.viewMode).toBe("annotated");
 
 			act(() => {
@@ -634,6 +636,12 @@ describe("useVimMode", () => {
 				),
 			);
 
+			expect(result.current.viewMode).toBe("annotated");
+
+			act(() => {
+				simulateKey("m");
+			});
+
 			expect(result.current.viewMode).toBe("list");
 
 			act(() => {
@@ -642,6 +650,28 @@ describe("useVimMode", () => {
 
 			expect(result.current.mode).toBe("normal");
 			expect(result.current.editingTokenIndex).toBeNull();
+		});
+	});
+
+	describe("lastToken keybinding (G in annotated mode)", () => {
+		it("moves selection to last token", () => {
+			const mockLoadDescriptions = () => {};
+			const { result } = renderHook(() =>
+				useVimMode(
+					mockTokens,
+					mockLoadDescriptions,
+					undefined,
+					mockUseKeyboard,
+				),
+			);
+
+			expect(result.current.viewMode).toBe("annotated");
+
+			act(() => {
+				simulateKey("g", "G", { shift: true });
+			});
+
+			expect(result.current.selectedIndex).toBe(1);
 		});
 	});
 

@@ -1,6 +1,6 @@
 import { useKeyboard as useOpenTuiKeyboard } from "@opentui/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getKeybindings } from "../config";
+import { getConfigSnapshot, getKeybindings } from "../config";
 import { logTrace } from "../core/logger";
 import type { ParsedToken } from "../core/shells/common";
 import type { ViewMode } from "./useViewMode";
@@ -63,7 +63,9 @@ export function useVimMode(
 	const modeRef = useRef(mode);
 	modeRef.current = mode;
 	const [selectedIndex, setSelectedIndex] = useState(0);
-	const [viewMode, setViewMode] = useState<ViewMode>("list");
+	const [viewMode, setViewMode] = useState<ViewMode>(() =>
+		getConfigSnapshot().viewMode === "horizontal" ? "annotated" : "list",
+	);
 	const [editingTokenIndex, setEditingTokenIndex] = useState<number | null>(
 		null,
 	);
@@ -193,10 +195,13 @@ export function useVimMode(
 			return;
 		}
 
+		const keyId =
+			key.sequence ??
+			(key.shift && key.name.length === 1 ? key.name.toUpperCase() : key.name);
 		const currentViewMode = viewMode;
 		const currentSelectedIndex = selectedIndex;
 
-		if (toggleViewKeys.includes(key.name)) {
+		if (toggleViewKeys.includes(keyId)) {
 			const nextMode = currentViewMode === "list" ? "annotated" : "list";
 			logTrace("vim:toggleView", {
 				key: key.name,
@@ -207,7 +212,7 @@ export function useVimMode(
 			return;
 		}
 
-		if (explainKeys.includes(key.name)) {
+		if (explainKeys.includes(keyId)) {
 			logTrace("vim:loadDescriptions", {
 				key: key.name,
 				selectedIndex: currentSelectedIndex,
@@ -216,11 +221,7 @@ export function useVimMode(
 			return;
 		}
 
-		if (
-			currentViewMode === "annotated" &&
-			(appendLineKeys.includes(key.name) ||
-				(key.sequence && appendLineKeys.includes(key.sequence)))
-		) {
+		if (currentViewMode === "annotated" && appendLineKeys.includes(keyId)) {
 			const lastIndex = parsedTokens.length - 1;
 			if (lastIndex < 0) {
 				logTrace("vim:appendLineSkipped", { reason: "noTokens" });
@@ -237,7 +238,7 @@ export function useVimMode(
 			return;
 		}
 
-		if (insertKeys.includes(key.name)) {
+		if (insertKeys.includes(keyId)) {
 			logTrace("vim:commandInsert", {
 				key: key.name,
 				targetIndex: currentSelectedIndex,
@@ -248,7 +249,7 @@ export function useVimMode(
 			return;
 		}
 
-		if (appendKeys.includes(key.name)) {
+		if (appendKeys.includes(keyId)) {
 			logTrace("vim:commandAppend", {
 				key: key.name,
 				targetIndex: currentSelectedIndex,
@@ -259,7 +260,7 @@ export function useVimMode(
 			return;
 		}
 
-		if (changeKeys.includes(key.name)) {
+		if (changeKeys.includes(keyId)) {
 			logTrace("vim:commandChange", {
 				key: key.name,
 				targetIndex: currentSelectedIndex,
@@ -294,32 +295,32 @@ export function useVimMode(
 				setSelectedIndex(boundedIndex);
 			};
 
-			if (leftKeys.includes(key.name)) {
+			if (leftKeys.includes(keyId)) {
 				moveSelection("left", currentSelectedIndex - 1);
 				return;
 			}
 
-			if (rightKeys.includes(key.name)) {
+			if (rightKeys.includes(keyId)) {
 				moveSelection("right", currentSelectedIndex + 1);
 				return;
 			}
 
-			if (wordBackwardKeys.includes(key.name)) {
+			if (wordBackwardKeys.includes(keyId)) {
 				moveSelection("wordBackward", currentSelectedIndex - 1);
 				return;
 			}
 
-			if (wordForwardKeys.includes(key.name)) {
+			if (wordForwardKeys.includes(keyId)) {
 				moveSelection("wordForward", currentSelectedIndex + 1);
 				return;
 			}
 
-			if (lineStartKeys.includes(key.name)) {
+			if (lineStartKeys.includes(keyId)) {
 				moveSelection("lineStart", 0);
 				return;
 			}
 
-			if (lineEndKeys.includes(key.name)) {
+			if (lineEndKeys.includes(keyId)) {
 				if (parsedTokens.length === 0) {
 					logTrace("vim:moveSelectionSkipped", {
 						direction: "lineEnd",
@@ -328,6 +329,16 @@ export function useVimMode(
 					return;
 				}
 				moveSelection("lineEnd", parsedTokens.length - 1);
+				return;
+			}
+
+			if (lastTokenKeys.includes(keyId)) {
+				const lastIndex = parsedTokens.length - 1;
+				if (lastIndex < 0) {
+					logTrace("vim:gotoLastSkipped", { reason: "noTokens" });
+					return;
+				}
+				moveSelection("lastToken", lastIndex);
 				return;
 			}
 		} else {
@@ -354,17 +365,17 @@ export function useVimMode(
 				setSelectedIndex(boundedIndex);
 			};
 
-			if (upKeys.includes(key.name) || key.name === "k") {
+			if (upKeys.includes(keyId) || keyId === "k") {
 				moveSelection("up", currentSelectedIndex - 1);
 				return;
 			}
 
-			if (downKeys.includes(key.name) || key.name === "j") {
+			if (downKeys.includes(keyId) || keyId === "j") {
 				moveSelection("down", currentSelectedIndex + 1);
 				return;
 			}
 
-			if (key.name === "g") {
+			if (keyId === "g") {
 				if (gPressed) {
 					logTrace("vim:gotoFirst", { via: "gg" });
 					setSelectedIndex(0);
@@ -377,7 +388,7 @@ export function useVimMode(
 				return;
 			}
 
-			if (lastTokenKeys.includes(key.name)) {
+			if (lastTokenKeys.includes(keyId)) {
 				const lastIndex = parsedTokens.length - 1;
 				if (lastIndex < 0) {
 					logTrace("vim:gotoLastSkipped", { reason: "noTokens" });

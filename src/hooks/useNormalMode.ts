@@ -1,6 +1,6 @@
 import { useKeyboard } from "@opentui/react";
 import { useCallback, useMemo, useState } from "react";
-import { getKeybindings } from "../config";
+import { getConfigSnapshot, getKeybindings } from "../config";
 import type { ViewMode } from "./useViewMode";
 
 export interface NormalModeActions {
@@ -14,7 +14,9 @@ export interface NormalModeActions {
 
 export function useNormalMode(tokenCount: number, actions: NormalModeActions) {
 	const [selectedIndex, setSelectedIndex] = useState(0);
-	const [viewMode, setViewMode] = useState<ViewMode>("list");
+	const [viewMode, setViewMode] = useState<ViewMode>(() =>
+		getConfigSnapshot().viewMode === "horizontal" ? "annotated" : "list",
+	);
 
 	const upKeys = useMemo(() => getKeybindings("up"), []);
 	const downKeys = useMemo(() => getKeybindings("down"), []);

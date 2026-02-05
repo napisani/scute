@@ -51,16 +51,16 @@ export function renderAnnotatedCommand(
 				const boxWidth = Math.max(selectedLength, tokenValue.length) + 2;
 				const connectorPos = startPos + Math.floor(boxWidth / 2);
 
-				const beforeConnector = " ".repeat(Math.max(0, connectorPos - 1));
-				const descLine = `${beforeConnector}┌─${selectedToken.description}`;
-				lines.push({
-					content: <text fg={markerColor}>{descLine}</text>,
-				});
-
-				const verticalLine = `${beforeConnector}│`;
-				lines.push({
-					content: <text fg={markerColor}>{verticalLine}</text>,
-				});
+				const descriptionLines = buildCenteredDescriptionLines(
+					selectedToken.description,
+					maxWidth,
+					connectorPos,
+				);
+				for (const descriptionLine of descriptionLines) {
+					lines.push({
+						content: <text fg={markerColor}>{descriptionLine}</text>,
+					});
+				}
 			}
 		}
 
@@ -100,6 +100,121 @@ export function renderAnnotatedCommand(
 	}
 
 	return lines;
+}
+
+function buildCenteredDescriptionLines(
+	description: string,
+	maxWidth: number,
+	connectorPos: number,
+): string[] {
+	const width = Math.max(1, maxWidth);
+	const sanitized = description.replace(/\s+/g, " ").trim();
+	const maxContentWidth = Math.max(1, width - 4);
+	const wrapped = wrapText(sanitized, maxContentWidth);
+	const maxLineLength = wrapped.reduce(
+		(max, line) => Math.max(max, line.length),
+		0,
+	);
+	const innerWidth = Math.max(2, Math.min(width - 2, maxLineLength + 2));
+	const boxWidth = innerWidth + 2;
+	const leftPadding = Math.max(0, Math.floor((width - boxWidth) / 2));
+	const topLine = " ".repeat(leftPadding) + "┌" + "─".repeat(innerWidth) + "┐";
+	const contentLines = wrapped.map(
+		(line) =>
+			" ".repeat(leftPadding) + `│ ${line.padEnd(innerWidth - 2, " ")} │`,
+	);
+	const bottomLine =
+		" ".repeat(leftPadding) + "└" + "─".repeat(innerWidth) + "┘";
+	const boxCenter = leftPadding + Math.floor(boxWidth / 2);
+
+	const connectorStem = buildConnectorStemLine(width, boxCenter);
+	const connectorLine = buildConnectorLine(width, boxCenter, connectorPos);
+
+	return [topLine, ...contentLines, bottomLine, connectorStem, connectorLine];
+}
+
+function wrapText(value: string, maxWidth: number): string[] {
+	if (!value) return [""];
+	if (maxWidth <= 0) return [""];
+	const words = value.split(" ");
+	const lines: string[] = [];
+	let current = "";
+	for (const word of words) {
+		if (word.length > maxWidth) {
+			if (current) {
+				lines.push(current);
+				current = "";
+			}
+			let start = 0;
+			while (start < word.length) {
+				lines.push(word.slice(start, start + maxWidth));
+				start += maxWidth;
+			}
+			continue;
+		}
+		if (!current) {
+			current = word;
+			continue;
+		}
+		if (current.length + 1 + word.length <= maxWidth) {
+			current = `${current} ${word}`;
+		} else {
+			lines.push(current);
+			current = word;
+		}
+	}
+	if (current) {
+		lines.push(current);
+	}
+	return lines.length ? lines : [""];
+}
+
+function truncateToWidth(value: string, maxWidth: number): string {
+	if (value.length <= maxWidth) return value;
+	if (maxWidth <= 1) return "…".slice(0, maxWidth);
+	return `${value.slice(0, Math.max(0, maxWidth - 1))}…`;
+}
+
+function buildConnectorStemLine(width: number, center: number): string {
+	const line = new Array(width).fill(" ");
+	if (center >= 0 && center < width) {
+		line[center] = "│";
+	}
+	return line.join("");
+}
+
+function buildConnectorLine(width: number, from: number, to: number): string {
+	const line = new Array(width).fill(" ");
+	const clampedFrom = from >= 0 && from < width;
+	const clampedTo = to >= 0 && to < width;
+	const isSame = from === to;
+	if (clampedFrom) {
+		if (isSame) {
+			line[from] = "│";
+		} else if (to > from) {
+			line[from] = "└";
+		} else {
+			line[from] = "┘";
+		}
+	}
+	if (clampedTo && !isSame) {
+		if (to > from) {
+			line[to] = "┐";
+		} else {
+			line[to] = "┌";
+		}
+	}
+	if (isSame) {
+		return line.join("");
+	}
+	const start = Math.max(0, Math.min(from, to));
+	const end = Math.min(width - 1, Math.max(from, to));
+	for (let i = start; i <= end; i++) {
+		if (line[i] === " ") {
+			line[i] = "─";
+		}
+	}
+	return line.join("");
 }
 
 function buildBorderLineElement(
