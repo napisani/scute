@@ -49,9 +49,7 @@ export function TokenAnnotatedView({
 					alignItems="flex-start"
 				>
 					{annotatedLines.map((line, index) => (
-						<box key={`annotated-line-${index}-${Math.random()}`}>
-							{line.content}
-						</box>
+						<box key={`annotated-line-${index}`}>{line.content}</box>
 					))}
 				</box>
 			</scrollbox>

@@ -100,6 +100,7 @@ describe("config overlay logic", () => {
 
 		it("should override existing provider config with environment values", () => {
 			const baseConfig: Config = {
+				viewMode: "horizontal",
 				providers: [
 					{
 						name: "openai",
@@ -118,6 +119,7 @@ describe("config overlay logic", () => {
 					lineEnd: ["$"],
 					firstToken: ["g"],
 					lastToken: ["G"],
+					appendLine: ["A"],
 					explain: ["e"],
 					toggleView: ["m"],
 					insert: ["i"],
@@ -265,6 +267,7 @@ describe("config overlay logic", () => {
 	describe("provider accessor functions", () => {
 		it("getProviderConfig should return cloned provider config", () => {
 			const baseConfig: Config = {
+				viewMode: "horizontal",
 				providers: [
 					{
 						name: "openai",
@@ -283,6 +286,7 @@ describe("config overlay logic", () => {
 					lineEnd: ["$"],
 					firstToken: ["g"],
 					lastToken: ["G"],
+					appendLine: ["A"],
 					explain: ["e"],
 					toggleView: ["m"],
 					insert: ["i"],
@@ -413,6 +417,7 @@ describe("config overlay logic", () => {
 
 		it("should preserve other config fields when applying env overrides", () => {
 			const baseConfig: Config = {
+				viewMode: "horizontal",
 				providers: [],
 				keybindings: {
 					up: ["k"],
@@ -425,6 +430,7 @@ describe("config overlay logic", () => {
 					lineEnd: ["$"],
 					firstToken: ["g"],
 					lastToken: ["G"],
+					appendLine: ["A"],
 					explain: ["e"],
 					toggleView: ["m"],
 					insert: ["i"],
@@ -502,6 +508,7 @@ describe("config overlay logic", () => {
 
 		it("should handle Ollama provider without baseUrl gracefully", () => {
 			const baseConfig: Config = {
+				viewMode: "horizontal",
 				providers: [
 					{
 						name: "ollama",
@@ -519,6 +526,7 @@ describe("config overlay logic", () => {
 					lineEnd: ["$"],
 					firstToken: ["g"],
 					lastToken: ["G"],
+					appendLine: ["A"],
 					explain: ["e"],
 					toggleView: ["m"],
 					insert: ["i"],
@@ -589,6 +597,7 @@ describe("config overlay logic", () => {
 
 		it("should update existing provider when env var is set", () => {
 			const baseConfig: Config = {
+				viewMode: "horizontal",
 				providers: [
 					{
 						name: "ollama",
@@ -606,6 +615,7 @@ describe("config overlay logic", () => {
 					lineEnd: ["$"],
 					firstToken: ["g"],
 					lastToken: ["G"],
+					appendLine: ["A"],
 					explain: ["e"],
 					toggleView: ["m"],
 					insert: ["i"],

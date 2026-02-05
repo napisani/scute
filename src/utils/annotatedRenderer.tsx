@@ -169,12 +169,6 @@ function wrapText(value: string, maxWidth: number): string[] {
 	return lines.length ? lines : [""];
 }
 
-function truncateToWidth(value: string, maxWidth: number): string {
-	if (value.length <= maxWidth) return value;
-	if (maxWidth <= 1) return "…".slice(0, maxWidth);
-	return `${value.slice(0, Math.max(0, maxWidth - 1))}…`;
-}
-
 function buildConnectorStemLine(width: number, center: number): string {
 	const line = new Array(width).fill(" ");
 	if (center >= 0 && center < width) {
@@ -238,25 +232,23 @@ function buildBorderLineElement(
 		const tokenColor = getTokenColor(tp.token.type);
 
 		if (isSelected && !isEditing) {
-			const borderChar = borderType === "top" ? "─" : "─";
 			const leftCorner = borderType === "top" ? "┌" : "└";
 			const rightCorner = borderType === "top" ? "┐" : "┘";
 			elements.push(
 				<text key={`border-${i}`} fg={markerColor}>
 					{leftCorner}
-					{borderChar.repeat(value.length)}
+					{"─".repeat(value.length)}
 					{rightCorner}
 				</text>,
 			);
 		} else if (isEditing) {
 			// When editing, show border around the editing value length
-			const borderChar = borderType === "top" ? "─" : "─";
 			const leftCorner = borderType === "top" ? "┌" : "└";
 			const rightCorner = borderType === "top" ? "┐" : "┘";
 			elements.push(
 				<text key={`border-${i}`} fg={markerColor}>
 					{leftCorner}
-					{borderChar.repeat(Math.max(editingValue.length, value.length))}
+					{"─".repeat(Math.max(editingValue.length, value.length))}
 					{rightCorner}
 				</text>,
 			);

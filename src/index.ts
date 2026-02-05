@@ -21,11 +21,24 @@ program
 		"Output channel (clipboard|stdout|prompt|readline)",
 	);
 
+const VALID_OUTPUT_CHANNELS: OutputChannel[] = [
+	"clipboard",
+	"stdout",
+	"prompt",
+	"readline",
+];
+
 function resolveOutputChannel(
 	commandName: string,
 	requested?: string,
 ): OutputChannel {
 	if (requested) {
+		if (!VALID_OUTPUT_CHANNELS.includes(requested as OutputChannel)) {
+			console.error(
+				`Invalid output channel: "${requested}". Valid options: ${VALID_OUTPUT_CHANNELS.join(", ")}`,
+			);
+			process.exit(1);
+		}
 		return requested as OutputChannel;
 	}
 	if (commandName === "suggest") return "readline";

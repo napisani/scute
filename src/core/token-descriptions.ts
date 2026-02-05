@@ -253,6 +253,6 @@ function printTokenDescriptions(
 ): void {
 	parsedTokens.forEach((token, index) => {
 		const description = descriptions[index] ?? "(no description available)";
-		console.log(`${token.type}\t${token.value}\t${description}`);
+		logDebug(`${token.type}\t${token.value}\t${description}`);
 	});
 }
