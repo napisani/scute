@@ -1,0 +1,111 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-binaries:
+    name: Build ${{ matrix.os }} binary
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: linux
+            extension: ""
+          - os: macos-latest
+            artifact: macos
+            extension: ""
+          - os: windows-latest
+            artifact: windows
+            extension: ".exe"
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v1
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Lint TypeScript
+        run: bun run lint
+
+      - name: Run unit tests
+        run: bun run test
+
+      - name: Build binary
+        run: bun run build:bin
+
+      - name: Prepare artifact
+        shell: bash
+        run: |
+          mkdir -p release
+          cp dist/scute${{ matrix.extension }} "release/scute-${GITHUB_REF_NAME}-${{ matrix.artifact }}${{ matrix.extension }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: scute-${{ matrix.artifact }}
+          path: release/
+
+  create-release:
+    name: Create GitHub Release
+    needs: build-binaries
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Assemble release assets
+        run: |
+          mkdir -p release
+          for file in artifacts/*/*; do
+            base=$(basename "$file")
+            cp "$file" "release/$base"
+          done
+          (cd release && sha256sum * > checksums.txt)
+
+      - name: Create GitHub release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          artifacts: "release/*"
+          artifactContentType: application/octet-stream
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+
+  publish-npm:
+    name: Publish to npm
+    needs: create-release
+    runs-on: ubuntu-latest
+    if: success()
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v1
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build binary for npm package
+        run: bun run build:bin
+
+      - name: Publish package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm publish --access public

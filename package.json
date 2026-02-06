@@ -1,13 +1,36 @@
 {
-	"name": "scute",
+	"name": "@napisani/scute",
+	"version": "0.0.0-development",
+	"description": "AI-powered shell assistant",
+	"license": "MIT",
 	"module": "index.ts",
 	"type": "module",
-	"scripts": {
-		"build": "bun build ./src/index.ts --compile --outfile scute",
-		"test": "bun test tests --pattern \\\"\\.test\\.ts$\\\"",
-		"evals": "bun test evals --pattern \\\"\\.eval\\.test\\.ts$\\\""
+	"bin": {
+		"scute": "dist/scute"
 	},
-	"private": true,
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/napisani/scute.git"
+	},
+	"homepage": "https://github.com/napisani/scute",
+	"bugs": {
+		"url": "https://github.com/napisani/scute/issues"
+	},
+	"scripts": {
+		"build": "bun run build:bin",
+		"build:bin": "bun build ./src/index.ts --compile --outfile dist/scute",
+		"clean": "rm -rf dist",
+		"lint": "bunx tsc --noEmit",
+		"test": "bun test tests/",
+		"coverage": "bun test tests/ --coverage",
+		"evals": "bun test evals --pattern \\\"\\.eval\\.test\\.ts$\\\"",
+		"prepublishOnly": "bun run clean && bun install --frozen-lockfile && bun run lint && bun run build:bin"
+	},
+	"files": [
+		"dist/",
+		"README.md",
+		"LICENSE"
+	],
 	"devDependencies": {
 		"@biomejs/biome": "2.3.12",
 		"@testing-library/react": "^16.3.2",
