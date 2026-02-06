@@ -2,27 +2,40 @@
   "name": "@napisani/scute",
   "version": "0.0.1",
   "description": "AI-powered shell assistant",
-  "license": "MIT",
   "module": "index.ts",
   "type": "module",
-  "bin": {
-    "scute": "dist/scute"
-  },
-  "os": [
-    "darwin",
-    "linux"
+  "keywords": [
+    "shell",
+    "ai",
+    "explain",
+    "bash",
+    "zsh",
+    "suggestion",
+    "tui"
   ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/napisani/scute.git"
-  },
   "homepage": "https://github.com/napisani/scute",
   "bugs": {
     "url": "https://github.com/napisani/scute/issues"
   },
-  "engines": {
-    "node": ">=18"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/napisani/scute.git"
   },
+  "license": "MIT",
+  "author": "Nick Pisani",
+  "main": "index.js",
+  "bin": {
+    "scute": "dist/scute"
+  },
+  "directories": {
+    "test": "tests"
+  },
+  "files": [
+    "dist/",
+    "scripts/",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "bun run build:bin",
     "build:bin": "bun build ./src/index.ts --compile --outfile dist/scute",
@@ -33,27 +46,6 @@
     "evals": "bun test evals --pattern \\\"\\.eval\\.test\\.ts$\\\"",
     "prepublishOnly": "bun run clean && bun install --frozen-lockfile && bun run lint && bun run test",
     "postinstall": "bun scripts/postinstall.ts"
-  },
-  "files": [
-    "dist/",
-    "scripts/",
-    "README.md",
-    "LICENSE"
-  ],
-  "devDependencies": {
-    "@biomejs/biome": "2.3.12",
-    "@testing-library/react": "^16.3.2",
-    "@types/bun": "latest",
-    "@types/js-yaml": "^4.0.9",
-    "@types/jsdom": "^27.0.0",
-    "@types/node": "^25.0.10",
-    "@types/react": "^19.2.9",
-    "@types/shell-quote": "^1.7.5",
-    "happy-dom": "^20.5.0",
-    "jsdom": "^28.0.0"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
   },
   "dependencies": {
     "@opentui/core": "^0.1.75",
@@ -69,5 +61,27 @@
     "js-yaml": "^4.1.1",
     "react": "^19.2.4",
     "shell-quote": "^1.8.3"
-  }
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.3.12",
+    "@testing-library/react": "^16.3.2",
+    "@types/bun": "latest",
+    "@types/js-yaml": "^4.0.9",
+    "@types/jsdom": "^27.0.0",
+    "@types/node": "^25.0.10",
+    "@types/react": "^19.2.9",
+    "@types/shell-quote": "^1.7.5",
+    "happy-dom": "^20.5.0",
+    "jsdom": "^28.0.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "os": [
+    "darwin",
+    "linux"
+  ]
 }
