@@ -1,6 +1,6 @@
 {
 	"name": "@napisani/scute",
-	"version": "0.0.0-development",
+	"version": "0.0.1",
 	"description": "AI-powered shell assistant",
 	"license": "MIT",
 	"module": "index.ts",
