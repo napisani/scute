@@ -4,6 +4,30 @@ import { access, chmod, mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+async function buildFromSource(distDir: string, binaryPath: string) {
+	console.warn(
+		`[scute] No prebuilt binary available for ${process.platform}/${process.arch}. Building from source...`,
+	);
+	await mkdir(distDir, { recursive: true });
+	const build = Bun.spawn(["bun", "run", "build:bin"], {
+		stdout: "inherit",
+		stderr: "inherit",
+	});
+	const exitCode = await build.exited;
+	if (exitCode !== 0) {
+		build.kill();
+		throw new Error("Failed to build binary from source.");
+	}
+	try {
+		await access(binaryPath);
+	} catch {
+		throw new Error(
+			"Build completed but the scute binary was not created at dist/scute.",
+		);
+	}
+	await chmod(binaryPath, 0o755);
+}
+
 async function main() {
 	const version = Bun.env.npm_package_version;
 	if (!version || version === "0.0.0-development") {
@@ -33,18 +57,6 @@ async function main() {
 	const archMap: Record<string, string> = {
 		x64: "x86_64",
 	};
-	const detected = archMap[process.arch] ?? null;
-	if (!detected) {
-		throw new Error(
-			`Unsupported architecture '${process.arch}'. Currently only x86_64 binaries are published.`,
-		);
-	}
-
-	const osName = platform === "darwin" ? "macos" : "linux";
-	const tag = version.startsWith("v") ? version : `v${version}`;
-	const tarball = `scute-${tag}-${osName}-${detected}.tar.gz`;
-	const url = `https://github.com/napisani/scute/releases/download/${tag}/${tarball}`;
-
 	const distDir = join(import.meta.dir, "..", "dist");
 	await mkdir(distDir, { recursive: true });
 
@@ -56,9 +68,24 @@ async function main() {
 		// continue
 	}
 
+	const detected = archMap[process.arch] ?? null;
+	if (!detected) {
+		await buildFromSource(distDir, binaryPath);
+		return;
+	}
+
+	const osName = platform === "darwin" ? "macos" : "linux";
+	const tag = version.startsWith("v") ? version : `v${version}`;
+	const tarball = `scute-${tag}-${osName}-${detected}.tar.gz`;
+	const url = `https://github.com/napisani/scute/releases/download/${tag}/${tarball}`;
+
 	console.log(`[scute] Downloading ${url}`);
 	const response = await fetch(url);
 	if (!response.ok) {
+		if (response.status === 404) {
+			await buildFromSource(distDir, binaryPath);
+			return;
+		}
 		throw new Error(
 			`[scute] Failed to download binary from ${url} (${response.status} ${response.statusText})`,
 		);
