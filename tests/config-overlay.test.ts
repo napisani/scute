@@ -128,6 +128,11 @@ describe("config overlay logic", () => {
 					exitInsert: ["escape"],
 					save: ["return"],
 				},
+				shellKeybindings: {
+					explain: "Ctrl+E",
+					build: "Ctrl+G",
+					suggest: "Ctrl+Shift+E",
+				},
 				theme: {
 					tokenColors: {
 						command: "#A6E3A1",
@@ -295,6 +300,11 @@ describe("config overlay logic", () => {
 					exitInsert: ["escape"],
 					save: ["return"],
 				},
+				shellKeybindings: {
+					explain: "Ctrl+E",
+					build: "Ctrl+G",
+					suggest: "Ctrl+Shift+E",
+				},
 				theme: {
 					tokenColors: {
 						command: "#A6E3A1",
@@ -439,6 +449,11 @@ describe("config overlay logic", () => {
 					exitInsert: ["escape"],
 					save: ["return"],
 				},
+				shellKeybindings: {
+					explain: "Ctrl+E",
+					build: "Ctrl+G",
+					suggest: "Ctrl+Shift+E",
+				},
 				theme: {
 					tokenColors: {
 						command: "#FF0000",
@@ -535,6 +550,11 @@ describe("config overlay logic", () => {
 					exitInsert: ["escape"],
 					save: ["return"],
 				},
+				shellKeybindings: {
+					explain: "Ctrl+E",
+					build: "Ctrl+G",
+					suggest: "Ctrl+Shift+E",
+				},
 				theme: {
 					tokenColors: {
 						command: "#A6E3A1",
@@ -623,6 +643,11 @@ describe("config overlay logic", () => {
 					change: ["c"],
 					exitInsert: ["escape"],
 					save: ["return"],
+				},
+				shellKeybindings: {
+					explain: "Ctrl+E",
+					build: "Ctrl+G",
+					suggest: "Ctrl+Shift+E",
 				},
 				theme: {
 					tokenColors: {

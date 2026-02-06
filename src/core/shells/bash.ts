@@ -1,12 +1,20 @@
 import { getReadlineLine } from "../../config";
+import type { ShellKeybindingAction } from "../../config/schema";
+import { ShellKeybindingActions } from "../../config/schema";
+import { logDebug } from "../logger";
 import {
 	joinTokensCommon,
 	parseCommand,
 	type ShellHelper,
 	tokenizeWithShellQuote,
 } from "./common";
+import {
+	parseKeybinding,
+	type ShellKeybindings,
+	toReadlineSequence,
+} from "./keybindings";
 
-export const BASH_INIT_SCRIPT = `
+const BASH_HELPERS = `
 # --- scute integration ---
 
 if [ -z "\${SCUTE_BIN:-}" ]; then
@@ -30,21 +38,61 @@ _scute_build() {
 # Suggest replacement for current line
 _scute_suggest() {
     local COMPLETED_COMMAND
-    COMPLETED_COMMAND="$($SCUTE_BIN suggest "$READLINE_LINE" --output readline)"
+    COMPLETED_COMMAND="$("$SCUTE_BIN" suggest "$READLINE_LINE" --output readline)"
     READLINE_LINE="$COMPLETED_COMMAND"
     READLINE_POINT=\${#COMPLETED_COMMAND}
 }
 
-# Bind the functions to key combinations.
-# Ctrl+E -> Explain (prompt output)
-# Ctrl+G -> Build (clipboard output)
-# Ctrl+Shift+E -> Suggest (replace readline buffer)
-bind -x '"\\C-e": _scute_explain'
-bind -x '"\\C-g": _scute_build'
-bind -x '"\\C-E": _scute_suggest'
+# Generate command from prompt
+_scute_generate() {
+    "$SCUTE_BIN" generate --output readline
+}
 
 # --- end scute integration ---
 `;
+
+const BASH_ACTION_FUNCTIONS: Record<ShellKeybindingAction, string> = {
+	explain: "_scute_explain",
+	build: "_scute_build",
+	suggest: "_scute_suggest",
+	generate: "_scute_generate",
+};
+
+function renderBashKeybindings(bindings: ShellKeybindings): string {
+	const lines: string[] = [];
+	for (const action of ShellKeybindingActions) {
+		const shortcuts = bindings[action];
+		if (!shortcuts.length) {
+			continue;
+		}
+		const handler = BASH_ACTION_FUNCTIONS[action];
+		for (const shortcut of shortcuts) {
+			const parsed = parseKeybinding(shortcut);
+			if (!parsed) {
+				logDebug(
+					`init:bash:invalidKeybinding action=${action} value="${shortcut}"`,
+				);
+				continue;
+			}
+			const sequence = toReadlineSequence(parsed);
+			if (!sequence) {
+				logDebug(
+					`init:bash:unsupportedKeybinding action=${action} value="${shortcut}"`,
+				);
+				continue;
+			}
+			lines.push(`bind -x '"${sequence}": ${handler}'`);
+		}
+	}
+	if (!lines.length) {
+		return "";
+	}
+	return `\n# Keybindings\n${lines.join("\n")}\n`;
+}
+
+function getBashInitScript(bindings: ShellKeybindings): string {
+	return `${BASH_HELPERS}${renderBashKeybindings(bindings)}`;
+}
 
 function normalizeReadlineText(text: string): string {
 	// Remove trailing newlines (both \n and \r\n) and whitespace
@@ -59,7 +107,7 @@ export const bashShellHelper: ShellHelper = {
 	getReadlineLine: () => {
 		return getReadlineLine() ?? null;
 	},
-	getInitScript: () => BASH_INIT_SCRIPT,
+	getInitScript: (bindings) => getBashInitScript(bindings),
 	outputToReadline: (text: string): void => {
 		// Bash uses READLINE_LINE for the current input line
 		// Use ANSI sequences to clear the current line and replace it

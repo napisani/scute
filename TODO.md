@@ -1,9 +1,6 @@
-- the prompt output is not working
 - better customization in init script 
 - add more examples to the README
-- make an llm review the entire thing for improvements
-- add shell specific tests
-- prompt for command subcommand
+- no tokens build scenario 
 
 
 you are an expert code reviewer and software developer.

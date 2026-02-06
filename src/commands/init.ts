@@ -1,5 +1,6 @@
 // src/commands/init.ts
 
+import { getShellKeybindings } from "../config";
 import { emitOutput, type OutputChannel } from "../core/output";
 import { getShellHelperByName, supportedShells } from "../core/shells";
 import type { ShellName } from "../core/shells/common";
@@ -19,7 +20,7 @@ export function init(shell: string, { output }: InitOptions) {
 	}
 
 	const shellHelper = getShellHelperByName(shell as ShellName);
-	const initScript = shellHelper.getInitScript();
+	const initScript = shellHelper.getInitScript(getShellKeybindings());
 
 	emitOutput({
 		channel: output,

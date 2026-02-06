@@ -140,6 +140,14 @@ export type ThemeConfig = z.infer<typeof ThemeSchema>;
 
 export type KeybindingsConfig = z.infer<typeof KeybindingsSchema>;
 
+export const ShellKeybindingActions = [
+	"explain",
+	"build",
+	"suggest",
+	"generate",
+] as const;
+export type ShellKeybindingAction = (typeof ShellKeybindingActions)[number];
+
 function buildDefaultPromptConfig() {
 	return {
 		provider: resolvedDefaultProvider,
@@ -155,6 +163,26 @@ export const ConfigSchema = z.object({
 	providers: z.array(ProviderSchema).default([]),
 	keybindings: KeybindingsSchema,
 	theme: ThemeSchema,
+	shellKeybindings: z
+		.object({
+			explain: z
+				.union([z.string().min(1), z.array(z.string().min(1))])
+				.optional(),
+			build: z
+				.union([z.string().min(1), z.array(z.string().min(1))])
+				.optional(),
+			suggest: z
+				.union([z.string().min(1), z.array(z.string().min(1))])
+				.optional(),
+			generate: z
+				.union([z.string().min(1), z.array(z.string().min(1))])
+				.optional(),
+		})
+		.default({
+			explain: "Ctrl+E",
+			build: "Ctrl+G",
+			suggest: "Ctrl+Shift+E",
+		}),
 	prompts: z
 		.object({
 			explain: PromptConfigSchema.default(buildDefaultPromptConfig()),

@@ -1,3 +1,5 @@
+import type { ShellKeybindings } from "./keybindings";
+
 type Tokenizer = (input: string | null | undefined) => string[];
 type ReadlineLineGetter = () => string | null;
 type TokenParser = (tokens: string[]) => ParsedToken[];
@@ -28,7 +30,7 @@ export type ShellHelper = {
 	parseCommand: TokenParser;
 	joinTokens: (tokens: string[]) => string;
 	getReadlineLine: ReadlineLineGetter;
-	getInitScript: () => string;
+	getInitScript: (bindings: ShellKeybindings) => string;
 	/**
 	 * Writes the provided text to stdout using shell-specific ANSI sequences
 	 * to replace the current terminal line. This function should:

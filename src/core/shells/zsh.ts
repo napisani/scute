@@ -1,12 +1,20 @@
 import { getReadlineLine } from "../../config";
+import type { ShellKeybindingAction } from "../../config/schema";
+import { ShellKeybindingActions } from "../../config/schema";
+import { logDebug } from "../logger";
 import {
 	joinTokensCommon,
 	parseCommand,
 	type ShellHelper,
 	tokenizeWithShellQuote,
 } from "./common";
+import {
+	parseKeybinding,
+	type ShellKeybindings,
+	toZshSequence,
+} from "./keybindings";
 
-export const ZSH_INIT_SCRIPT = `
+const ZSH_HELPERS = `
 # --- scute integration ---
 
 if [ -z "\${SCUTE_BIN:-}" ]; then
@@ -29,25 +37,67 @@ _scute_build() {
 
 _scute_suggest() {
     local COMPLETED_COMMAND
-    COMPLETED_COMMAND="$($SCUTE_BIN suggest "$BUFFER" --output readline)"
+    COMPLETED_COMMAND="$("$SCUTE_BIN" suggest "$BUFFER" --output readline)"
     BUFFER="$COMPLETED_COMMAND"
     CURSOR=\${#BUFFER}
+    zle redisplay
+}
+
+_scute_generate() {
+    "$SCUTE_BIN" generate --output readline
     zle redisplay
 }
 
 zle -N scute-explain _scute_explain
 zle -N scute-build _scute_build
 zle -N scute-suggest _scute_suggest
-
-# Ctrl+E -> Explain (prompt output)
-# Ctrl+G -> Build (clipboard output)
-# Ctrl+Shift+E -> Suggest (replace buffer)
-bindkey '^e' scute-explain
-bindkey '^g' scute-build
-bindkey '^E' scute-suggest
+zle -N scute-generate _scute_generate
 
 # --- end scute integration ---
 `;
+
+const ZSH_ACTION_WIDGETS: Record<ShellKeybindingAction, string> = {
+	explain: "scute-explain",
+	build: "scute-build",
+	suggest: "scute-suggest",
+	generate: "scute-generate",
+};
+
+function renderZshKeybindings(bindings: ShellKeybindings): string {
+	const lines: string[] = [];
+	for (const action of ShellKeybindingActions) {
+		const shortcuts = bindings[action];
+		if (!shortcuts.length) {
+			continue;
+		}
+		const widget = ZSH_ACTION_WIDGETS[action];
+		for (const shortcut of shortcuts) {
+			const parsed = parseKeybinding(shortcut);
+			if (!parsed) {
+				logDebug(
+					`init:zsh:invalidKeybinding action=${action} value="${shortcut}"`,
+				);
+				continue;
+			}
+			const sequence = toZshSequence(parsed);
+			if (!sequence) {
+				logDebug(
+					`init:zsh:unsupportedKeybinding action=${action} value="${shortcut}"`,
+				);
+				continue;
+			}
+			lines.push(`bindkey '${sequence}' ${widget}`);
+		}
+	}
+	if (!lines.length) {
+		return "";
+	}
+	return `\n# Keybindings\n${lines.join("\n")}\n`;
+}
+
+function getZshInitScript(bindings: ShellKeybindings): string {
+	return `${ZSH_HELPERS}${renderZshKeybindings(bindings)}`;
+}
 
 function normalizeReadlineText(text: string): string {
 	// Remove trailing newlines (both \n and \r\n) and whitespace
@@ -62,7 +112,7 @@ export const zshShellHelper: ShellHelper = {
 	getReadlineLine: () => {
 		return getReadlineLine() ?? null;
 	},
-	getInitScript: () => ZSH_INIT_SCRIPT,
+	getInitScript: (bindings) => getZshInitScript(bindings),
 	outputToReadline: (text: string): void => {
 		// Zsh uses BUFFER for the current input line
 		// Use ANSI sequences to clear the current line and replace it

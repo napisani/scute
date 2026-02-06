@@ -16,6 +16,7 @@ import { buildManPageContext, type ManPage } from "./manpage";
 import {
 	getDescribeTokensPrompt,
 	getExplainSystemPrompt,
+	getGenerateSystemPrompt,
 	getSuggestSystemPrompt,
 } from "./prompts";
 import type { ParsedCommand, ParsedToken } from "./shells/common";
@@ -180,6 +181,10 @@ export async function suggest(commandLine: string): Promise<string | null> {
 }
 
 /**
+ * Generates a shell command from a natural language request.
+ */
+
+/**
  * Explains a given shell command.
  */
 export async function explain(commandLine: string): Promise<string | null> {
@@ -213,6 +218,30 @@ export async function explain(commandLine: string): Promise<string | null> {
 		return explanation.length ? explanation : raw.trim() || null;
 	} catch (error) {
 		logDebug("explain:error", error);
+		return null;
+	}
+}
+
+/**
+ * Generates a shell command from a natural language request.
+ */
+export async function generateCommand(prompt: string): Promise<string | null> {
+	const trimmed = prompt.trim();
+	if (!trimmed) {
+		logDebug("generate:received empty prompt");
+		return null;
+	}
+	logDebug(`generate:received prompt="${trimmed}"`);
+	try {
+		const raw = await generateText(
+			"generate",
+			trimmed,
+			getGenerateSystemPrompt(),
+		);
+		const suggestion = extractFirstLine(raw);
+		return suggestion.length ? suggestion : raw.trim() || null;
+	} catch (error) {
+		logDebug("generate:error", error);
 		return null;
 	}
 }

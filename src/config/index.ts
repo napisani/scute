@@ -6,8 +6,8 @@ import yaml from "js-yaml";
 import { SUPPORTED_PROVIDERS } from "../core/constants";
 import { getEnv, resetEnvGetter, setEnvGetter } from "../core/environment";
 import type { TokenType } from "../core/shells/common";
-import type { PromptName, ThemeConfig } from "./schema";
-import { type Config, ConfigSchema } from "./schema";
+import type { PromptName, ShellKeybindingAction, ThemeConfig } from "./schema";
+import { type Config, ConfigSchema, ShellKeybindingActions } from "./schema";
 
 const CONFIG_DIR = path.join(os.homedir(), ".config", "scute");
 const CONFIG_FILE = path.join(CONFIG_DIR, "config.yaml");
@@ -164,6 +164,13 @@ const defaultTheme: ThemeConfig = {
 	markerColor: "#CDD6F4",
 };
 
+const defaultShellKeybindings: Record<ShellKeybindingAction, string[]> = {
+	explain: ["Ctrl+E"],
+	build: ["Ctrl+G"],
+	suggest: ["Ctrl+Shift+E"],
+	generate: [],
+};
+
 export function getKeybindings(action: KeybindingAction): string[] {
 	const configured = config.keybindings?.[action];
 	return configured?.length ? [...configured] : [...defaultKeybindings[action]];
@@ -183,6 +190,22 @@ export function getThemeColorFor(attr: ThemeColorAttribute): string {
 
 export function getPromptConfig(name: PromptName) {
 	return { ...config.prompts[name] };
+}
+
+export function getShellKeybindings(): Record<ShellKeybindingAction, string[]> {
+	const configured = config.shellKeybindings ?? {};
+	const resolve = (action: ShellKeybindingAction) => {
+		const value = configured[action];
+		if (!value) return [...defaultShellKeybindings[action]];
+		return Array.isArray(value) ? [...value] : [value];
+	};
+	return ShellKeybindingActions.reduce(
+		(acc, action) => {
+			acc[action] = resolve(action);
+			return acc;
+		},
+		{} as Record<ShellKeybindingAction, string[]>,
+	);
 }
 
 export function getProviders() {

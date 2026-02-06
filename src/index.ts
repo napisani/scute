@@ -5,6 +5,7 @@ import { Command } from "commander";
 import { build } from "./commands/build";
 import { configDebug } from "./commands/config-debug";
 import { explain } from "./commands/explain";
+import { generate } from "./commands/generate";
 import { init } from "./commands/init";
 import { suggest } from "./commands/suggest";
 import { loadConfigFromPath, setConfigOverride } from "./config";
@@ -111,6 +112,17 @@ program
 		const { output } = command.optsWithGlobals() as { output?: string };
 		void explain(line, point, {
 			output: resolveOutputChannel("explain", output),
+		});
+	});
+
+program
+	.command("generate")
+	.description("Generate a command from a prompt")
+	.argument("[prompt...]", "Natural language request")
+	.action((promptParts, _options, command) => {
+		const { output } = command.optsWithGlobals() as { output?: string };
+		void generate(promptParts, {
+			output: resolveOutputChannel("generate", output),
 		});
 	});
 

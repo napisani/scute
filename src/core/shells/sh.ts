@@ -1,12 +1,20 @@
 import { getReadlineLine } from "../../config";
+import type { ShellKeybindingAction } from "../../config/schema";
+import { ShellKeybindingActions } from "../../config/schema";
+import { logDebug } from "../logger";
 import {
 	joinTokensCommon,
 	parseCommand,
 	type ShellHelper,
 	tokenizeWithShellQuote,
 } from "./common";
+import {
+	parseKeybinding,
+	type ShellKeybindings,
+	toReadlineSequence,
+} from "./keybindings";
 
-export const SH_INIT_SCRIPT = `
+const SH_HELPERS = `
 # --- scute integration ---
 
 if [ -z "\${SCUTE_BIN:-}" ]; then
@@ -27,17 +35,60 @@ _scute_build() {
 
 _scute_suggest() {
     local COMPLETED_COMMAND
-    COMPLETED_COMMAND="$($SCUTE_BIN suggest "$READLINE_LINE" --output readline)"
+    COMPLETED_COMMAND="$("$SCUTE_BIN" suggest "$READLINE_LINE" --output readline)"
     READLINE_LINE="$COMPLETED_COMMAND"
     READLINE_POINT=\${#COMPLETED_COMMAND}
 }
 
-bind -x '"\\C-e": _scute_explain'
-bind -x '"\\C-g": _scute_build'
-bind -x '"\\C-E": _scute_suggest'
+_scute_generate() {
+    "$SCUTE_BIN" generate --output readline
+}
 
 # --- end scute integration ---
 `;
+
+const SH_ACTION_FUNCTIONS: Record<ShellKeybindingAction, string> = {
+	explain: "_scute_explain",
+	build: "_scute_build",
+	suggest: "_scute_suggest",
+	generate: "_scute_generate",
+};
+
+function renderShKeybindings(bindings: ShellKeybindings): string {
+	const lines: string[] = [];
+	for (const action of ShellKeybindingActions) {
+		const shortcuts = bindings[action];
+		if (!shortcuts.length) {
+			continue;
+		}
+		const handler = SH_ACTION_FUNCTIONS[action];
+		for (const shortcut of shortcuts) {
+			const parsed = parseKeybinding(shortcut);
+			if (!parsed) {
+				logDebug(
+					`init:sh:invalidKeybinding action=${action} value="${shortcut}"`,
+				);
+				continue;
+			}
+			const sequence = toReadlineSequence(parsed);
+			if (!sequence) {
+				logDebug(
+					`init:sh:unsupportedKeybinding action=${action} value="${shortcut}"`,
+				);
+				continue;
+			}
+			lines.push(`bind -x '"${sequence}": ${handler}'`);
+		}
+	}
+	if (!lines.length) {
+		return "";
+	}
+	return `\n# Keybindings\n${lines.join("\n")}\n`;
+}
+
+function getShInitScript(bindings: ShellKeybindings): string {
+	return `${SH_HELPERS}${renderShKeybindings(bindings)}`;
+}
 
 function normalizeReadlineText(text: string): string {
 	// Remove trailing newlines (both \n and \r\n) and whitespace
@@ -52,7 +103,7 @@ export const shShellHelper: ShellHelper = {
 	getReadlineLine: () => {
 		return getReadlineLine() ?? null;
 	},
-	getInitScript: () => SH_INIT_SCRIPT,
+	getInitScript: (bindings) => getShInitScript(bindings),
 	outputToReadline: (text: string): void => {
 		// Standard sh uses READLINE_LINE (when readline is available)
 		// Use ANSI sequences to clear the current line and replace it
