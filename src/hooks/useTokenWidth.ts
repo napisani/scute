@@ -1,14 +1,6 @@
 import { useMemo } from "react";
 import type { ParsedToken } from "../core/shells/common";
 
-function formatTokenType(token: ParsedToken): string {
-	return token.type;
-}
-
-function formatToken(token: ParsedToken): string {
-	return token.value;
-}
-
 export interface TokenWidths {
 	typeWidth: number;
 	tokenWidth: number;
@@ -26,10 +18,10 @@ export function useTokenWidth({
 			return { typeWidth: 8, tokenWidth: 12 };
 		}
 		const typeLabelWidths = parsedTokens.map(
-			(token: ParsedToken) => formatTokenType(token).length,
+			(token: ParsedToken) => token.type.length,
 		);
 		const tokenLabelWidths = parsedTokens.map(
-			(token: ParsedToken) => formatToken(token).length,
+			(token: ParsedToken) => token.value.length,
 		);
 		return {
 			typeWidth: Math.max(8, ...typeLabelWidths),

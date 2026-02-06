@@ -2,10 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchTokenDescriptions } from "../core";
 import type { ParsedCommand } from "../core/shells/common";
 
-function mapDescriptions(rawDescriptions: string[]): string[] {
-	return rawDescriptions;
-}
-
 export interface UseTokenDescriptionsOptions {
 	command: ParsedCommand;
 	tokenCount: number;
@@ -17,12 +13,14 @@ export function useTokenDescriptions({
 }: UseTokenDescriptionsOptions) {
 	const [descriptions, setDescriptions] = useState<string[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 	const requestIdRef = useRef(0);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: Intentionally reset when token count changes
 	useEffect(() => {
 		setDescriptions([]);
 		setIsLoading(false);
+		setError(null);
 		requestIdRef.current += 1;
 	}, [tokenCount]);
 
@@ -40,10 +38,17 @@ export function useTokenDescriptions({
 		const requestId = requestIdRef.current + 1;
 		requestIdRef.current = requestId;
 		setIsLoading(true);
+		setError(null);
 		try {
 			const results = await fetchTokenDescriptions(command);
 			if (requestIdRef.current === requestId) {
-				setDescriptions(mapDescriptions(results));
+				setDescriptions(results);
+			}
+		} catch (err) {
+			if (requestIdRef.current === requestId) {
+				const message =
+					err instanceof Error ? err.message : "Failed to load descriptions";
+				setError(message);
 			}
 		} finally {
 			if (requestIdRef.current === requestId) {
@@ -75,12 +80,14 @@ export function useTokenDescriptions({
 	const resetDescriptions = useCallback(() => {
 		setDescriptions([]);
 		setIsLoading(false);
+		setError(null);
 		requestIdRef.current += 1;
 	}, []);
 
 	return {
 		descriptions,
 		isLoading,
+		error,
 		loadDescriptions,
 		invalidateDescriptions,
 		resetDescriptions,

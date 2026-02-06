@@ -4,7 +4,6 @@ import { getThemeColorFor } from "../config";
 import type { ColoredToken } from "../hooks/useColoredTokens";
 import type { TokenWidths } from "../hooks/useTokenWidth";
 import type { VimMode } from "../hooks/useVimMode";
-import { formatToken, formatTokenType } from "../utils/tokenFormatters";
 import { TokenDisplay } from "./TokenDisplay";
 
 interface TokenListViewProps {
@@ -68,8 +67,8 @@ export function TokenListView({
 					{coloredTokens.map((coloredToken) => {
 						const { token, index, color, isSelected } = coloredToken;
 						const description = descriptions[index] ?? "";
-						const label = formatToken(token);
-						const typeLabel = formatTokenType(token);
+						const label = token.value;
+						const typeLabel = token.type;
 						const key = `${token.type}-${label}-${index}`;
 						const isEditing = mode === "insert" && editingTokenIndex === index;
 

@@ -2,12 +2,7 @@ import type { ReactNode } from "react";
 import { TokenEditor } from "../components/TokenEditor";
 import { getThemeColorFor, getTokenColor } from "../config";
 import type { VimMode } from "../hooks/useVimMode";
-import { formatToken } from "./tokenFormatters";
 import type { TokenPosition } from "./tokenPositions";
-
-export interface AnnotatedLine {
-	content: ReactNode;
-}
 
 export function renderAnnotatedCommand(
 	tokenPositions: TokenPosition[],
@@ -18,7 +13,7 @@ export function renderAnnotatedCommand(
 	cursorPosition: number,
 	onTokenChange: (value: string) => void,
 	maxWidth: number,
-): AnnotatedLine[] {
+): ReactNode[] {
 	if (tokenPositions.length === 0) return [];
 
 	const descriptionColor = getThemeColorFor("tokenDescription");
@@ -30,7 +25,7 @@ export function renderAnnotatedCommand(
 		editingTokenIndex,
 		editingValue,
 	);
-	const lines: AnnotatedLine[] = [];
+	const lines: ReactNode[] = [];
 
 	for (const row of rows) {
 		const tokenStartPositions = buildTokenStartPositions(
@@ -42,7 +37,7 @@ export function renderAnnotatedCommand(
 		if (selectedToken?.description) {
 			const startPos = tokenStartPositions[selectedIndex];
 			if (startPos !== undefined) {
-				const tokenValue = formatToken(selectedToken.token);
+				const tokenValue = selectedToken.token.value;
 				const selectedLength = getTokenValueLength(
 					selectedToken,
 					editingTokenIndex,
@@ -57,9 +52,7 @@ export function renderAnnotatedCommand(
 					connectorPos,
 				);
 				for (const descriptionLine of descriptionLines) {
-					lines.push({
-						content: <text fg={markerColor}>{descriptionLine}</text>,
-					});
+					lines.push(<text fg={markerColor}>{descriptionLine}</text>);
 				}
 			}
 		}
@@ -93,9 +86,9 @@ export function renderAnnotatedCommand(
 		);
 
 		lines.push(
-			{ content: topBorderLineElement },
-			{ content: contentLineElement },
-			{ content: bottomBorderLineElement },
+			topBorderLineElement,
+			contentLineElement,
+			bottomBorderLineElement,
 		);
 	}
 
@@ -226,7 +219,7 @@ function buildBorderLineElement(
 		const tp = rowTokens[i];
 		if (!tp) continue;
 
-		const value = formatToken(tp.token);
+		const value = tp.token.value;
 		const isSelected = tp.index === selectedIndex;
 		const isEditing = mode === "insert" && editingTokenIndex === tp.index;
 		const tokenColor = getTokenColor(tp.token.type);
@@ -284,7 +277,7 @@ function buildContentLineElement(
 		const tp = rowTokens[i];
 		if (!tp) continue;
 
-		const value = formatToken(tp.token);
+		const value = tp.token.value;
 		const isSelected = tp.index === selectedIndex;
 		const isEditing = mode === "insert" && editingTokenIndex === tp.index;
 		const tokenColor = getTokenColor(tp.token.type);
@@ -392,7 +385,7 @@ function getTokenDisplayWidth(
 	editingTokenIndex: number | null,
 	editingValue: string,
 ): number {
-	const value = formatToken(token.token);
+	const value = token.token.value;
 	const valueLength = getTokenValueLength(
 		token,
 		editingTokenIndex,
@@ -409,5 +402,5 @@ function getTokenValueLength(
 	if (editingTokenIndex === token.index) {
 		return editingValue.length;
 	}
-	return formatToken(token.token).length;
+	return token.token.value.length;
 }

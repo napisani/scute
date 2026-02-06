@@ -1,108 +1,142 @@
-import { useKeyboard } from "@opentui/react";
-import { useCallback, useMemo, useState } from "react";
+import type { Dispatch, MutableRefObject, SetStateAction } from "react";
+import { useMemo } from "react";
 import { getKeybindings } from "../config";
+import { logTrace } from "../core/logger";
+import {
+	hasModifierKey,
+	type KeyboardHandler,
+	type KeyboardKey,
+	normalizeKeyId,
+} from "../utils/keyboard";
+import type { VimMode } from "./useVimMode";
 
-export interface InsertModeState {
-	editingValue: string;
-	cursorPosition: number;
-	originalValue: string;
-}
-
-export interface InsertModeActions {
-	updateValue: (value: string) => void;
-	moveCursor: (position: number) => void;
-	exitInsertMode: (save: boolean) => void;
+interface EditorState {
+	value: string;
+	cursor: number;
 }
 
 export interface UseInsertModeOptions {
-	initialValue: string;
-	initialCursorPos: number;
-	actions: InsertModeActions;
+	modeRef: MutableRefObject<VimMode>;
+	editorState: EditorState;
+	setEditorState: Dispatch<SetStateAction<EditorState>>;
+	editingTokenIndex: number | null;
+	exitInsertMode: (save: boolean) => void;
+	skipNextInsertCharRef: MutableRefObject<boolean>;
+	insertTriggerRef: MutableRefObject<string | null>;
+	useKeyboard: (handler: KeyboardHandler) => void;
 }
 
 export function useInsertMode({
-	initialValue,
-	initialCursorPos,
-	actions,
-}: UseInsertModeOptions) {
-	const [editingValue, setEditingValue] = useState(initialValue);
-	const [cursorPosition, setCursorPosition] = useState(initialCursorPos);
-	// biome-ignore lint/correctness/useExhaustiveDependencies: initialValue is only used for initialization
-	const originalValue = useMemo(() => initialValue, []);
+	modeRef,
+	setEditorState,
+	editingTokenIndex,
+	exitInsertMode,
+	skipNextInsertCharRef,
+	insertTriggerRef,
+	useKeyboard,
+}: UseInsertModeOptions): void {
+	const exitInsertKeys = useMemo(() => getKeybindings("exitInsert"), []);
+	const saveKeys = useMemo(() => getKeybindings("save"), []);
 
-	const exitInsertKeys = useMemo(
-		() => getKeybindings("exitInsert") ?? ["escape"],
-		[],
-	);
-	const saveKeys = useMemo(() => getKeybindings("save") ?? ["return"], []);
+	useKeyboard((key: KeyboardKey) => {
+		if (modeRef.current !== "insert") return;
+		const keyId = normalizeKeyId(key);
+		if (skipNextInsertCharRef.current) {
+			skipNextInsertCharRef.current = false;
+			const trigger = insertTriggerRef.current;
+			insertTriggerRef.current = null;
+			if (trigger && (key.sequence === trigger || key.name === trigger)) {
+				return;
+			}
+		}
+		if (hasModifierKey(key)) return;
 
-	useKeyboard((key) => {
 		// Exit without saving (Esc)
-		if (exitInsertKeys.includes(key.name)) {
-			actions.exitInsertMode(false);
+		if (exitInsertKeys.includes(keyId)) {
+			logTrace("vim:insert:exit", {
+				save: false,
+				tokenIndex: editingTokenIndex,
+			});
+			exitInsertMode(false);
 			return;
 		}
 
 		// Save and exit (Enter)
-		if (saveKeys.includes(key.name)) {
-			actions.exitInsertMode(true);
+		if (saveKeys.includes(keyId)) {
+			logTrace("vim:insert:exit", {
+				save: true,
+				tokenIndex: editingTokenIndex,
+			});
+			exitInsertMode(true);
 			return;
 		}
 
 		// Cursor movement with arrow keys
 		if (key.name === "left") {
-			setCursorPosition((pos) => Math.max(0, pos - 1));
+			setEditorState((prev) => ({
+				...prev,
+				cursor: Math.max(0, prev.cursor - 1),
+			}));
 			return;
 		}
 		if (key.name === "right") {
-			setCursorPosition((pos) => Math.min(editingValue.length, pos + 1));
+			setEditorState((prev) => ({
+				...prev,
+				cursor: Math.min(prev.value.length, prev.cursor + 1),
+			}));
+			return;
+		}
+		if (key.name === "home") {
+			setEditorState((prev) => ({ ...prev, cursor: 0 }));
+			return;
+		}
+		if (key.name === "end") {
+			setEditorState((prev) => ({ ...prev, cursor: prev.value.length }));
 			return;
 		}
 
-		// Handle text input
-		if (key.sequence && key.sequence.length === 1) {
-			const char = key.sequence;
-			// Only accept printable characters
-			if (char >= " " && char <= "~") {
-				const newValue =
-					editingValue.slice(0, cursorPosition) +
-					char +
-					editingValue.slice(cursorPosition);
-				setEditingValue(newValue);
-				setCursorPosition((pos) => pos + 1);
-				actions.updateValue(newValue);
-			}
-		}
+		const singleChar =
+			key.sequence && key.sequence.length === 1 ? key.sequence : null;
+		const isBackspaceChar = singleChar === "\u0008" || singleChar === "\u007f";
 
 		// Backspace
-		if (key.name === "backspace") {
-			if (cursorPosition > 0) {
-				const newValue =
-					editingValue.slice(0, cursorPosition - 1) +
-					editingValue.slice(cursorPosition);
-				setEditingValue(newValue);
-				setCursorPosition((pos) => pos - 1);
-				actions.updateValue(newValue);
-			}
+		if (key.name === "backspace" || isBackspaceChar) {
+			setEditorState((prev) => {
+				if (prev.cursor <= 0) return prev;
+				return {
+					value:
+						prev.value.slice(0, prev.cursor - 1) +
+						prev.value.slice(prev.cursor),
+					cursor: prev.cursor - 1,
+				};
+			});
 			return;
 		}
 
 		// Delete
 		if (key.name === "delete") {
-			if (cursorPosition < editingValue.length) {
-				const newValue =
-					editingValue.slice(0, cursorPosition) +
-					editingValue.slice(cursorPosition + 1);
-				setEditingValue(newValue);
-				actions.updateValue(newValue);
-			}
+			setEditorState((prev) => {
+				if (prev.cursor >= prev.value.length) return prev;
+				return {
+					...prev,
+					value:
+						prev.value.slice(0, prev.cursor) +
+						prev.value.slice(prev.cursor + 1),
+				};
+			});
 			return;
 		}
-	});
 
-	return {
-		editingValue,
-		cursorPosition,
-		originalValue,
-	};
+		// Handle text input — only accept printable characters
+		if (singleChar && singleChar >= " " && singleChar <= "~") {
+			const char = singleChar;
+			setEditorState((prev) => ({
+				value:
+					prev.value.slice(0, prev.cursor) +
+					char +
+					prev.value.slice(prev.cursor),
+				cursor: prev.cursor + 1,
+			}));
+		}
+	});
 }

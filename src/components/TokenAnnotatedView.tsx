@@ -1,9 +1,6 @@
 import { useTerminalDimensions } from "@opentui/react";
 import type { VimMode } from "../hooks/useVimMode";
-import {
-	type AnnotatedLine,
-	renderAnnotatedCommand,
-} from "../utils/annotatedRenderer";
+import { renderAnnotatedCommand } from "../utils/annotatedRenderer";
 import type { TokenPosition } from "../utils/tokenPositions";
 
 interface TokenAnnotatedViewProps {
@@ -49,7 +46,7 @@ export function TokenAnnotatedView({
 					alignItems="flex-start"
 				>
 					{annotatedLines.map((line, index) => (
-						<box key={`annotated-line-${index}`}>{line.content}</box>
+						<box key={`annotated-line-${index}`}>{line}</box>
 					))}
 				</box>
 			</scrollbox>

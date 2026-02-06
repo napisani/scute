@@ -54,11 +54,16 @@ export function BuildApp({ command, onSubmit }: BuildAppProps) {
 		[parsedCommand.tokens],
 	);
 
-	const { descriptions, isLoading, loadDescriptions, resetDescriptions } =
-		useTokenDescriptions({
-			command: parsedCommand,
-			tokenCount: parsedTokens.length,
-		});
+	const {
+		descriptions,
+		isLoading,
+		error,
+		loadDescriptions,
+		resetDescriptions,
+	} = useTokenDescriptions({
+		command: parsedCommand,
+		tokenCount: parsedTokens.length,
+	});
 
 	// Handle token edits by updating the parsed command
 	const handleTokenEdit = useCallback(
@@ -148,7 +153,12 @@ export function BuildApp({ command, onSubmit }: BuildAppProps) {
 					/>
 				)}
 			</box>
-			<Footer mode={mode} viewMode={viewMode} isLoading={isLoading} />
+			<Footer
+				mode={mode}
+				viewMode={viewMode}
+				isLoading={isLoading}
+				error={error}
+			/>
 		</box>
 	);
 }

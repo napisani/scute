@@ -16,8 +16,9 @@ export type ManPage = ManPageSections & {
 };
 
 export function getManPage(command: string): string | null {
-	const result = spawnSync("man", ["-P", "cat", command], {
+	const result = spawnSync("man", [command], {
 		encoding: "utf8",
+		env: { ...process.env, PAGER: "cat" },
 	});
 	if (result.status !== 0 || !result.stdout) {
 		return null;

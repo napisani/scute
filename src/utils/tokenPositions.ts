@@ -1,5 +1,4 @@
 import type { ParsedToken } from "../core/shells/common";
-import { formatToken } from "./tokenFormatters";
 
 export interface TokenPosition {
 	token: ParsedToken;
@@ -15,9 +14,8 @@ export function calculateTokenPositions(
 ): TokenPosition[] {
 	let currentPos = 0;
 	return parsedTokens.map((token, index) => {
-		const value = formatToken(token);
 		const start = currentPos;
-		const end = start + value.length;
+		const end = start + token.value.length;
 		currentPos = end + 1; // +1 for space between tokens
 		return {
 			token,

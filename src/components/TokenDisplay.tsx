@@ -1,5 +1,4 @@
 import type { ColoredToken } from "../hooks/useColoredTokens";
-import { formatToken } from "../utils/tokenFormatters";
 import { TokenEditor } from "./TokenEditor";
 
 interface TokenDisplayProps {
@@ -18,7 +17,7 @@ export function TokenDisplay({
 	onChange,
 }: TokenDisplayProps) {
 	const { token: tokenData, color } = token;
-	const displayValue = formatToken(tokenData);
+	const displayValue = tokenData.value;
 
 	if (isEditing) {
 		return (

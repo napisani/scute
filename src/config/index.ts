@@ -220,6 +220,10 @@ export function hasReadlineLine(): boolean {
 	return !!line && line.length > 0;
 }
 
+export function getInitialViewMode(): "annotated" | "list" {
+	return config.viewMode === "horizontal" ? "annotated" : "list";
+}
+
 export function isDebugMode(): boolean {
 	const debugFlag = runtimeEnv.scuteDebug;
 	return debugFlag === "1" || debugFlag?.toLowerCase() === "true";

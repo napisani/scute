@@ -8,6 +8,9 @@ const CACHE_DIR = path.join(os.homedir(), ".cache", "scute");
 const CACHE_PATH = path.join(CACHE_DIR, "scute.sqlite");
 
 let cacheDb: Database | null = null;
+let evictionDone = false;
+
+const EVICTION_THRESHOLD_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 function getDb(): Database {
 	if (cacheDb) {
@@ -59,6 +62,12 @@ export function saveDescriptions(
 	descriptions: string[],
 ): void {
 	const db = getDb();
+	if (!evictionDone) {
+		evictionDone = true;
+		db.exec(
+			`DELETE FROM token_descriptions WHERE created_at < ${Date.now() - EVICTION_THRESHOLD_MS}`,
+		);
+	}
 	const insert = db.query(
 		`INSERT OR REPLACE INTO token_descriptions
 		 (command, source_hash, token_index, token_value, description, created_at)
