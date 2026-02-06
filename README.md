@@ -1,37 +1,39 @@
 # scute - AI Shell Assistant
 
-`scute` is a command-line tool that acts as an AI-powered shell assistant. It integrates with your shell to provide command suggestions, completions, and explanations on the fly, triggered by keyboard shortcuts.
+## Purpose / Goal
 
-## Features
+`scute` is a CLI companion for your shell. It adds fast, context-aware command generation, suggestion, and explanation directly in your terminal workflow. The goal is to reduce friction when crafting commands by:
 
-- **Command Suggestion (`Ctrl+G`)**: Completes your currently typed command using an AI.
-- **Prompt-based Suggestion (`Ctrl+P`)**: Generates a command based on a descriptive prompt.
-- **Command Explanation (`Ctrl+E`)**: Displays a non-intrusive explanation of the command under your cursor.
+- Generating commands from natural language prompts
+- Suggesting completions for partially typed commands
+- Explaining commands without disrupting your prompt
+- Integrating through lightweight keybindings and shell hooks
+
+The name comes from the scute, the protective shell plate on a turtle, and the tool itself is meant to assist with shell commands.
+Scute is built as a single native binary (via Bun) so it can be distributed and updated easily.
 
 ## Installation
 
-Pick the option that fits your workflow best.
+Supported platforms: macOS and Linux (x86_64 only for now).
 
-### Binary releases (macOS, Linux, Windows)
+### A. Install via curl (install.sh)
 
-Every Git tag publishes prebuilt binaries on the [GitHub Releases](https://github.com/napisani/scute/releases) page. Download the archive for your platform, make it executable, and move it onto your `PATH`:
+Convenience installer (requires `curl` and `tar`):
 
 ```sh
-curl -L -o scute "https://github.com/napisani/scute/releases/download/vX.Y.Z/scute-macos"
-chmod +x scute
-sudo mv scute /usr/local/bin/
+curl -fsSL https://raw.githubusercontent.com/napisani/scute/main/scripts/install.sh | bash
 ```
 
-Windows users can grab `scute-windows.exe` and place it anywhere on their `%PATH%` (e.g. `C:\Users\you\AppData\Local\Microsoft\WindowsApps`).
+By default it installs into `/usr/local/bin` and pulls the latest release. Pass `vX.Y.Z` and a custom directory to override.
 
-### Homebrew (macOS / Linux)
+### B. Homebrew
 
 ```sh
 brew tap napisani/scute https://github.com/napisani/scute
 brew install scute
 ```
 
-### npm / npx
+### C. npm / npx
 
 Install globally:
 
@@ -45,9 +47,9 @@ Or run once with:
 npx @napisani/scute --help
 ```
 
-> The npm package ships the native binary produced by the Bun compiler, so Bun is **not** required at runtime.
+> The npm package runs a Bun-based `postinstall` script to download the matching release binary, so Bun must be available on your `PATH`.
 
-### Nix flakes
+### D. Nix
 
 Add the repo as an input and use it in your Home Manager flake:
 
@@ -64,7 +66,24 @@ outputs = { self, nixpkgs, scute, ... }: {
 
 > The repository ships an intentionally minimal `flake.nix`. Run `nix flake lock --update-input scute` inside your own workspace to pin exact revisions.
 
-### Build from source
+### E. Prebuilt binaries (manual)
+
+Every Git tag publishes `x86_64` macOS and Linux archives on the [GitHub Releases](https://github.com/napisani/scute/releases) page. Download the archive for your platform, unpack it, and move the `scute` binary onto your `PATH`:
+
+```sh
+curl -L -o scute.tar.gz "https://github.com/napisani/scute/releases/download/vX.Y.Z/scute-vX.Y.Z-macos-x86_64.tar.gz"
+tar -xzf scute.tar.gz
+sudo mv scute /usr/local/bin/
+```
+
+Verify downloads with the checksums shipped alongside each release:
+
+```sh
+curl -LO https://github.com/napisani/scute/releases/download/vX.Y.Z/checksums.txt
+grep scute-vX.Y.Z-macos-x86_64.tar.gz checksums.txt | shasum -a 256 -c -
+```
+
+### F. Install from source
 
 ```sh
 git clone https://github.com/napisani/scute.git
@@ -81,15 +100,147 @@ make build
 sudo mv dist/scute /usr/local/bin/
 ```
 
-### Configure your provider keys
+## Configuration
 
-`scute` uses TanStack AI adapters. Set credentials before running:
+Scute reads configuration from `~/.config/scute/config.yaml` by default. You can override it per invocation with `--config <path>`.
 
-```sh
-export OPENAI_API_KEY="sk-..."
+### Precedence
+
+1. `--config <path>` (explicit CLI override)
+2. Environment variables (provider keys, defaults)
+3. Config file defaults (schema defaults)
+
+Notes:
+- `dotenv/config` is loaded at startup, so values in `.env` will be respected.
+- Provider env vars (e.g., `OPENAI_API_KEY`) merge into `providers` and override matching entries.
+
+### Minimal config example
+
+```yaml
+# ~/.config/scute/config.yaml
+
+# Use a compact view for the token editor
+viewMode: horizontal
+
+# Define at least one provider for prompts
+providers:
+  - name: openai
+    apiKey: ${OPENAI_API_KEY}
+
+# Optional: adjust shell keybindings (universal syntax)
+shellKeybindings:
+  explain: "Ctrl+E"
+  build: "Ctrl+G"
+  suggest: "Ctrl+Shift+E"
 ```
 
-Add the variables to your shell profile or Home Manager configuration so they persist.
+### Fully configured example
+
+```yaml
+# ~/.config/scute/config.yaml
+
+# Layout for the interactive token editor
+viewMode: horizontal # horizontal -> annotated view, vertical -> list view
+
+# Clipboard command for output channel "clipboard"
+clipboardCommand: "pbcopy"
+
+# Providers used by prompts (env vars override these)
+providers:
+  - name: openai
+    apiKey: ${OPENAI_API_KEY}
+  - name: anthropic
+    apiKey: ${ANTHROPIC_API_KEY}
+  - name: gemini
+    apiKey: ${GEMINI_API_KEY}
+  - name: ollama
+    baseUrl: ${OLLAMA_BASE_URL}
+
+# Keybindings for the interactive token editor UI
+keybindings:
+  up: ["up"]
+  down: ["down"]
+  left: ["left", "h"]
+  right: ["right", "l"]
+  wordForward: ["w"]
+  wordBackward: ["b"]
+  lineStart: ["0", "^"]
+  lineEnd: ["$"]
+  firstToken: ["g"]
+  lastToken: ["G"]
+  appendLine: ["A"]
+  explain: ["e"]
+  toggleView: ["m"]
+  insert: ["i"]
+  append: ["a"]
+  change: ["c"]
+  exitInsert: ["escape"]
+  save: ["return"]
+
+# Shell keybindings in universal syntax (rendered by scute init)
+shellKeybindings:
+  explain: "Ctrl+E"
+  build: "Ctrl+G"
+  suggest: "Ctrl+Shift+E"
+  generate: [] # disable if you do not want a binding
+
+# Theme colors (catppuccin defaults shown)
+theme:
+  tokenColors:
+    command: "#A6E3A1"
+    option: "#FAB387"
+    argument: "#89B4FA"
+    assignment: "#CBA6F7"
+    pipe: "#94E2D5"
+    controlOperator: "#F38BA8"
+    redirect: "#CDD6F4"
+    unknown: "#6C7086"
+  tokenDescription: "#CDD6F4"
+  markerColor: "#CDD6F4"
+
+# Prompt behavior per command
+prompts:
+  explain:
+    provider: openai
+    model: gpt-4
+    temperature: 0.7
+    maxTokens: 128000
+    userPrompt: ""
+    systemPromptOverride: ""
+  suggest:
+    provider: openai
+    model: gpt-4
+    temperature: 0.7
+    maxTokens: 128000
+  generate:
+    provider: openai
+    model: gpt-4
+    temperature: 0.7
+    maxTokens: 128000
+  describeTokens:
+    provider: openai
+    model: gpt-4
+    temperature: 0.7
+    maxTokens: 128000
+```
+
+### Environment variables
+
+Provider credentials and defaults:
+
+- `OPENAI_API_KEY`
+- `ANTHROPIC_API_KEY`
+- `GEMINI_API_KEY`
+- `OLLAMA_BASE_URL`
+- `SCUTE_DEFAULT_PROVIDER`
+- `SCUTE_DEFAULT_MODEL`
+
+Runtime behavior:
+
+- `SCUTE_DEBUG` (set to `1` or `true` for verbose logging)
+- `SCUTE_SHELL` (override detected shell name)
+- `SHELL` (standard shell env var)
+- `READLINE_LINE` (readline current line, when present)
 
 ## Shell Integration
 
@@ -162,9 +313,15 @@ Once installed and configured, you can use the following keyboard shortcuts in y
 - **`Ctrl + P`**: **Suggest from Prompt**. Replaces your current line with a command generated by the AI based on a prompt. (Note: The current implementation is a stub).
 - **`Ctrl + E`**: **Explain Command**. Reads the command on the current line and displays a helpful, non-interfering explanation on the line below your prompt.
 
-## Continuous Integration & Releases
+## Release Process (Maintainers)
 
-- Pull requests run linting, tests, and a binary build on macOS, Linux, and Windows via [GitHub Actions](.github/workflows/ci.yml).
-- Pushing a tag that matches `v*` automatically builds platform binaries, uploads them to a GitHub release, and publishes the npm package. See [release.yml](.github/workflows/release.yml) for the full pipeline.
-- Homebrew users can install from the tap defined in [`Formula/scute.rb`](Formula/scute.rb).
-- Nix users can consume the project as a flake (`flake.nix`).
+1. Update `package.json` version.
+2. Ensure your working tree is clean and Bun is installed.
+3. Run `make release`.
+   - Runs lint and tests, builds the binary, tags `vX.Y.Z`, pushes the tag, and publishes to npm.
+4. GitHub Actions builds macOS/Linux archives and uploads them to the release.
+5. Refresh Homebrew checksums:
+
+```sh
+make update-brew VERSION=vX.Y.Z
+```

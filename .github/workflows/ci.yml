@@ -10,7 +10,7 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -33,15 +33,7 @@ jobs:
         run: bun run build:bin
 
       - name: Upload binary artifact
-        if: runner.os != 'Windows'
         uses: actions/upload-artifact@v4
         with:
           name: scute-${{ runner.os }}
           path: dist/scute
-
-      - name: Upload Windows binary artifact
-        if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v4
-        with:
-          name: scute-${{ runner.os }}
-          path: dist/scute.exe

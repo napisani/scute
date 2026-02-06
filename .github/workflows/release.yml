@@ -17,9 +17,6 @@ jobs:
           - os: macos-latest
             artifact: macos
             extension: ""
-          - os: windows-latest
-            artifact: windows
-            extension: ".exe"
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -44,14 +41,21 @@ jobs:
       - name: Prepare artifact
         shell: bash
         run: |
+          set -euo pipefail
           mkdir -p release
-          cp dist/scute${{ matrix.extension }} "release/scute-${GITHUB_REF_NAME}-${{ matrix.artifact }}${{ matrix.extension }}"
+          ARCH=$(uname -m)
+          TAR_NAME="scute-${GITHUB_REF_NAME}-${{ matrix.artifact }}-${ARCH}.tar.gz"
+          PKG_DIR=$(mktemp -d)
+          cp dist/scute "$PKG_DIR/scute"
+          cp README.md LICENSE "$PKG_DIR/"
+          tar -czf "release/${TAR_NAME}" -C "$PKG_DIR" scute README.md LICENSE
+          rm -rf "$PKG_DIR"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: scute-${{ matrix.artifact }}
-          path: release/
+          path: release/*.tar.gz
 
   create-release:
     name: Create GitHub Release
@@ -67,45 +71,20 @@ jobs:
       - name: Assemble release assets
         run: |
           mkdir -p release
-          for file in artifacts/*/*; do
-            base=$(basename "$file")
-            cp "$file" "release/$base"
+          for dir in artifacts/*; do
+            for file in "$dir"/*.tar.gz; do
+              base=$(basename "$file")
+              cp "$file" "release/$base"
+            done
           done
-          (cd release && sha256sum * > checksums.txt)
+          (cd release && sha256sum *.tar.gz > checksums.txt)
 
       - name: Create GitHub release
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
-          artifacts: "release/*"
+          artifacts: "release/*.tar.gz,release/checksums.txt"
           artifactContentType: application/octet-stream
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
-
-  publish-npm:
-    name: Publish to npm
-    needs: create-release
-    runs-on: ubuntu-latest
-    if: success()
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
-
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v1
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Build binary for npm package
-        run: bun run build:bin
-
-      - name: Publish package
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          npm publish --access public

@@ -8,6 +8,10 @@
 	"bin": {
 		"scute": "dist/scute"
 	},
+	"os": [
+		"darwin",
+		"linux"
+	],
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/napisani/scute.git"
@@ -15,6 +19,9 @@
 	"homepage": "https://github.com/napisani/scute",
 	"bugs": {
 		"url": "https://github.com/napisani/scute/issues"
+	},
+	"engines": {
+		"node": ">=18"
 	},
 	"scripts": {
 		"build": "bun run build:bin",
@@ -24,10 +31,12 @@
 		"test": "bun test tests/",
 		"coverage": "bun test tests/ --coverage",
 		"evals": "bun test evals --pattern \\\"\\.eval\\.test\\.ts$\\\"",
-		"prepublishOnly": "bun run clean && bun install --frozen-lockfile && bun run lint && bun run build:bin"
+		"prepublishOnly": "bun run clean && bun install --frozen-lockfile && bun run lint && bun run test",
+		"postinstall": "bun scripts/postinstall.ts"
 	},
 	"files": [
 		"dist/",
+		"scripts/",
 		"README.md",
 		"LICENSE"
 	],

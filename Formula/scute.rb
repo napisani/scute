@@ -1,15 +1,22 @@
 class Scute < Formula
   desc "AI-powered shell assistant"
   homepage "https://github.com/napisani/scute"
+  version "0.0.0"
   license "MIT"
-  head "https://github.com/napisani/scute.git", branch: "main"
+  license "MIT"
 
-  depends_on "bun" => :build
+  on_macos do
+    url "https://github.com/napisani/scute/releases/download/v#{version}/scute-v#{version}-macos-x86_64.tar.gz"
+    sha256 "mac-placeholder"
+  end
+
+  on_linux do
+    url "https://github.com/napisani/scute/releases/download/v#{version}/scute-v#{version}-linux-x86_64.tar.gz"
+    sha256 "linux-placeholder"
+  end
 
   def install
-    system "bun", "install", "--frozen-lockfile"
-    system "bun", "run", "build:bin"
-    bin.install "dist/scute"
+    bin.install "scute"
   end
 
   test do
