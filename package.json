@@ -38,7 +38,7 @@
 	],
 	"scripts": {
 		"build": "bun run build:bin",
-		"build:bin": "bun build ./src/index.ts --compile --outfile dist/scute",
+		"build:bin": "bun scripts/build-bin.ts",
 		"clean": "rm -rf dist",
 		"lint": "bunx tsc --noEmit",
 		"test": "bun test tests/",

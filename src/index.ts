@@ -2,6 +2,7 @@
 
 import path from "node:path";
 import { Command } from "commander";
+
 import { build } from "./commands/build";
 import { configDebug } from "./commands/config-debug";
 import { explain } from "./commands/explain";
@@ -14,12 +15,14 @@ import {
 	setConfigOverride,
 } from "./config";
 import type { OutputChannel } from "./core/output";
+import { SCUTE_VERSION } from "./version";
 
 const program = new Command();
 
 program
 	.name("scute")
 	.description("AI-powered shell assistant")
+	.version(SCUTE_VERSION, "--version", "Output the current version")
 	.option("-c, --config [file]", "Path to config YAML file")
 	.option(
 		"-o, --output <channel>",
