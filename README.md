@@ -13,6 +13,14 @@ The name comes from the scute, the protective shell plate on a turtle, and the t
 
 Scute is built with Bun and can be installed via npm (requires Bun), Homebrew, or downloaded as a prebuilt binary.
 
+![logo](./logo.png)
+
+## Demo
+
+Below is a screenshot of the interactive annotated token view:
+
+![demo showing scute annotated token view](./demo.png)
+
 ## Installation
 
 Supported platforms: macOS and Linux (x86_64 and arm64).
