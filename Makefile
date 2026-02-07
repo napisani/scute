@@ -1,4 +1,4 @@
-.PHONY: install build build-bin test lint clean release release-create release-publish flake update-brew
+.PHONY: install build build-bin test lint clean release release-create release-publish flake update-brew update-brew-latest
 
 BUN ?= bun
 NIX ?= nix
@@ -79,7 +79,17 @@ flake:
 
 update-brew:
 	@if [ -z "$(VERSION)" ]; then echo "Usage: make update-brew VERSION=vX.Y.Z" >&2; exit 1; fi
-	./scripts/update-brew.sh $(VERSION)
+	$(BUN) scripts/update-brew.ts $(VERSION)
+
+update-brew-latest:
+	@set -euo pipefail; \
+	LATEST_TAG=$$(git tag --sort=-v:refname | head -n1); \
+	if [ -z "$$LATEST_TAG" ]; then \
+		echo "No git tags found. Run 'make release-create' first." >&2; \
+		exit 1; \
+	fi; \
+	echo "Updating Homebrew formula for $$LATEST_TAG"; \
+	$(MAKE) update-brew VERSION=$$LATEST_TAG
 
 run-example-ollama: build
 	READLINE_LINE="docker ps --format 'table {{.Names}}\t{{.Status}}'" $(SCUTE_BIN) --config $(CONFIG_DIR)/ollama-config.yml build

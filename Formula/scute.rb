@@ -1,7 +1,7 @@
 class Scute < Formula
   desc "AI-powered shell assistant"
   homepage "https://github.com/napisani/scute"
-  version "0.0.0"
+  version "0.0.1"
   license "MIT"
   license "MIT"
 
