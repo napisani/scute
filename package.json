@@ -1,86 +1,86 @@
 {
-	"name": "@napisani/scute",
-	"version": "0.0.4",
-	"description": "AI-powered shell assistant",
-	"module": "index.ts",
-	"type": "module",
-	"keywords": [
-		"shell",
-		"ai",
-		"explain",
-		"bash",
-		"zsh",
-		"suggestion",
-		"tui"
-	],
-	"homepage": "https://github.com/napisani/scute",
-	"bugs": {
-		"url": "https://github.com/napisani/scute/issues"
-	},
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/napisani/scute.git"
-	},
-	"license": "MIT",
-	"author": "Nick Pisani",
-	"main": "src/index.ts",
-	"bin": {
-		"scute": "bin/scute"
-	},
-	"directories": {
-		"test": "tests"
-	},
-	"files": [
-		"bin/",
-		"src/",
-		"README.md",
-		"LICENSE"
-	],
-	"scripts": {
-		"build": "bun run build:bin",
-		"build:bin": "bun build ./src/index.ts --compile --outfile dist/scute",
-		"clean": "rm -rf dist",
-		"lint": "bunx tsc --noEmit",
-		"test": "bun test tests/",
-		"coverage": "bun test tests/ --coverage",
-		"evals": "bun test evals --pattern \\\"\\.eval\\.test\\.ts$\\\"",
-		"prepublishOnly": "bun run lint && bun run test"
-	},
-	"dependencies": {
-		"@opentui/core": "^0.1.75",
-		"@opentui/react": "^0.1.75",
-		"@tanstack/ai": "^0.2.2",
-		"@tanstack/ai-anthropic": "^0.2.0",
-		"@tanstack/ai-gemini": "^0.3.2",
-		"@tanstack/ai-ollama": "^0.3.0",
-		"@tanstack/ai-openai": "^0.2.1",
-		"chalk": "^5.6.2",
-		"commander": "^14.0.2",
-		"dotenv": "^17.2.3",
-		"js-yaml": "^4.1.1",
-		"react": "^19.2.4",
-		"shell-quote": "^1.8.3"
-	},
-	"devDependencies": {
-		"@biomejs/biome": "2.3.12",
-		"@testing-library/react": "^16.3.2",
-		"@types/bun": "latest",
-		"@types/js-yaml": "^4.0.9",
-		"@types/jsdom": "^27.0.0",
-		"@types/node": "^25.0.10",
-		"@types/react": "^19.2.9",
-		"@types/shell-quote": "^1.7.5",
-		"happy-dom": "^20.5.0",
-		"jsdom": "^28.0.0"
-	},
-	"peerDependencies": {
-		"typescript": "^5"
-	},
-	"engines": {
-		"bun": ">=1.0.0"
-	},
-	"os": [
-		"darwin",
-		"linux"
-	]
+  "name": "@napisani/scute",
+  "version": "0.0.5",
+  "description": "AI-powered shell assistant",
+  "module": "index.ts",
+  "type": "module",
+  "keywords": [
+    "shell",
+    "ai",
+    "explain",
+    "bash",
+    "zsh",
+    "suggestion",
+    "tui"
+  ],
+  "homepage": "https://github.com/napisani/scute",
+  "bugs": {
+    "url": "https://github.com/napisani/scute/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/napisani/scute.git"
+  },
+  "license": "MIT",
+  "author": "Nick Pisani",
+  "main": "src/index.ts",
+  "bin": {
+    "scute": "bin/scute"
+  },
+  "directories": {
+    "test": "tests"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "bun run build:bin",
+    "build:bin": "bun build ./src/index.ts --compile --outfile dist/scute",
+    "clean": "rm -rf dist",
+    "lint": "bunx tsc --noEmit",
+    "test": "bun test tests/",
+    "coverage": "bun test tests/ --coverage",
+    "evals": "bun test evals --pattern \\\"\\.eval\\.test\\.ts$\\\"",
+    "prepublishOnly": "bun run lint && bun run test"
+  },
+  "dependencies": {
+    "@opentui/core": "^0.1.75",
+    "@opentui/react": "^0.1.75",
+    "@tanstack/ai": "^0.2.2",
+    "@tanstack/ai-anthropic": "^0.2.0",
+    "@tanstack/ai-gemini": "^0.3.2",
+    "@tanstack/ai-ollama": "^0.3.0",
+    "@tanstack/ai-openai": "^0.2.1",
+    "chalk": "^5.6.2",
+    "commander": "^14.0.2",
+    "dotenv": "^17.2.3",
+    "js-yaml": "^4.1.1",
+    "react": "^19.2.4",
+    "shell-quote": "^1.8.3"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.3.12",
+    "@testing-library/react": "^16.3.2",
+    "@types/bun": "latest",
+    "@types/js-yaml": "^4.0.9",
+    "@types/jsdom": "^27.0.0",
+    "@types/node": "^25.0.10",
+    "@types/react": "^19.2.9",
+    "@types/shell-quote": "^1.7.5",
+    "happy-dom": "^20.5.0",
+    "jsdom": "^28.0.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  },
+  "os": [
+    "darwin",
+    "linux"
+  ]
 }
