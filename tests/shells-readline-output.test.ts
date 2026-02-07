@@ -6,14 +6,24 @@ describe("Shell outputToReadline", () => {
 	describe.each([...supportedShells])("%s shell", (shellName) => {
 		let helper: ReturnType<typeof getShellHelperByName>;
 		let stdoutSpy: ReturnType<typeof spyOn>;
+		let originalIsTTY: boolean | undefined;
 
 		beforeEach(() => {
 			helper = getShellHelperByName(shellName as ShellName);
 			stdoutSpy = spyOn(process.stdout, "write").mockImplementation(() => true);
+			originalIsTTY = process.stdout.isTTY;
+			Object.defineProperty(process.stdout, "isTTY", {
+				value: true,
+				configurable: true,
+			});
 		});
 
 		afterEach(() => {
 			stdoutSpy.mockRestore();
+			Object.defineProperty(process.stdout, "isTTY", {
+				value: originalIsTTY,
+				configurable: true,
+			});
 		});
 
 		describe("outputToReadline", () => {
@@ -109,6 +119,15 @@ describe("Shell outputToReadline", () => {
 			it("should preserve leading whitespace", () => {
 				helper.outputToReadline("  ls -la");
 				expect(stdoutSpy).toHaveBeenCalledWith("\r\x1b[2K  ls -la");
+			});
+
+			it("should write plain output when stdout is not a TTY", () => {
+				Object.defineProperty(process.stdout, "isTTY", {
+					value: false,
+					configurable: true,
+				});
+				helper.outputToReadline("ls -la\n");
+				expect(stdoutSpy).toHaveBeenCalledWith("ls -la");
 			});
 		});
 	});

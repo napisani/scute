@@ -10,6 +10,7 @@ import {
 	getProviderBaseUrl,
 } from "../config";
 import type { PromptName } from "../config/schema";
+import { sanitizeCommandOutput } from "./command-output";
 import { buildCommandContext } from "./llm-context";
 import { logDebug } from "./logger";
 import { buildManPageContext, type ManPage } from "./manpage";
@@ -172,8 +173,7 @@ export async function suggest(commandLine: string): Promise<string | null> {
 			userPrompt,
 			getSuggestSystemPrompt(),
 		);
-		const suggestion = extractFirstLine(raw);
-		return suggestion.length ? suggestion : raw.trim() || null;
+		return sanitizeCommandOutput(raw);
 	} catch (error) {
 		logDebug("suggest:error", error);
 		return null;
@@ -238,8 +238,7 @@ export async function generateCommand(prompt: string): Promise<string | null> {
 			trimmed,
 			getGenerateSystemPrompt(),
 		);
-		const suggestion = extractFirstLine(raw);
-		return suggestion.length ? suggestion : raw.trim() || null;
+		return sanitizeCommandOutput(raw);
 	} catch (error) {
 		logDebug("generate:error", error);
 		return null;

@@ -121,6 +121,10 @@ export const bashShellHelper: ShellHelper = {
 		// Bash uses READLINE_LINE for the current input line
 		// Use ANSI sequences to clear the current line and replace it
 		const normalizedText = normalizeReadlineText(text);
+		if (!process.stdout.isTTY) {
+			process.stdout.write(normalizedText);
+			return;
+		}
 		const clearLine = "\x1b[2K"; // Clear entire line
 		const carriageReturn = "\r"; // Move cursor to beginning of line
 		process.stdout.write(`${carriageReturn}${clearLine}${normalizedText}`);

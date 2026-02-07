@@ -15,11 +15,11 @@ You will be provided with a JSON payload containing:
 - "input": the partial ${shell} command the user has typed (may include inline comments that describe intent)
 - "tokens": an array of parsed tokens for the current input
 - "context": concise excerpts from relevant man pages and documentation
-Your job is to produce the single best complete ${shell} command that satisfies the described intent.
-- You may replace or reorder the tokens as needed; do not merely append text.
-- Honor any intent described in comments or obvious from the tokens.
-- Return exactly one command line with no trailing commentary, explanations, or markdown.
-- Do not include surrounding quotes, code fences, or additional notes.
+ Your job is to produce the single best complete ${shell} command that satisfies the described intent.
+ - You may replace or reorder the tokens as needed; do not merely append text.
+ - Honor any intent described in comments or obvious from the tokens.
+ - Return exactly one command line with no trailing commentary, explanations, or markdown.
+ - Do not include surrounding quotes, code fences, prompt characters (like "$"), or additional notes.
 `;
 }
 export function getExplainSystemPrompt(): string {
@@ -42,9 +42,9 @@ export function getGenerateSystemPrompt(): string {
 	return `
 ${getRoleVerbiage()}
 You will be provided with a natural language prompt describing a task. 
-Your task is to generate the single, most likely ${shell} command that achieves the user's goal. 
-The shell command can be multiple commands combined with pipes, conditionals, or other shell operators as needed, but it must be a single line.
-ONLY return the command itself, with no additional explanation or formatting.
+ Your task is to generate the single, most likely ${shell} command that achieves the user's goal. 
+ The shell command can be multiple commands combined with pipes, conditionals, or other shell operators as needed, but it must be a single line.
+ ONLY return the command itself, with no additional explanation or formatting (no prompt characters like "$" or "> ").
 `;
 }
 

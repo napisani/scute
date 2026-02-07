@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+RUNNER="$ROOT_DIR/scripts/agent/pty_runner.py"
+SCENARIOS_DIR="$ROOT_DIR/scripts/agent/scenarios"
+
+if [ $# -lt 1 ]; then
+    echo "Usage: run-one <scenario-name> [runner-args...]" >&2
+    echo "" >&2
+    echo "Available scenarios:" >&2
+    for f in "$SCENARIOS_DIR"/*.json; do
+        [ -f "$f" ] || continue
+        echo "  $(basename "$f" .json)" >&2
+    done
+    exit 1
+fi
+
+NAME="$1"
+shift
+
+SCENARIO="$SCENARIOS_DIR/${NAME}.json"
+if [ ! -f "$SCENARIO" ]; then
+    echo "Scenario not found: $SCENARIO" >&2
+    echo "" >&2
+    echo "Available scenarios:" >&2
+    for f in "$SCENARIOS_DIR"/*.json; do
+        [ -f "$f" ] || continue
+        echo "  $(basename "$f" .json)" >&2
+    done
+    exit 1
+fi
+
+LOG="/tmp/scute-pty-${NAME}.log"
+
+exec python3 "$RUNNER" --scenario "$SCENARIO" --log "$LOG" "$@"

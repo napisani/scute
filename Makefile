@@ -1,4 +1,4 @@
-.PHONY: install build test lint clean release release-create release-publish flake update-brew update-brew-latest
+.PHONY: install build test test-unit test-coverage test-evals test-pty test-pty-one lint clean release release-create release-publish flake update-brew update-brew-latest
 
 BUN ?= bun
 NIX ?= nix
@@ -12,8 +12,35 @@ build: clean install
 	$(BUN) run build:bin
 	chmod +x dist/scute
 
+# Run all tests (unit + evals)
 test: install
 	$(BUN) run test
+
+# Unit tests only
+test-unit: install
+	$(BUN) run test:unit
+
+# Unit tests with coverage
+test-coverage: install
+	$(BUN) run test:coverage
+
+# Evaluation tests (require API credentials)
+test-evals: install
+	$(BUN) run test:evals
+
+# PTY E2E tests (require python3 and API credentials)
+test-pty:
+	python3 scripts/agent/run-all
+
+# Run single PTY scenario (usage: make test-pty-one SCENARIO=suggest-stdout)
+test-pty-one:
+	@if [ -z "$(SCENARIO)" ]; then \
+		echo "Usage: make test-pty-one SCENARIO=<scenario-name>"; \
+		echo "Available scenarios:"; \
+		ls -1 scripts/agent/scenarios/*.json | xargs -n1 basename -s .json; \
+		exit 1; \
+	fi
+	python3 scripts/agent/run-one $(SCENARIO)
 
 lint: install
 	$(BUN) run lint

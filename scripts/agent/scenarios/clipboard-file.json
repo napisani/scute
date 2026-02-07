@@ -1,0 +1,17 @@
+{
+	"prompt": "scute-test$ ",
+	"steps": [
+		{ "delete_file": "/tmp/scute-clipboard.txt" },
+		{ "send_line": "export PS1=\"scute-test$ \"" },
+		{ "wait_for_prompt": true },
+		{ "send_line": "eval \"$({scute_bin} --config {config} init {shell})\"" },
+		{ "wait_for_prompt": true },
+		{
+			"send_line": "{scute_bin} --config {config} suggest \"git sta\" --output clipboard"
+		},
+		{ "wait_for_prompt": true, "timeout": 15 },
+		{ "assert_file_exists": "/tmp/scute-clipboard.txt" },
+		{ "assert_file_contains": "/tmp/scute-clipboard.txt", "expected": "git" },
+		{ "send_line": "exit" }
+	]
+}

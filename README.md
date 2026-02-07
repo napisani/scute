@@ -337,17 +337,128 @@ The command prints a JSON payload containing the merged configuration and releva
 
 ## Testing
 
-Test files use the `.test.ts` suffix. Evaluation tests use `.eval.test.ts` and live in the `evals/` directory.
+Scute uses three complementary testing strategies:
+
+1. **Unit Tests** — Fast, deterministic tests for core logic
+2. **Eval Tests** — AI-powered evaluations that validate LLM output quality
+3. **PTY E2E Tests** — End-to-end shell integration tests in real terminals
+
+### Unit Tests
+
+Unit tests use Bun's built-in test runner and live in the `tests/` directory. They cover core logic, utilities, and component behavior without external dependencies.
 
 ```sh
-# Run standard unit tests
-bun run test
+# Run all unit tests
+make test-unit
 
-# Run evaluation tests
-bun run evals
+# Run with coverage
+make test-coverage
 
-# Or via Make targets
-make test
+# Run a specific test file
+bun test tests/core/output.test.ts
+```
+
+**Key unit test areas:**
+
+| File | Tests |
+|------|-------|
+| `tests/core/output.test.ts` | Output channel routing (stdout, clipboard, prompt, readline) |
+| `tests/shells.test.ts` | Shell integration (bash/zsh/sh keybindings) |
+| `tests/build-command.test.ts` | Build command argument resolution |
+| `tests/config-overlay.test.ts` | Configuration merging and precedence |
+| `tests/hooks/useVimMode.test.ts` | TUI vim navigation and editing |
+
+### Eval Tests
+
+Eval tests use the `.eval.test.ts` suffix and live in the `evals/` directory. These tests make real LLM calls and validate that the AI produces sensible output for specific tasks.
+
+```sh
+# Run all eval tests
+make test-evals
+
+# Run a specific eval
+bun test evals/suggest-command.eval.test.ts
+```
+
+**Available evals:**
+
+| File | Validates |
+|------|-----------|
+| `evals/suggest-command.eval.test.ts` | Suggest produces valid shell commands |
+| `evals/explain-command.eval.test.ts` | Explain produces helpful explanations |
+| `evals/ai-connectivity.eval.test.ts` | Provider connectivity and API responses |
+| `evals/fetch-token-descriptions.eval.test.ts` | Token description fetching |
+
+> **Note:** Eval tests require valid provider credentials (e.g., `OPENAI_API_KEY`) and make real API calls.
+
+### PTY E2E Tests
+
+PTY tests open a real pseudo-terminal, spawn a clean shell, initialize scute, and run scripted scenarios. These validate the full integration: shell keybindings, output channels, and TUI behavior in an actual terminal environment.
+
+**Prerequisites:**
+- `python3`
+- `bun` (for `./bin/scute`)
+- Provider credentials (e.g., `OPENAI_API_KEY`)
+
+**Configuration:**
+- Default config: `configs/agent-pty.yml` (uses OpenAI GPT-4o-mini, writes clipboard to `/tmp/scute-clipboard.txt`)
+- Override with `--config <path>`
+
+**Running scenarios:**
+
+```sh
+# Run ALL scenarios and get a pass/fail summary
+make test-pty
+
+# Run a single scenario by name
+make test-pty-one SCENARIO=suggest-stdout
+make test-pty-one SCENARIO=explain-stdout
+make test-pty-one SCENARIO=clipboard-file
+
+# Or run directly with extra options
+scripts/agent/run-one suggest-stdout --shell zsh
+scripts/agent/run-all --config configs/openai-config.yml --quiet
+```
+
+**Available scenarios:**
+
+| Scenario | Tests |
+|----------|-------|
+| `suggest-stdout` | `scute suggest` via CLI with stdout output |
+| `suggest-readline` | Alt+G keybinding replaces readline buffer |
+| `explain-stdout` | `scute explain` via CLI with stdout output |
+| `explain-keybinding` | Ctrl+E keybinding shows prompt hint |
+| `build-stdout` | TUI opens, submit with Enter |
+| `generate-stdout` | `scute generate` via CLI with stdout output |
+| `clipboard-file` | Clipboard output writes to file |
+
+**Logs:** Each scenario writes a log to `/tmp/scute-pty-<scenario>.log` for debugging.
+
+**Scenario step types:** Each scenario is a JSON file with steps like:
+
+```json
+{
+  "prompt": "scute-test$ ",
+  "steps": [
+    {"send_line": "export PS1=\"scute-test$ \""},
+    {"wait_for_prompt": true},
+    {"send_line": "scute suggest \"git sta\" --output stdout"},
+    {"wait_for_prompt": true, "timeout": 15},
+    {"assert_output_contains": "git"}
+  ]
+}
+```
+
+Available steps: `send_line`, `send_text`, `send_keys`, `sleep`, `wait_for_prompt`, `wait_for_text`, `assert_output_contains`, `assert_file_exists`, `assert_file_contains`, `clear_buffer`, `drain`, `delete_file`.
+
+**Agent prompt templates:**
+
+```text
+Run scripts/agent/run-one suggest-stdout. If it fails, read /tmp/scute-pty-suggest-stdout.log (last 120 lines) and diagnose the issue.
+```
+
+```text
+Run scripts/agent/run-all and report the pass/fail summary. For any failures, include the last 120 lines of the corresponding log file.
 ```
 
 ## Usage

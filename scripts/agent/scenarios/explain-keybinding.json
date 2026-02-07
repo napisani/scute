@@ -1,0 +1,17 @@
+{
+	"prompt": "scute-test$ ",
+	"steps": [
+		{ "send_line": "export PS1=\"scute-test$ \"" },
+		{ "wait_for_prompt": true },
+		{ "send_line": "eval \"$({scute_bin} --config {config} init {shell})\"" },
+		{ "wait_for_prompt": true },
+		{ "clear_buffer": true },
+		{ "send_text": "ls -la" },
+		{ "send_keys": ["CTRL+E"] },
+		{ "sleep": 5.0 },
+		{ "drain": true, "idle_ms": 500 },
+		{ "send_keys": ["ENTER"] },
+		{ "wait_for_prompt": true, "timeout": 5 },
+		{ "send_line": "exit" }
+	]
+}
