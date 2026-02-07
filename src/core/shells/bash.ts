@@ -60,6 +60,7 @@ const BASH_ACTION_FUNCTIONS: Record<ShellKeybindingAction, string> = {
 
 function renderBashKeybindings(bindings: ShellKeybindings): string {
 	const lines: string[] = [];
+	const usedSequences = new Map<string, ShellKeybindingAction>();
 	for (const action of ShellKeybindingActions) {
 		const shortcuts = bindings[action];
 		if (!shortcuts.length) {
@@ -81,6 +82,14 @@ function renderBashKeybindings(bindings: ShellKeybindings): string {
 				);
 				continue;
 			}
+			const existingAction = usedSequences.get(sequence);
+			if (existingAction) {
+				logDebug(
+					`init:bash:duplicateKeybinding action=${action} value="${shortcut}" sequence="${sequence}" existing=${existingAction}`,
+				);
+				continue;
+			}
+			usedSequences.set(sequence, action);
 			lines.push(`bind -x '"${sequence}": ${handler}'`);
 		}
 	}

@@ -1,5 +1,7 @@
 # scute - AI Shell Assistant
 
+![scute logo](./logo.png)
+
 ## Purpose / Goal
 
 `scute` is a CLI companion for your shell. It adds fast, context-aware command generation, suggestion, and explanation directly in your terminal workflow. The goal is to reduce friction when crafting commands by:
@@ -12,9 +14,6 @@
 The name comes from the scute, the protective shell plate on a turtle, and the tool itself is meant to assist with shell commands.
 
 Scute is built with Bun and can be installed via npm (requires Bun), Homebrew, or downloaded as a prebuilt binary.
-
-
-<img src="./logo.png" alt="drawing" width="200"/>
 
 ## Demo
 
@@ -157,7 +156,7 @@ providers:
 shellKeybindings:
   explain: "Ctrl+E"
   build: "Ctrl+G"
-  suggest: "Ctrl+Shift+E"
+  suggest: "Alt+G"
 ```
 
 ### Fully configured example
@@ -207,7 +206,7 @@ keybindings:
 shellKeybindings:
   explain: "Ctrl+E"
   build: "Ctrl+G"
-  suggest: "Ctrl+Shift+E"
+  suggest: "Alt+G"
   generate: [] # disable if you do not want a binding
 
 # Theme colors (catppuccin defaults shown)

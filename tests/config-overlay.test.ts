@@ -131,7 +131,7 @@ describe("config overlay logic", () => {
 				shellKeybindings: {
 					explain: "Ctrl+E",
 					build: "Ctrl+G",
-					suggest: "Ctrl+Shift+E",
+					suggest: "Alt+G",
 				},
 				theme: {
 					tokenColors: {
@@ -303,7 +303,7 @@ describe("config overlay logic", () => {
 				shellKeybindings: {
 					explain: "Ctrl+E",
 					build: "Ctrl+G",
-					suggest: "Ctrl+Shift+E",
+					suggest: "Alt+G",
 				},
 				theme: {
 					tokenColors: {
@@ -452,7 +452,7 @@ describe("config overlay logic", () => {
 				shellKeybindings: {
 					explain: "Ctrl+E",
 					build: "Ctrl+G",
-					suggest: "Ctrl+Shift+E",
+					suggest: "Alt+G",
 				},
 				theme: {
 					tokenColors: {
@@ -553,7 +553,7 @@ describe("config overlay logic", () => {
 				shellKeybindings: {
 					explain: "Ctrl+E",
 					build: "Ctrl+G",
-					suggest: "Ctrl+Shift+E",
+					suggest: "Alt+G",
 				},
 				theme: {
 					tokenColors: {
@@ -647,7 +647,7 @@ describe("config overlay logic", () => {
 				shellKeybindings: {
 					explain: "Ctrl+E",
 					build: "Ctrl+G",
-					suggest: "Ctrl+Shift+E",
+					suggest: "Alt+G",
 				},
 				theme: {
 					tokenColors: {

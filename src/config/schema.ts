@@ -181,7 +181,7 @@ export const ConfigSchema = z.object({
 		.default({
 			explain: "Ctrl+E",
 			build: "Ctrl+G",
-			suggest: "Ctrl+Shift+E",
+			suggest: "Alt+G",
 		}),
 	prompts: z
 		.object({

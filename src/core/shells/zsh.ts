@@ -65,6 +65,7 @@ const ZSH_ACTION_WIDGETS: Record<ShellKeybindingAction, string> = {
 
 function renderZshKeybindings(bindings: ShellKeybindings): string {
 	const lines: string[] = [];
+	const usedSequences = new Map<string, ShellKeybindingAction>();
 	for (const action of ShellKeybindingActions) {
 		const shortcuts = bindings[action];
 		if (!shortcuts.length) {
@@ -86,6 +87,14 @@ function renderZshKeybindings(bindings: ShellKeybindings): string {
 				);
 				continue;
 			}
+			const existingAction = usedSequences.get(sequence);
+			if (existingAction) {
+				logDebug(
+					`init:zsh:duplicateKeybinding action=${action} value="${shortcut}" sequence="${sequence}" existing=${existingAction}`,
+				);
+				continue;
+			}
+			usedSequences.set(sequence, action);
 			lines.push(`bindkey '${sequence}' ${widget}`);
 		}
 	}
