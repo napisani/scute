@@ -6,7 +6,7 @@ class Scute < Formula
   license "MIT"
 
   on_macos do
-    url "https://github.com/napisani/scute/releases/download/v#{version}/scute-v#{version}-macos-x86_64.tar.gz"
+    url "https://github.com/napisani/scute/releases/download/v#{version}/scute-v#{version}-macos-arm64.tar.gz"
     sha256 "ca51d878630119d1d4ce214d7a28dfafd00f28346ba55d2ee8eee0c14c559144"
   end
 
