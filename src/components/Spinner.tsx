@@ -9,6 +9,10 @@ function getSpinnerFrame(index: number): string {
 	const frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 	return frames[index % frames.length]!;
 }
+function getDotFrame(index: number): string {
+	const frames = ["   ", ".  ", ".. ", "..."];
+	return frames[index % frames.length]!;
+}
 
 export function Spinner({ isActive }: SpinnerProps) {
 	const [spinnerIndex, setSpinnerIndex] = useState(0);
@@ -37,6 +41,9 @@ export function Spinner({ isActive }: SpinnerProps) {
 				width: "100%",
 			}}
 		>
+			<text fg={markerColor}>
+				Loading please wait {getDotFrame(spinnerIndex)}
+			</text>
 			<text fg={markerColor}>{getSpinnerFrame(spinnerIndex)}</text>
 		</box>
 	);

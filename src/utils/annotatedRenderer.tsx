@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { cloneElement, type ReactElement, type ReactNode } from "react";
 import { TokenEditor } from "../components/TokenEditor";
 import { getThemeColorFor, getTokenColor } from "../config";
 import type { VimMode } from "../hooks/useVimMode";
@@ -18,6 +18,7 @@ export function renderAnnotatedCommand(
 
 	const descriptionColor = getThemeColorFor("tokenDescription");
 	const markerColor = getThemeColorFor("markerColor");
+	let lineId = 0;
 
 	const rows = buildTokenRows(
 		tokenPositions,
@@ -27,7 +28,7 @@ export function renderAnnotatedCommand(
 	);
 	const lines: ReactNode[] = [];
 
-	for (const row of rows) {
+	rows.forEach((row, rowIndex) => {
 		const tokenStartPositions = buildTokenStartPositions(
 			row,
 			editingTokenIndex,
@@ -46,13 +47,20 @@ export function renderAnnotatedCommand(
 				const boxWidth = Math.max(selectedLength, tokenValue.length) + 2;
 				const connectorPos = startPos + Math.floor(boxWidth / 2);
 
-				const descriptionLines = buildCenteredDescriptionLines(
+				const descriptionLines = buildLeftAlignedDescriptionLines(
 					selectedToken.description,
 					maxWidth,
 					connectorPos,
 				);
 				for (const descriptionLine of descriptionLines) {
-					lines.push(<text fg={markerColor}>{descriptionLine}</text>);
+					lines.push(
+						<text
+							key={`description-${selectedToken.index}-${lineId++}`}
+							fg={descriptionColor}
+						>
+							{descriptionLine}
+						</text>,
+					);
 				}
 			}
 		}
@@ -86,16 +94,22 @@ export function renderAnnotatedCommand(
 		);
 
 		lines.push(
-			topBorderLineElement,
-			contentLineElement,
-			bottomBorderLineElement,
+			cloneElement(topBorderLineElement, {
+				key: `row-${rowIndex}-top-${lineId++}`,
+			}),
+			cloneElement(contentLineElement, {
+				key: `row-${rowIndex}-content-${lineId++}`,
+			}),
+			cloneElement(bottomBorderLineElement, {
+				key: `row-${rowIndex}-bottom-${lineId++}`,
+			}),
 		);
-	}
+	});
 
 	return lines;
 }
 
-function buildCenteredDescriptionLines(
+function buildLeftAlignedDescriptionLines(
 	description: string,
 	maxWidth: number,
 	connectorPos: number,
@@ -110,7 +124,8 @@ function buildCenteredDescriptionLines(
 	);
 	const innerWidth = Math.max(2, Math.min(width - 2, maxLineLength + 2));
 	const boxWidth = innerWidth + 2;
-	const leftPadding = Math.max(0, Math.floor((width - boxWidth) / 2));
+	// Left-align the description box (no padding)
+	const leftPadding = 0;
 	const topLine = " ".repeat(leftPadding) + "┌" + "─".repeat(innerWidth) + "┐";
 	const contentLines = wrapped.map(
 		(line) =>
@@ -212,7 +227,7 @@ function buildBorderLineElement(
 	editingValue: string,
 	markerColor: string,
 	borderType: "top" | "bottom",
-): ReactNode {
+): ReactElement {
 	const elements: ReactNode[] = [];
 
 	for (let i = 0; i < rowTokens.length; i++) {
@@ -259,7 +274,9 @@ function buildBorderLineElement(
 		}
 	}
 
-	return <box style={{ flexDirection: "row" }}>{elements}</box>;
+	return (
+		<box style={{ flexDirection: "row" }}>{elements}</box>
+	) as ReactElement;
 }
 
 function buildContentLineElement(
@@ -270,7 +287,7 @@ function buildContentLineElement(
 	editingValue: string,
 	cursorPosition: number,
 	onTokenChange: (value: string) => void,
-): ReactNode {
+): ReactElement {
 	const elements: ReactNode[] = [];
 
 	for (let i = 0; i < rowTokens.length; i++) {
@@ -316,7 +333,9 @@ function buildContentLineElement(
 		}
 	}
 
-	return <box style={{ flexDirection: "row" }}>{elements}</box>;
+	return (
+		<box style={{ flexDirection: "row" }}>{elements}</box>
+	) as ReactElement;
 }
 
 function buildTokenRows(

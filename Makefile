@@ -2,7 +2,7 @@
 
 BUN ?= bun
 NIX ?= nix
-SCUTE_BIN ?= bin/scute
+SCUTE_BIN ?= dist/scute
 CONFIG_DIR ?= configs
 
 install:
