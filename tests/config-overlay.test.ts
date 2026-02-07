@@ -11,13 +11,13 @@ import {
 	setConfigOverride,
 	setEnvGetter,
 } from "../src/config";
-import type { Config } from "../src/config/schema";
+import { type Config, ConfigSchema } from "../src/config/schema";
 
 describe("config overlay logic", () => {
 	// Helper to create a mock environment
 	function withMockedEnv(
 		env: Record<string, string | undefined>,
-		config?: Config,
+		config: Config = ConfigSchema.parse({}),
 	) {
 		setEnvGetter((name) => env[name]);
 		setConfigOverride(config);
