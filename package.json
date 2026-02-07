@@ -1,6 +1,6 @@
 {
 	"name": "@napisani/scute",
-	"version": "0.0.3",
+	"version": "0.0.4",
 	"description": "AI-powered shell assistant",
 	"module": "index.ts",
 	"type": "module",
@@ -23,16 +23,16 @@
 	},
 	"license": "MIT",
 	"author": "Nick Pisani",
-	"main": "index.js",
+	"main": "src/index.ts",
 	"bin": {
-		"scute": "dist/scute"
+		"scute": "bin/scute"
 	},
 	"directories": {
 		"test": "tests"
 	},
 	"files": [
-		"dist/",
-		"scripts/",
+		"bin/",
+		"src/",
 		"README.md",
 		"LICENSE"
 	],
@@ -44,8 +44,7 @@
 		"test": "bun test tests/",
 		"coverage": "bun test tests/ --coverage",
 		"evals": "bun test evals --pattern \\\"\\.eval\\.test\\.ts$\\\"",
-		"prepublishOnly": "bun run clean && bun install --frozen-lockfile && bun run lint && bun run test",
-		"postinstall": "node scripts/postinstall.mjs"
+		"prepublishOnly": "bun run lint && bun run test"
 	},
 	"dependencies": {
 		"@opentui/core": "^0.1.75",
@@ -78,7 +77,7 @@
 		"typescript": "^5"
 	},
 	"engines": {
-		"node": ">=18"
+		"bun": ">=1.0.0"
 	},
 	"os": [
 		"darwin",

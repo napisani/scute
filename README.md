@@ -10,13 +10,21 @@
 - Integrating through lightweight keybindings and shell hooks
 
 The name comes from the scute, the protective shell plate on a turtle, and the tool itself is meant to assist with shell commands.
-Scute is built as a single native binary (via Bun) so it can be distributed and updated easily.
+
+Scute is built with Bun and can be installed via npm (requires Bun), Homebrew, or downloaded as a prebuilt binary.
 
 ## Installation
 
-Supported platforms: macOS and Linux (x86_64 only for now).
+Supported platforms: macOS and Linux (x86_64 and arm64).
 
-### A. Install via curl (install.sh)
+### A. Homebrew (Recommended - Prebuilt Binary)
+
+```sh
+brew tap napisani/scute https://github.com/napisani/scute
+brew install scute
+```
+
+### B. Install via curl (install.sh)
 
 Convenience installer (requires `curl` and `tar`):
 
@@ -26,14 +34,23 @@ curl -fsSL https://raw.githubusercontent.com/napisani/scute/main/scripts/install
 
 By default it installs into `/usr/local/bin` and pulls the latest release. Pass `vX.Y.Z` and a custom directory to override.
 
-### B. Homebrew
+### C. bunx / bun (Requires Bun)
+
+Install globally:
 
 ```sh
-brew tap napisani/scute https://github.com/napisani/scute
-brew install scute
+bun install -g @napisani/scute
 ```
 
-### C. npm / npx
+Or run once with:
+
+```sh
+bunx @napisani/scute --help
+```
+
+> **Note:** The npm package requires Bun to be installed on your system. Install Bun from [bun.sh](https://bun.sh).
+
+### D. npm / npx (Requires Bun)
 
 Install globally:
 
@@ -47,9 +64,9 @@ Or run once with:
 npx @napisani/scute --help
 ```
 
-> The npm package runs a Bun-based `postinstall` script to download the matching release binary, so Bun must be available on your `PATH`.
+> **Note:** The npm package requires Bun to be installed on your system.
 
-### D. Nix
+### E. Nix
 
 Add the repo as an input and use it in your Home Manager flake:
 
@@ -66,12 +83,12 @@ outputs = { self, nixpkgs, scute, ... }: {
 
 > The repository ships an intentionally minimal `flake.nix`. Run `nix flake lock --update-input scute` inside your own workspace to pin exact revisions.
 
-### E. Prebuilt binaries (manual)
+### F. Prebuilt Binaries (Manual)
 
-Every Git tag publishes `x86_64` macOS and Linux archives on the [GitHub Releases](https://github.com/napisani/scute/releases) page. Download the archive for your platform, unpack it, and move the `scute` binary onto your `PATH`:
+Every Git tag publishes macOS (x86_64, arm64) and Linux (x86_64) archives on the [GitHub Releases](https://github.com/napisani/scute/releases) page. Download the archive for your platform, unpack it, and move the `scute` binary onto your `PATH`:
 
 ```sh
-curl -L -o scute.tar.gz "https://github.com/napisani/scute/releases/download/vX.Y.Z/scute-vX.Y.Z-macos-x86_64.tar.gz"
+curl -L -o scute.tar.gz "https://github.com/napisani/scute/releases/download/vX.Y.Z/scute-vX.Y.Z-macos-arm64.tar.gz"
 tar -xzf scute.tar.gz
 sudo mv scute /usr/local/bin/
 ```
@@ -80,10 +97,10 @@ Verify downloads with the checksums shipped alongside each release:
 
 ```sh
 curl -LO https://github.com/napisani/scute/releases/download/vX.Y.Z/checksums.txt
-grep scute-vX.Y.Z-macos-x86_64.tar.gz checksums.txt | shasum -a 256 -c -
+grep scute-vX.Y.Z-macos-arm64.tar.gz checksums.txt | shasum -a 256 -c -
 ```
 
-### F. Install from source
+### G. Install from Source
 
 ```sh
 git clone https://github.com/napisani/scute.git
@@ -93,7 +110,7 @@ bun run build:bin
 sudo mv dist/scute /usr/local/bin/
 ```
 
-If you prefer Make targets:
+Or use Make targets:
 
 ```sh
 make build
@@ -315,13 +332,53 @@ Once installed and configured, you can use the following keyboard shortcuts in y
 
 ## Release Process (Maintainers)
 
-1. Update `package.json` version.
-2. Ensure your working tree is clean and Bun is installed.
-3. Run `make release`.
-   - Runs lint and tests, builds the binary, tags `vX.Y.Z`, pushes the tag, and publishes to npm.
-4. GitHub Actions builds macOS/Linux archives and uploads them to the release.
-5. Refresh Homebrew checksums:
+### Creating a New Release
 
+1. **Update the version** in `package.json` (e.g., `"version": "0.0.4"`)
+2. **Commit the version change**: `git commit -am "Bump version to 0.0.4"`
+3. **Create the release** (this creates the git tag and triggers CI):
+   ```sh
+   make release-create
+   ```
+   This will:
+   - Run lint and tests
+   - Create and push git tag `v0.0.4`
+   - Trigger GitHub Actions to build binaries
+
+4. **Wait for CI** to complete (GitHub Actions builds and uploads binaries to the release)
+
+5. **Publish to npm**:
+   ```sh
+   make release-publish
+   ```
+
+6. **Update Homebrew formula** (after CI finishes):
+   ```sh
+   make update-brew-latest
+   ```
+   Or specify a version explicitly:
+   ```sh
+   make update-brew VERSION=v0.0.4
+   ```
+
+### Full Release (Create + Publish)
+
+To do it all in one command:
 ```sh
-make update-brew VERSION=vX.Y.Z
+make release
+```
+
+### What Gets Published
+
+- **npm**: Source code (TypeScript/Bun) - users need Bun installed
+- **GitHub Release**: Prebuilt binaries for macOS (x86_64, arm64) and Linux (x86_64)
+- **Homebrew**: Points to the GitHub release binaries
+
+### Pre-release Testing
+
+For testing before publishing:
+```sh
+# Create a prerelease tag (contains '-')
+make release-create
+# CI will mark it as prerelease automatically
 ```

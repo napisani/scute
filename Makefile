@@ -1,16 +1,14 @@
-.PHONY: install build build-bin test lint clean release release-create release-publish flake update-brew update-brew-latest
+.PHONY: install build test lint clean release release-create release-publish flake update-brew update-brew-latest
 
 BUN ?= bun
 NIX ?= nix
-SCUTE_BIN ?= dist/scute
+SCUTE_BIN ?= bin/scute
 CONFIG_DIR ?= configs
 
 install:
 	$(BUN) install --frozen-lockfile
 
-build: clean install build-bin
-
-build-bin:
+build: clean install
 	$(BUN) run build:bin
 	chmod +x dist/scute
 
@@ -44,7 +42,6 @@ release-create:
 	$(MAKE) install; \
 	$(MAKE) lint; \
 	$(MAKE) test; \
-	$(MAKE) build-bin; \
 	echo "Tagging $$TAG"; \
 	git tag -a "$$TAG" -m "Release $$TAG"; \
 	git push origin "$$TAG"
@@ -91,14 +88,14 @@ update-brew-latest:
 	echo "Updating Homebrew formula for $$LATEST_TAG"; \
 	$(MAKE) update-brew VERSION=$$LATEST_TAG
 
-run-example-ollama: build
+run-example-ollama: install
 	READLINE_LINE="docker ps --format 'table {{.Names}}\t{{.Status}}'" $(SCUTE_BIN) --config $(CONFIG_DIR)/ollama-config.yml build
 
-run-example-openai: build
+run-example-openai: install
 	READLINE_LINE="git status -sb" $(SCUTE_BIN) --config $(CONFIG_DIR)/openai-config.yml build
 
-run-example-anthropic: build
+run-example-anthropic: install
 	READLINE_LINE="docker ps --format 'table {{.Names}}\t{{.Status}}'" $(SCUTE_BIN) --config $(CONFIG_DIR)/anthropic-config.yml build
 
-run-example-gemini: build
+run-example-gemini: install
 	READLINE_LINE='grep -R "TODO" src' $(SCUTE_BIN) --config $(CONFIG_DIR)/gemini-config.yml build
