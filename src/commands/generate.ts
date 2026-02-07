@@ -1,8 +1,8 @@
 // src/commands/generate.ts
-import { createInterface } from "node:readline/promises";
 import { generateCommand } from "../core";
 import { logDebug } from "../core/logger";
 import { emitOutput, type OutputChannel } from "../core/output";
+import { promptForLine } from "../utils/prompt";
 
 export interface GenerateOptions {
 	output: OutputChannel;
@@ -35,24 +35,13 @@ async function resolvePrompt(inputParts: string[]): Promise<string> {
 		return inputParts.join(" ").trim();
 	}
 	if (process.stdin.isTTY) {
-		return await promptForInput();
+		return await promptForLine({
+			message: "Enter a command request: ",
+		});
 	}
 	let input = "";
 	for await (const chunk of process.stdin) {
 		input += chunk;
 	}
 	return input.trim();
-}
-
-async function promptForInput(): Promise<string> {
-	const rl = createInterface({
-		input: process.stdin,
-		output: process.stdout,
-	});
-	try {
-		const answer = await rl.question("Enter a command request: ");
-		return answer.trim();
-	} finally {
-		rl.close();
-	}
 }

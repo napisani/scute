@@ -1,8 +1,10 @@
-import { useCallback, useMemo } from "react";
+import { useKeyboard } from "@opentui/react";
+import { useCallback, useMemo, useState } from "react";
 import { Footer } from "../components/Footer";
 import { TokenAnnotatedView } from "../components/TokenAnnotatedView";
 import { TokenListView } from "../components/TokenListView";
 import {
+	buildParsedCommand,
 	parseTokens,
 	rebuildParsedCommandFromTokens,
 	tokenizeInput,
@@ -13,6 +15,11 @@ import { useParsedCommand } from "../hooks/useParsedCommand";
 import { useTokenDescriptions } from "../hooks/useTokenDescriptions";
 import { useTokenWidth } from "../hooks/useTokenWidth";
 import { useVimMode } from "../hooks/useVimMode";
+import {
+	hasModifierKey,
+	type KeyboardKey,
+	normalizeKeyId,
+} from "../utils/keyboard";
 import { calculateTokenPositions } from "../utils/tokenPositions";
 
 type BuildAppProps = {
@@ -25,6 +32,144 @@ export interface ApplyTokenEditResult {
 	startIndex: number;
 	removedCount: number;
 	insertedCount: number;
+}
+
+export interface EmptyDraftState {
+	value: string;
+	cursor: number;
+}
+
+export interface EmptyDraftResult {
+	state: EmptyDraftState;
+	submittedValue: string | null;
+}
+
+export const emptyDraftInitialState: EmptyDraftState = {
+	value: "",
+	cursor: 0,
+};
+
+export function processEmptyDraftKey(
+	state: EmptyDraftState,
+	key: KeyboardKey,
+): EmptyDraftResult {
+	if (hasModifierKey(key)) {
+		return { state, submittedValue: null };
+	}
+
+	const keyId = normalizeKeyId(key);
+
+	if (keyId === "return") {
+		const candidate = state.value;
+		if (candidate.trim().length === 0) {
+			return { state, submittedValue: null };
+		}
+		return { state, submittedValue: candidate };
+	}
+
+	if (key.name === "backspace") {
+		if (state.cursor <= 0) {
+			return { state, submittedValue: null };
+		}
+		const nextValue =
+			state.value.slice(0, state.cursor - 1) + state.value.slice(state.cursor);
+		return {
+			state: {
+				value: nextValue,
+				cursor: state.cursor - 1,
+			},
+			submittedValue: null,
+		};
+	}
+
+	if (key.name === "delete") {
+		if (state.cursor >= state.value.length) {
+			return { state, submittedValue: null };
+		}
+		return {
+			state: {
+				value:
+					state.value.slice(0, state.cursor) +
+					state.value.slice(state.cursor + 1),
+				cursor: state.cursor,
+			},
+			submittedValue: null,
+		};
+	}
+
+	if (key.name === "left") {
+		return {
+			state: {
+				value: state.value,
+				cursor: Math.max(0, state.cursor - 1),
+			},
+			submittedValue: null,
+		};
+	}
+
+	if (key.name === "right") {
+		return {
+			state: {
+				value: state.value,
+				cursor: Math.min(state.value.length, state.cursor + 1),
+			},
+			submittedValue: null,
+		};
+	}
+
+	if (key.name === "home") {
+		return {
+			state: {
+				value: state.value,
+				cursor: 0,
+			},
+			submittedValue: null,
+		};
+	}
+
+	if (key.name === "end") {
+		return {
+			state: {
+				value: state.value,
+				cursor: state.value.length,
+			},
+			submittedValue: null,
+		};
+	}
+
+	const sequence = key.sequence ?? "";
+	const singleChar = sequence.length === 1 ? sequence : null;
+	const isBackspaceChar = singleChar === "\u0008" || singleChar === "\u007f";
+	if (isBackspaceChar) {
+		if (state.cursor <= 0) {
+			return { state, submittedValue: null };
+		}
+		const nextValue =
+			state.value.slice(0, state.cursor - 1) + state.value.slice(state.cursor);
+		return {
+			state: {
+				value: nextValue,
+				cursor: state.cursor - 1,
+			},
+			submittedValue: null,
+		};
+	}
+
+	if (singleChar && singleChar >= " " && singleChar <= "~") {
+		const nextValue =
+			state.value.slice(0, state.cursor) +
+			singleChar +
+			state.value.slice(state.cursor);
+		return {
+			state: {
+				value: nextValue,
+				cursor: state.cursor + 1,
+			},
+			submittedValue: null,
+		};
+	}
+
+	return { state, submittedValue: null };
 }
 
 export function applyTokenEdit(
@@ -110,7 +255,18 @@ export function BuildApp({ command, onSubmit }: BuildAppProps) {
 	);
 
 	if (!parsedTokens.length) {
-		return <text>(no tokens)</text>;
+		return (
+			<EmptyCommandBuilder
+				onSubmit={(draft) => {
+					const trimmed = draft.trim();
+					if (!trimmed.length) {
+						return;
+					}
+					resetDescriptions();
+					setParsedCommand(buildParsedCommand(trimmed));
+				}}
+			/>
+		);
 	}
 
 	return (
@@ -159,6 +315,50 @@ export function BuildApp({ command, onSubmit }: BuildAppProps) {
 				isLoading={isLoading}
 				error={error}
 			/>
+		</box>
+	);
+}
+
+interface EmptyCommandBuilderProps {
+	onSubmit: (draft: string) => void;
+}
+
+function EmptyCommandBuilder({ onSubmit }: EmptyCommandBuilderProps) {
+	const [draftState, setDraftState] = useState<EmptyDraftState>(
+		emptyDraftInitialState,
+	);
+
+	useKeyboard((key) => {
+		setDraftState((prev) => {
+			const result = processEmptyDraftKey(prev, key);
+			if (result.submittedValue !== null) {
+				const trimmed = result.submittedValue.trim();
+				if (trimmed.length > 0) {
+					onSubmit(trimmed);
+				}
+				return emptyDraftInitialState;
+			}
+			return result.state;
+		});
+	});
+
+	const before = draftState.value.slice(0, draftState.cursor);
+	const after = draftState.value.slice(draftState.cursor);
+	const caretLine = `${before}|${after}`;
+
+	return (
+		<box
+			flexDirection="column"
+			alignItems="center"
+			justifyContent="center"
+			height="100%"
+			width="100%"
+		>
+			<text>Start building a command</text>
+			<text>Type to add text, press Enter to continue</text>
+			<box marginTop={1}>
+				<text>{caretLine.length ? caretLine : "|"}</text>
+			</box>
 		</box>
 	);
 }

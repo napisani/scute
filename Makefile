@@ -2,6 +2,8 @@
 
 BUN ?= bun
 NIX ?= nix
+SCUTE_BIN ?= dist/scute
+CONFIG_DIR ?= configs
 
 install:
 	$(BUN) install --frozen-lockfile
@@ -10,6 +12,7 @@ build: clean install build-bin
 
 build-bin:
 	$(BUN) run build:bin
+	chmod +x dist/scute
 
 test: install
 	$(BUN) run test
@@ -77,3 +80,15 @@ flake:
 update-brew:
 	@if [ -z "$(VERSION)" ]; then echo "Usage: make update-brew VERSION=vX.Y.Z" >&2; exit 1; fi
 	./scripts/update-brew.sh $(VERSION)
+
+run-example-ollama: build
+	READLINE_LINE="docker ps --format 'table {{.Names}}\t{{.Status}}'" $(SCUTE_BIN) --config $(CONFIG_DIR)/ollama-config.yml build
+
+run-example-openai: build
+	READLINE_LINE="git status -sb" $(SCUTE_BIN) --config $(CONFIG_DIR)/openai-config.yml build
+
+run-example-anthropic: build
+	READLINE_LINE="docker ps --format 'table {{.Names}}\t{{.Status}}'" $(SCUTE_BIN) --config $(CONFIG_DIR)/anthropic-config.yml build
+
+run-example-gemini: build
+	READLINE_LINE='grep -R "TODO" src' $(SCUTE_BIN) --config $(CONFIG_DIR)/gemini-config.yml build
