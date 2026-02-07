@@ -38,16 +38,39 @@ export const ProviderSchema = z.object({
 
 export type ProviderConfig = z.infer<typeof ProviderSchema>;
 
-export const PromptConfigSchema = z.object({
-	provider: z.string().default(resolvedDefaultProvider),
+const OutputChannelSchema = z.enum([
+	"clipboard",
+	"stdout",
+	"prompt",
+	"readline",
+]);
+export type OutputChannelConfig = z.infer<typeof OutputChannelSchema>;
+
+export const PromptDefaultsSchema = z.object({
+	provider: z.enum(SUPPORTED_PROVIDERS).default(resolvedDefaultProvider),
 	model: z.string().default(resolvedDefaultModel),
 	temperature: z.number().default(DEFAULT_TEMPERATURE),
 	maxTokens: z.number().default(DEFAULT_MAX_TOKENS),
 	userPrompt: z.string().optional(),
 	systemPromptOverride: z.string().optional(),
+	output: OutputChannelSchema.optional(),
 });
 
-export type PromptConfig = z.infer<typeof PromptConfigSchema>;
+export const PromptOverridesSchema = z
+	.object({
+		provider: z.enum(SUPPORTED_PROVIDERS).optional(),
+		model: z.string().optional(),
+		temperature: z.number().optional(),
+		maxTokens: z.number().optional(),
+		userPrompt: z.string().optional(),
+		systemPromptOverride: z.string().optional(),
+		output: OutputChannelSchema.optional(),
+	})
+	.default({});
+
+export type PromptDefaultsConfig = z.infer<typeof PromptDefaultsSchema>;
+export type PromptOverridesConfig = z.infer<typeof PromptOverridesSchema>;
+export type PromptConfig = PromptDefaultsConfig;
 
 export const KeybindingsSchema = z
 	.object({
@@ -148,7 +171,7 @@ export const ShellKeybindingActions = [
 ] as const;
 export type ShellKeybindingAction = (typeof ShellKeybindingActions)[number];
 
-function buildDefaultPromptConfig() {
+function buildDefaultPromptDefaults() {
 	return {
 		provider: resolvedDefaultProvider,
 		model: resolvedDefaultModel,
@@ -183,18 +206,19 @@ export const ConfigSchema = z.object({
 			build: "Ctrl+G",
 			suggest: "Alt+G",
 		}),
+	promptDefaults: PromptDefaultsSchema.default(buildDefaultPromptDefaults()),
 	prompts: z
 		.object({
-			explain: PromptConfigSchema.default(buildDefaultPromptConfig()),
-			suggest: PromptConfigSchema.default(buildDefaultPromptConfig()),
-			generate: PromptConfigSchema.default(buildDefaultPromptConfig()),
-			describeTokens: PromptConfigSchema.default(buildDefaultPromptConfig()),
+			explain: PromptOverridesSchema.default({}),
+			suggest: PromptOverridesSchema.default({}),
+			generate: PromptOverridesSchema.default({}),
+			describeTokens: PromptOverridesSchema.default({}),
 		})
 		.default({
-			explain: buildDefaultPromptConfig(),
-			suggest: buildDefaultPromptConfig(),
-			generate: buildDefaultPromptConfig(),
-			describeTokens: buildDefaultPromptConfig(),
+			explain: {},
+			suggest: {},
+			generate: {},
+			describeTokens: {},
 		}),
 });
 export type PromptName = keyof z.infer<typeof ConfigSchema>["prompts"];

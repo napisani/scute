@@ -5,8 +5,14 @@ import path from "node:path";
 import yaml from "js-yaml";
 import { SUPPORTED_PROVIDERS } from "../core/constants";
 import { getEnv, resetEnvGetter, setEnvGetter } from "../core/environment";
+import type { OutputChannel } from "../core/output";
 import type { TokenType } from "../core/shells/common";
-import type { PromptName, ShellKeybindingAction, ThemeConfig } from "./schema";
+import type {
+	PromptName,
+	PromptOverridesConfig,
+	ShellKeybindingAction,
+	ThemeConfig,
+} from "./schema";
 import { type Config, ConfigSchema, ShellKeybindingActions } from "./schema";
 
 const CONFIG_DIR = path.join(os.homedir(), ".config", "scute");
@@ -189,7 +195,13 @@ export function getThemeColorFor(attr: ThemeColorAttribute): string {
 }
 
 export function getPromptConfig(name: PromptName) {
-	return { ...config.prompts[name] };
+	const defaults = config.promptDefaults;
+	const overrides = config.prompts[name] as PromptOverridesConfig;
+	return { ...defaults, ...overrides };
+}
+
+export function getPromptOutput(name: PromptName): OutputChannel | undefined {
+	return getPromptConfig(name).output as OutputChannel | undefined;
 }
 
 export function getShellKeybindings(): Record<ShellKeybindingAction, string[]> {

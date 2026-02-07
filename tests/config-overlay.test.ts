@@ -147,6 +147,12 @@ describe("config overlay logic", () => {
 					tokenDescription: "#CDD6F4",
 					markerColor: "#CDD6F4",
 				},
+				promptDefaults: {
+					provider: "openai",
+					model: "gpt-4",
+					temperature: 0.7,
+					maxTokens: 128000,
+				},
 				prompts: {
 					explain: {
 						provider: "openai",
@@ -319,6 +325,12 @@ describe("config overlay logic", () => {
 					tokenDescription: "#CDD6F4",
 					markerColor: "#CDD6F4",
 				},
+				promptDefaults: {
+					provider: "openai",
+					model: "gpt-4",
+					temperature: 0.7,
+					maxTokens: 128000,
+				},
 				prompts: {
 					explain: {
 						provider: "openai",
@@ -468,6 +480,12 @@ describe("config overlay logic", () => {
 					tokenDescription: "#CCCCCC",
 					markerColor: "#AAAAAA",
 				},
+				promptDefaults: {
+					provider: "openai",
+					model: "gpt-4",
+					temperature: 0.5,
+					maxTokens: 500,
+				},
 				prompts: {
 					explain: {
 						provider: "openai",
@@ -569,6 +587,12 @@ describe("config overlay logic", () => {
 					tokenDescription: "#CDD6F4",
 					markerColor: "#CDD6F4",
 				},
+				promptDefaults: {
+					provider: "ollama",
+					model: "qwen3:1.7b",
+					temperature: 0.7,
+					maxTokens: 128000,
+				},
 				prompts: {
 					explain: {
 						provider: "ollama",
@@ -662,6 +686,12 @@ describe("config overlay logic", () => {
 					},
 					tokenDescription: "#CDD6F4",
 					markerColor: "#CDD6F4",
+				},
+				promptDefaults: {
+					provider: "ollama",
+					model: "qwen3:1.7b",
+					temperature: 0.7,
+					maxTokens: 128000,
 				},
 				prompts: {
 					explain: {

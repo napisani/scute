@@ -139,15 +139,32 @@ Notes:
 - `dotenv/config` is loaded at startup, so values in `.env` will be respected.
 - Provider env vars (e.g., `OPENAI_API_KEY`) merge into `providers` and override matching entries.
 
+### Prompt defaults
+
+Use `promptDefaults` to set shared values for all prompts. Any field omitted on a prompt inherits the value from `promptDefaults`. You can still override individual prompts under `prompts`, including `output` via `prompts.<name>.output`.
+
+### Output channels
+
+Output channels control how scute emits results when `--output` is not provided.
+
+- `clipboard`: writes the result to the system clipboard using `clipboardCommand` (or auto-detected clipboard tool). Falls back to stdout if no clipboard command is found.
+- `stdout`: prints the result to stdout with a trailing newline.
+- `prompt`: renders the result at the bottom of the terminal without altering your current input line.
+- `readline`: replaces the current input line (bash/zsh integration).
+
+`--output <channel>` always overrides the config for a single invocation.
+
 ### Minimal config example
 
 ```yaml
 # ~/.config/scute/config.yaml
 
 # Use a compact view for the token editor
+# viewMode values: horizontal | vertical
 viewMode: horizontal
 
 # Define at least one provider for prompts
+# provider name values: openai | anthropic | gemini | ollama
 providers:
   - name: openai
     apiKey: ${OPENAI_API_KEY}
@@ -165,12 +182,14 @@ shellKeybindings:
 # ~/.config/scute/config.yaml
 
 # Layout for the interactive token editor
+# viewMode values: horizontal | vertical
 viewMode: horizontal # horizontal -> annotated view, vertical -> list view
 
 # Clipboard command for output channel "clipboard"
 clipboardCommand: "pbcopy"
 
 # Providers used by prompts (env vars override these)
+# provider name values: openai | anthropic | gemini | ollama
 providers:
   - name: openai
     apiKey: ${OPENAI_API_KEY}
@@ -223,30 +242,31 @@ theme:
   tokenDescription: "#CDD6F4"
   markerColor: "#CDD6F4"
 
+# Prompt defaults (apply to all prompts unless overridden)
+promptDefaults:
+  # provider values: openai | anthropic | gemini | ollama
+  provider: openai
+  model: gpt-4
+  temperature: 0.7
+  maxTokens: 128000
+  userPrompt: ""
+  systemPromptOverride: ""
+  # output values: clipboard | stdout | prompt | readline
+  output: readline
+
 # Prompt behavior per command
 prompts:
   explain:
-    provider: openai
-    model: gpt-4
-    temperature: 0.7
-    maxTokens: 128000
-    userPrompt: ""
-    systemPromptOverride: ""
+    # output values: clipboard | stdout | prompt | readline
+    output: prompt
   suggest:
-    provider: openai
-    model: gpt-4
-    temperature: 0.7
-    maxTokens: 128000
+    # output values: clipboard | stdout | prompt | readline
+    output: readline
   generate:
-    provider: openai
-    model: gpt-4
-    temperature: 0.7
-    maxTokens: 128000
+    # output values: clipboard | stdout | prompt | readline
+    output: readline
   describeTokens:
-    provider: openai
-    model: gpt-4
-    temperature: 0.7
-    maxTokens: 128000
+    # Internal prompt used by the token editor
 ```
 
 ### Environment variables

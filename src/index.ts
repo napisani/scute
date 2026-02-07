@@ -8,7 +8,11 @@ import { explain } from "./commands/explain";
 import { generate } from "./commands/generate";
 import { init } from "./commands/init";
 import { suggest } from "./commands/suggest";
-import { loadConfigFromPath, setConfigOverride } from "./config";
+import {
+	getPromptOutput,
+	loadConfigFromPath,
+	setConfigOverride,
+} from "./config";
 import type { OutputChannel } from "./core/output";
 
 const program = new Command();
@@ -41,6 +45,18 @@ function resolveOutputChannel(
 			process.exit(1);
 		}
 		return requested as OutputChannel;
+	}
+	if (
+		commandName === "suggest" ||
+		commandName === "explain" ||
+		commandName === "generate"
+	) {
+		const promptOutput = getPromptOutput(
+			commandName as "suggest" | "explain" | "generate",
+		);
+		if (promptOutput) {
+			return promptOutput;
+		}
 	}
 	if (commandName === "suggest") return "readline";
 	if (commandName === "explain") return "prompt";
