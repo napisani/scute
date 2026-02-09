@@ -90,6 +90,7 @@ release-publish:
 		exit 1; \
 	fi; \
 	echo "Publishing to npm"; \
+	npm login; \
 	npm publish --access public
 
 release: release-create release-publish
