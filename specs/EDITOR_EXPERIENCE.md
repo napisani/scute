@@ -31,7 +31,9 @@ Primary references:
 
 ## Keybindings
 
-Keybindings are resolved via `getKeybindings()` with defaults defined in `src/config/index.ts`:
+Keybindings are resolved via `getNormalKeybindings()`, `getLeaderKeybindings()`, and `getLeaderKey()` with defaults defined in `src/config/index.ts`.
+
+Normal keybindings:
 - `up`: `up`
 - `down`: `down`
 - `left`: `left`, `h`
@@ -43,17 +45,26 @@ Keybindings are resolved via `getKeybindings()` with defaults defined in `src/co
 - `firstToken`: `g`
 - `lastToken`: `G`
 - `appendLine`: `A`
-- `explain`: `e`
-- `toggleView`: `m`
 - `insert`: `i`
 - `append`: `a`
 - `change`: `c`
 - `exitInsert`: `escape`
 - `save`: `return`
 
+Leader keybindings:
+- `leaderKey`: `space`
+- `toggleView`: `m`
+- `explain`: `e`
+- `quit`: `q`
+- `outputClipboard`: `y`
+- `outputReadline`: `r`
+- `outputStdout`: `return`
+- `outputPrompt`: `p`
+
 Notes:
-- `useNormalMode` and `useViewMode` provide fallback defaults for certain actions if config is missing (e.g., `i`, `a`, `c`, `v`), but the canonical defaults come from `getKeybindings()`.
+- `useNormalMode` and `useViewMode` provide fallback defaults for certain actions if config is missing (e.g., `i`, `a`, `c`, `v`), but the canonical defaults come from the config getters.
 - `useVimMode` relies entirely on configured keybindings; it does not provide fallbacks.
+- `explain`, `toggleView`, and output actions are invoked via leader mode (`leaderKey` + keybinding value).
 - In `useVimMode` normal mode, key matching uses a normalized key ID: `key.sequence` if present, otherwise `key.name`, with single-letter keys uppercased when `shift` is true. This ensures bindings like `G` work even when the event reports `name: "g"` and `shift: true`.
 
 Configuration:
@@ -90,7 +101,7 @@ State managed:
 - `viewMode`
 
 Behavior:
-- Handles up/down navigation, view toggle, explain action, and entry into insert/append/change.
+- Handles up/down navigation, leader-based view toggle and explain, and entry into insert/append/change.
 - No special handling for modifiers, `gg`, or annotated-mode horizontal navigation.
 
 ### useInsertMode (minimal insert-mode implementation)
@@ -117,12 +128,25 @@ Behavior:
 ### Global rules
 - Modifier keys (`ctrl`, `meta`, `option`, `alt`) are ignored in normal mode (no state changes). `shift` is not treated as a modifier for ignore purposes; it is used to normalize `keyId` for uppercase bindings.
 - All normal-mode commands are ignored when `mode !== normal`.
+- Leader mode:
+- Pressing `leaderKey` arms the next key as a leader sequence.
+- `leaderKey` then `toggleView` or `explain` triggers the respective action.
+- `leaderKey` then output actions (`outputClipboard`, `outputReadline`, `outputStdout`, `outputPrompt`) select an output channel and exit.
+- `leaderKey` then `quit` exits without emitting output.
+- Any other key or `escape` cancels leader mode and returns to normal.
 
 ### View mode toggle
 - `toggleView` flips `viewMode` between `list` and `annotated`.
+- `toggleView` is triggered via leader mode (`leaderKey` then `toggleView`).
 
 ### Explain action
 - `explain` calls `loadDescriptions()`; no other state changes.
+- `explain` is triggered via leader mode (`leaderKey` then `explain`).
+
+### Output selection (build)
+- Output channels are chosen via leader mode (`leaderKey` then output action).
+- `leaderKey` + `outputStdout` submits the command and exits.
+- `leaderKey` + `quit` exits without emitting output.
 
 ### Insert/Append/Change
 - `insert`:
@@ -210,7 +234,7 @@ The editor does not mutate the full command string directly. Instead:
 The tests in `tests/hooks/useVimMode.test.ts` assert the following:
 - Initial state is `normal` mode with `selectedIndex = 0`.
 - `j`/`k` move selection within bounds.
-- `m` toggles view mode to `annotated`.
+- `leaderKey` + `m` toggles view mode to `annotated`.
 - `c` enters insert mode with empty buffer at cursor `0`.
 - Text input inserts and advances cursor.
 - Backspace deletes and moves cursor.
@@ -221,6 +245,7 @@ The tests in `tests/hooks/useVimMode.test.ts` assert the following:
 - `home` and `end` move cursor to start/end of buffer.
 - `A` (append line) only works in `annotated` mode: selects last token and enters insert at end.
 - `G` moves to the last token in `annotated` mode.
+- `leaderKey` + `e` calls `loadDescriptions()`; no other state changes.
 - Modifiers (e.g., `ctrl`) are ignored in both normal and insert modes.
 - Changing tokens resets editor state but preserves view mode.
 

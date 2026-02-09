@@ -72,7 +72,7 @@ export type PromptDefaultsConfig = z.infer<typeof PromptDefaultsSchema>;
 export type PromptOverridesConfig = z.infer<typeof PromptOverridesSchema>;
 export type PromptConfig = PromptDefaultsConfig;
 
-export const KeybindingsSchema = z
+export const NormalKeybindingsSchema = z
 	.object({
 		up: z.array(z.string()).default(["up"]),
 		down: z.array(z.string()).default(["down"]),
@@ -85,8 +85,6 @@ export const KeybindingsSchema = z
 		firstToken: z.array(z.string()).default(["g"]),
 		lastToken: z.array(z.string()).default(["G"]),
 		appendLine: z.array(z.string()).default(["A"]),
-		explain: z.array(z.string()).default(["e"]),
-		toggleView: z.array(z.string()).default(["m"]),
 		insert: z.array(z.string()).default(["i"]),
 		append: z.array(z.string()).default(["a"]),
 		change: z.array(z.string()).default(["c"]),
@@ -105,13 +103,31 @@ export const KeybindingsSchema = z
 		firstToken: ["g"],
 		lastToken: ["G"],
 		appendLine: ["A"],
-		explain: ["e"],
-		toggleView: ["m"],
 		insert: ["i"],
 		append: ["a"],
 		change: ["c"],
 		exitInsert: ["escape"],
 		save: ["return"],
+	});
+
+export const LeaderKeybindingsSchema = z
+	.object({
+		explain: z.array(z.string()).default(["e"]),
+		toggleView: z.array(z.string()).default(["m"]),
+		quit: z.array(z.string()).default(["q"]),
+		outputClipboard: z.array(z.string()).default(["y"]),
+		outputReadline: z.array(z.string()).default(["r"]),
+		outputStdout: z.array(z.string()).default(["return"]),
+		outputPrompt: z.array(z.string()).default(["p"]),
+	})
+	.default({
+		explain: ["e"],
+		toggleView: ["m"],
+		quit: ["q"],
+		outputClipboard: ["y"],
+		outputReadline: ["r"],
+		outputStdout: ["return"],
+		outputPrompt: ["p"],
 	});
 
 export const TokenColorsSchema = z
@@ -161,7 +177,8 @@ export const ThemeSchema = z
 
 export type ThemeConfig = z.infer<typeof ThemeSchema>;
 
-export type KeybindingsConfig = z.infer<typeof KeybindingsSchema>;
+export type NormalKeybindingsConfig = z.infer<typeof NormalKeybindingsSchema>;
+export type LeaderKeybindingsConfig = z.infer<typeof LeaderKeybindingsSchema>;
 
 export const ShellKeybindingActions = [
 	"explain",
@@ -184,7 +201,9 @@ export const ConfigSchema = z.object({
 	viewMode: z.enum(["horizontal", "vertical"]).default("horizontal"),
 	clipboardCommand: z.string().optional(),
 	providers: z.array(ProviderSchema).default([]),
-	keybindings: KeybindingsSchema,
+	normalKeybindings: NormalKeybindingsSchema,
+	leaderKeybindings: LeaderKeybindingsSchema,
+	leaderKey: z.array(z.string()).default(["space"]),
 	theme: ThemeSchema,
 	shellKeybindings: z
 		.object({

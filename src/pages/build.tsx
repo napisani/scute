@@ -3,6 +3,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Footer } from "../components/Footer";
 import { TokenAnnotatedView } from "../components/TokenAnnotatedView";
 import { TokenListView } from "../components/TokenListView";
+import type { OutputChannel } from "../core/output";
 import {
 	buildParsedCommand,
 	parseTokens,
@@ -24,7 +25,10 @@ import { calculateTokenPositions } from "../utils/tokenPositions";
 
 type BuildAppProps = {
 	command: string;
-	onSubmit?: (nextCommand: string) => void;
+	onOutputSelected?: (
+		nextCommand: string,
+		channel: OutputChannel | null,
+	) => void;
 };
 
 export interface ApplyTokenEditResult {
@@ -191,7 +195,7 @@ export function applyTokenEdit(
 	};
 }
 
-export function BuildApp({ command, onSubmit }: BuildAppProps) {
+export function BuildApp({ command, onOutputSelected }: BuildAppProps) {
 	const { parsedCommand, setParsedCommand } = useParsedCommand({ command });
 
 	const parsedTokens = useMemo(
@@ -226,15 +230,19 @@ export function BuildApp({ command, onSubmit }: BuildAppProps) {
 		[resetDescriptions, setParsedCommand],
 	);
 
-	const handleSubmit = useCallback(() => {
-		resetDescriptions();
-		onSubmit?.(parsedCommand.originalCommand);
-	}, [onSubmit, parsedCommand, resetDescriptions]);
+	const handleOutputSelected = useCallback(
+		(channel: OutputChannel | null) => {
+			resetDescriptions();
+			onOutputSelected?.(parsedCommand.originalCommand, channel);
+		},
+		[onOutputSelected, parsedCommand, resetDescriptions],
+	);
 
 	const {
 		mode,
 		selectedIndex,
 		viewMode,
+		leaderActive,
 		editingTokenIndex,
 		editingValue,
 		cursorPosition,
@@ -244,7 +252,7 @@ export function BuildApp({ command, onSubmit }: BuildAppProps) {
 		parsedTokens,
 		loadDescriptions,
 		onTokenEdit: handleTokenEdit,
-		onSubmit: handleSubmit,
+		onOutputSelected: handleOutputSelected,
 	});
 	const tokenWidths = useTokenWidth({ parsedTokens });
 	const coloredTokens = useColoredTokens({ parsedTokens, selectedIndex });
@@ -312,6 +320,7 @@ export function BuildApp({ command, onSubmit }: BuildAppProps) {
 			<Footer
 				mode={mode}
 				viewMode={viewMode}
+				leaderActive={leaderActive}
 				isLoading={isLoading}
 				error={error}
 			/>

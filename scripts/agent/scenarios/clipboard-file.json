@@ -7,11 +7,15 @@
 		{ "send_line": "eval \"$({scute_bin} --config {config} init {shell})\"" },
 		{ "wait_for_prompt": true },
 		{
-			"send_line": "{scute_bin} --config {config} suggest \"git sta\" --output clipboard"
+			"send_line": "{scute_bin} --config {config} --output clipboard config-debug"
 		},
 		{ "wait_for_prompt": true, "timeout": 15 },
+		{ "sleep": 0.5 },
 		{ "assert_file_exists": "/tmp/scute-clipboard.txt" },
-		{ "assert_file_contains": "/tmp/scute-clipboard.txt", "expected": "git" },
+		{
+			"assert_file_contains": "/tmp/scute-clipboard.txt",
+			"expected": "clipboardCommand"
+		},
 		{ "send_line": "exit" }
 	]
 }

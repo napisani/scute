@@ -5,9 +5,7 @@ import { getReadlineLine, hasReadlineLine } from "../core/shells";
 import { BuildApp } from "../pages/build";
 import { promptForLine } from "../utils/prompt";
 
-export interface BuildOptions {
-	output: OutputChannel;
-}
+export type BuildOptions = {};
 
 export function resolveBuildCommand(
 	inputParts: string[],
@@ -23,10 +21,7 @@ export function resolveBuildCommand(
 	return "";
 }
 
-export async function build(
-	inputParts: string[] = [],
-	{ output }: BuildOptions,
-) {
+export async function build(inputParts: string[] = [], _: BuildOptions) {
 	const isLine = hasReadlineLine();
 	const readlineLine = getReadlineLine();
 	let command = resolveBuildCommand(inputParts, {
@@ -44,19 +39,25 @@ export async function build(
 	}
 	const renderer = await createCliRenderer();
 	let didSubmit = false;
-	const handleSubmit = (nextCommand: string) => {
+	const handleOutputSelected = (
+		nextCommand: string,
+		channel: OutputChannel | null,
+	) => {
 		if (didSubmit) {
 			return;
 		}
 		didSubmit = true;
 		renderer.destroy();
+		if (!channel) {
+			return;
+		}
 		emitOutput({
-			channel: output,
+			channel,
 			text: nextCommand,
 		});
 	};
 	createRoot(renderer).render(
-		<BuildApp command={command} onSubmit={handleSubmit} />,
+		<BuildApp command={command} onOutputSelected={handleOutputSelected} />,
 	);
 }
 

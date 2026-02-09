@@ -1,6 +1,6 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { useMemo } from "react";
-import { getKeybindings } from "../config";
+import { getNormalKeybindings } from "../config";
 import { logTrace } from "../core/logger";
 import {
 	hasModifierKey,
@@ -35,8 +35,8 @@ export function useInsertMode({
 	insertTriggerRef,
 	useKeyboard,
 }: UseInsertModeOptions): void {
-	const exitInsertKeys = useMemo(() => getKeybindings("exitInsert"), []);
-	const saveKeys = useMemo(() => getKeybindings("save"), []);
+	const exitInsertKeys = useMemo(() => getNormalKeybindings("exitInsert"), []);
+	const saveKeys = useMemo(() => getNormalKeybindings("save"), []);
 
 	useKeyboard((key: KeyboardKey) => {
 		if (modeRef.current !== "insert") return;

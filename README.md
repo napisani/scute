@@ -154,6 +154,8 @@ Output channels control how scute emits results when `--output` is not provided.
 
 `--output <channel>` always overrides the config for a single invocation.
 
+Note: `scute build` ignores `--output`. Output is chosen inside the TUI via leader-key commands (e.g., `leader` + `enter` for stdout).
+
 ### Minimal config example
 
 ```yaml
@@ -201,7 +203,7 @@ providers:
     baseUrl: ${OLLAMA_BASE_URL}
 
 # Keybindings for the interactive token editor UI
-keybindings:
+normalKeybindings:
   up: ["up"]
   down: ["down"]
   left: ["left", "h"]
@@ -213,13 +215,22 @@ keybindings:
   firstToken: ["g"]
   lastToken: ["G"]
   appendLine: ["A"]
-  explain: ["e"]
-  toggleView: ["m"]
   insert: ["i"]
   append: ["a"]
   change: ["c"]
   exitInsert: ["escape"]
   save: ["return"]
+
+leaderKeybindings:
+  explain: ["e"]
+  toggleView: ["m"]
+  quit: ["q"]
+  outputClipboard: ["y"]
+  outputReadline: ["r"]
+  outputStdout: ["return"]
+  outputPrompt: ["p"]
+
+leaderKey: ["space"]
 
 # Shell keybindings in universal syntax (rendered by scute init)
 shellKeybindings:

@@ -101,8 +101,7 @@ program
 	.command("build")
 	.argument("[input...]", "Input to tokenize")
 	.action((input, _options, command) => {
-		const { output } = command.optsWithGlobals() as { output?: string };
-		void build(input, { output: resolveOutputChannel("build", output) });
+		void build(input, {});
 	});
 
 program

@@ -1,6 +1,10 @@
-- better customization in init script 
-- add more examples to the README
-- no tokens build scenario 
+* prompt within tui builder
+* display agent and model used in tui
+* dont configure output format for 'build', instead make it a leader based action
+* support building a new command from history
+* scute loading indicator (low priority)
+* are the e2e tests something that can run and assert correctness manually?
+* insert mode color should be configurable
 
 
 you are an expert code reviewer and software developer.

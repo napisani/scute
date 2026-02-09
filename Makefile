@@ -30,7 +30,7 @@ test-evals: install
 
 # PTY E2E tests (require python3 and API credentials)
 test-pty:
-	python3 scripts/agent/run-all
+	scripts/agent/run-all
 
 # Run single PTY scenario (usage: make test-pty-one SCENARIO=suggest-stdout)
 test-pty-one:
@@ -40,7 +40,7 @@ test-pty-one:
 		ls -1 scripts/agent/scenarios/*.json | xargs -n1 basename -s .json; \
 		exit 1; \
 	fi
-	python3 scripts/agent/run-one $(SCENARIO)
+	scripts/agent/run-one $(SCENARIO)
 
 lint: install
 	$(BUN) run lint

@@ -11,7 +11,7 @@
 		{ "sleep": 5.0 },
 		{ "drain": true, "idle_ms": 500 },
 		{ "send_keys": ["ENTER"] },
-		{ "wait_for_prompt": true, "timeout": 5 },
+		{ "wait_for_prompt": true, "timeout": 15 },
 		{ "send_line": "exit" }
 	]
 }

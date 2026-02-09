@@ -108,7 +108,7 @@ describe("config overlay logic", () => {
 						baseUrl: "https://custom.openai.com",
 					},
 				],
-				keybindings: {
+				normalKeybindings: {
 					up: ["up"],
 					down: ["down"],
 					left: ["left", "h"],
@@ -120,14 +120,22 @@ describe("config overlay logic", () => {
 					firstToken: ["g"],
 					lastToken: ["G"],
 					appendLine: ["A"],
-					explain: ["e"],
-					toggleView: ["m"],
 					insert: ["i"],
 					append: ["a"],
 					change: ["c"],
 					exitInsert: ["escape"],
 					save: ["return"],
 				},
+				leaderKeybindings: {
+					explain: ["e"],
+					toggleView: ["m"],
+					quit: ["q"],
+					outputClipboard: ["y"],
+					outputReadline: ["r"],
+					outputStdout: ["return"],
+					outputPrompt: ["p"],
+				},
+				leaderKey: ["space"],
 				shellKeybindings: {
 					explain: "Ctrl+E",
 					build: "Ctrl+G",
@@ -286,7 +294,7 @@ describe("config overlay logic", () => {
 						baseUrl: "https://api.openai.com",
 					},
 				],
-				keybindings: {
+				normalKeybindings: {
 					up: ["up"],
 					down: ["down"],
 					left: ["left", "h"],
@@ -298,14 +306,22 @@ describe("config overlay logic", () => {
 					firstToken: ["g"],
 					lastToken: ["G"],
 					appendLine: ["A"],
-					explain: ["e"],
-					toggleView: ["m"],
 					insert: ["i"],
 					append: ["a"],
 					change: ["c"],
 					exitInsert: ["escape"],
 					save: ["return"],
 				},
+				leaderKeybindings: {
+					explain: ["e"],
+					toggleView: ["m"],
+					quit: ["q"],
+					outputClipboard: ["y"],
+					outputReadline: ["r"],
+					outputStdout: ["return"],
+					outputPrompt: ["p"],
+				},
+				leaderKey: ["space"],
 				shellKeybindings: {
 					explain: "Ctrl+E",
 					build: "Ctrl+G",
@@ -430,7 +446,9 @@ describe("config overlay logic", () => {
 			const snapshot = getConfigSnapshot();
 
 			expect(snapshot.providers).toEqual([]);
-			expect(snapshot.keybindings).toBeDefined();
+			expect(snapshot.normalKeybindings).toBeDefined();
+			expect(snapshot.leaderKeybindings).toBeDefined();
+			expect(snapshot.leaderKey).toBeDefined();
 			expect(snapshot.theme).toBeDefined();
 			expect(snapshot.prompts).toBeDefined();
 
@@ -441,7 +459,7 @@ describe("config overlay logic", () => {
 			const baseConfig: Config = {
 				viewMode: "horizontal",
 				providers: [],
-				keybindings: {
+				normalKeybindings: {
 					up: ["k"],
 					down: ["j"],
 					left: ["h"],
@@ -453,14 +471,22 @@ describe("config overlay logic", () => {
 					firstToken: ["g"],
 					lastToken: ["G"],
 					appendLine: ["A"],
-					explain: ["e"],
-					toggleView: ["m"],
 					insert: ["i"],
 					append: ["a"],
 					change: ["c"],
 					exitInsert: ["escape"],
 					save: ["return"],
 				},
+				leaderKeybindings: {
+					explain: ["e"],
+					toggleView: ["m"],
+					quit: ["q"],
+					outputClipboard: ["y"],
+					outputReadline: ["r"],
+					outputStdout: ["return"],
+					outputPrompt: ["p"],
+				},
+				leaderKey: ["space"],
 				shellKeybindings: {
 					explain: "Ctrl+E",
 					build: "Ctrl+G",
@@ -524,9 +550,9 @@ describe("config overlay logic", () => {
 			const snapshot = getConfigSnapshot();
 
 			// Keybindings should be preserved
-			const keybindings = snapshot.keybindings;
-			expect(keybindings.up).toEqual(["k"]);
-			expect(keybindings.down).toEqual(["j"]);
+			const normalKeybindings = snapshot.normalKeybindings;
+			expect(normalKeybindings.up).toEqual(["k"]);
+			expect(normalKeybindings.down).toEqual(["j"]);
 
 			// Theme should be preserved
 			const theme = snapshot.theme;
@@ -548,7 +574,7 @@ describe("config overlay logic", () => {
 						// No baseUrl provided
 					},
 				],
-				keybindings: {
+				normalKeybindings: {
 					up: ["up"],
 					down: ["down"],
 					left: ["left", "h"],
@@ -560,14 +586,22 @@ describe("config overlay logic", () => {
 					firstToken: ["g"],
 					lastToken: ["G"],
 					appendLine: ["A"],
-					explain: ["e"],
-					toggleView: ["m"],
 					insert: ["i"],
 					append: ["a"],
 					change: ["c"],
 					exitInsert: ["escape"],
 					save: ["return"],
 				},
+				leaderKeybindings: {
+					explain: ["e"],
+					toggleView: ["m"],
+					quit: ["q"],
+					outputClipboard: ["y"],
+					outputReadline: ["r"],
+					outputStdout: ["return"],
+					outputPrompt: ["p"],
+				},
+				leaderKey: ["space"],
 				shellKeybindings: {
 					explain: "Ctrl+E",
 					build: "Ctrl+G",
@@ -648,7 +682,7 @@ describe("config overlay logic", () => {
 						baseUrl: "http://old-url:11434",
 					},
 				],
-				keybindings: {
+				normalKeybindings: {
 					up: ["up"],
 					down: ["down"],
 					left: ["left", "h"],
@@ -660,14 +694,22 @@ describe("config overlay logic", () => {
 					firstToken: ["g"],
 					lastToken: ["G"],
 					appendLine: ["A"],
-					explain: ["e"],
-					toggleView: ["m"],
 					insert: ["i"],
 					append: ["a"],
 					change: ["c"],
 					exitInsert: ["escape"],
 					save: ["return"],
 				},
+				leaderKeybindings: {
+					explain: ["e"],
+					toggleView: ["m"],
+					quit: ["q"],
+					outputClipboard: ["y"],
+					outputReadline: ["r"],
+					outputStdout: ["return"],
+					outputPrompt: ["p"],
+				},
+				leaderKey: ["space"],
 				shellKeybindings: {
 					explain: "Ctrl+E",
 					build: "Ctrl+G",

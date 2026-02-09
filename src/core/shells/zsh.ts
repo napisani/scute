@@ -31,7 +31,7 @@ _scute_explain() {
 }
 
 _scute_build() {
-    "$SCUTE_BIN" build --output clipboard "$BUFFER"
+    "$SCUTE_BIN" build "$BUFFER"
     zle redisplay
 }
 

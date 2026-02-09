@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { act, renderHook } from "@testing-library/react";
 import { JSDOM } from "jsdom";
+import type { OutputChannel } from "../../src/core/output";
 import type { ParsedToken } from "../../src/core/shells/common";
 import type { KeyboardHandler, KeyboardKey } from "../../src/hooks/useVimMode";
 
@@ -39,6 +40,10 @@ const simulateType = (text: string) => {
 	}
 };
 
+const pressLeader = () => {
+	simulateKey("space", " ");
+};
+
 const resetMockKeyboard = () => {
 	latestHandlers = [];
 };
@@ -60,6 +65,7 @@ describe("useVimMode", () => {
 		tokens?: ParsedToken[];
 		loadDescriptions?: () => void;
 		onTokenEdit?: (tokenIndex: number, newValue: string) => void;
+		onOutputSelected?: (channel: OutputChannel | null) => void;
 		useKeyboard?: (handler: KeyboardHandler) => void;
 	}
 
@@ -67,6 +73,7 @@ describe("useVimMode", () => {
 		tokens = mockTokens,
 		loadDescriptions = () => {},
 		onTokenEdit,
+		onOutputSelected,
 		useKeyboard = mockUseKeyboard,
 	}: RenderVimModeOptions = {}) {
 		return renderHook(() =>
@@ -74,6 +81,7 @@ describe("useVimMode", () => {
 				parsedTokens: tokens,
 				loadDescriptions,
 				onTokenEdit,
+				onOutputSelected,
 				useKeyboard,
 			}),
 		);
@@ -97,7 +105,10 @@ describe("useVimMode", () => {
 			});
 
 			act(() => {
-				simulateKey("m");
+				pressLeader();
+			});
+			act(() => {
+				simulateKey("m", "m");
 			});
 			act(() => {
 				simulateKey("j");
@@ -117,7 +128,10 @@ describe("useVimMode", () => {
 			});
 
 			act(() => {
-				simulateKey("m");
+				pressLeader();
+			});
+			act(() => {
+				simulateKey("m", "m");
 			});
 			act(() => {
 				simulateKey("k");
@@ -137,7 +151,7 @@ describe("useVimMode", () => {
 	});
 
 	describe("view mode toggle", () => {
-		it("toggles view mode with m key", () => {
+		it("does not toggle view mode without leader", () => {
 			const mockLoadDescriptions = () => {};
 			const { result } = renderVimMode({
 				loadDescriptions: mockLoadDescriptions,
@@ -146,7 +160,24 @@ describe("useVimMode", () => {
 			expect(result.current.viewMode).toBe("annotated");
 
 			act(() => {
-				simulateKey("m");
+				simulateKey("m", "m");
+			});
+			expect(result.current.viewMode).toBe("annotated");
+		});
+
+		it("toggles view mode with leader+m", () => {
+			const mockLoadDescriptions = () => {};
+			const { result } = renderVimMode({
+				loadDescriptions: mockLoadDescriptions,
+			});
+
+			expect(result.current.viewMode).toBe("annotated");
+
+			act(() => {
+				pressLeader();
+			});
+			act(() => {
+				simulateKey("m", "m");
 			});
 			expect(result.current.viewMode).toBe("list");
 		});
@@ -576,7 +607,10 @@ describe("useVimMode", () => {
 			expect(result.current.viewMode).toBe("annotated");
 
 			act(() => {
-				simulateKey("m");
+				pressLeader();
+			});
+			act(() => {
+				simulateKey("m", "m");
 			});
 
 			expect(result.current.viewMode).toBe("list");
@@ -608,7 +642,7 @@ describe("useVimMode", () => {
 	});
 
 	describe("explain command", () => {
-		it("calls loadDescriptions when e key is pressed", () => {
+		it("does not call loadDescriptions without leader", () => {
 			let wasCalled = false;
 			const loadDescriptions = () => {
 				wasCalled = true;
@@ -619,10 +653,187 @@ describe("useVimMode", () => {
 			});
 
 			act(() => {
-				simulateKey("e");
+				simulateKey("e", "e");
+			});
+
+			expect(wasCalled).toBe(false);
+		});
+
+		it("calls loadDescriptions when leader+e is pressed", () => {
+			let wasCalled = false;
+			const loadDescriptions = () => {
+				wasCalled = true;
+			};
+
+			renderVimMode({
+				loadDescriptions,
+			});
+
+			act(() => {
+				pressLeader();
+			});
+			act(() => {
+				simulateKey("e", "e");
 			});
 
 			expect(wasCalled).toBe(true);
+		});
+	});
+
+	describe("leader mode", () => {
+		it("cancels on escape", () => {
+			const mockLoadDescriptions = () => {};
+			const { result } = renderVimMode({
+				loadDescriptions: mockLoadDescriptions,
+			});
+
+			act(() => {
+				pressLeader();
+			});
+			act(() => {
+				simulateKey("escape");
+			});
+
+			expect(result.current.leaderActive).toBe(false);
+		});
+
+		it("cancels on unrelated key", () => {
+			const mockLoadDescriptions = () => {};
+			const { result } = renderVimMode({
+				loadDescriptions: mockLoadDescriptions,
+			});
+
+			act(() => {
+				pressLeader();
+			});
+			act(() => {
+				simulateKey("x", "x");
+			});
+
+			expect(result.current.leaderActive).toBe(false);
+		});
+
+		it("does not trigger in insert mode", () => {
+			const mockLoadDescriptions = () => {};
+			const { result } = renderVimMode({
+				loadDescriptions: mockLoadDescriptions,
+			});
+
+			act(() => {
+				simulateKey("i", "i");
+			});
+			act(() => {
+				pressLeader();
+			});
+
+			expect(result.current.mode).toBe("insert");
+		});
+	});
+
+	describe("leader output", () => {
+		it("does not emit output without leader", () => {
+			let selected: OutputChannel | null | undefined;
+			renderVimMode({
+				onOutputSelected: (channel) => {
+					selected = channel;
+				},
+			});
+
+			act(() => {
+				simulateKey("enter", "\r");
+			});
+
+			expect(selected).toBeUndefined();
+		});
+
+		it("emits output selection when leader+enter is pressed", () => {
+			let selected: OutputChannel | null | undefined;
+			renderVimMode({
+				onOutputSelected: (channel) => {
+					selected = channel;
+				},
+			});
+
+			act(() => {
+				pressLeader();
+			});
+			act(() => {
+				simulateKey("enter", "\r");
+			});
+
+			expect(selected).toBe("stdout");
+		});
+
+		it("emits quit selection when leader+q is pressed", () => {
+			let selected: OutputChannel | null | undefined;
+			renderVimMode({
+				onOutputSelected: (channel) => {
+					selected = channel;
+				},
+			});
+
+			act(() => {
+				pressLeader();
+			});
+			act(() => {
+				simulateKey("q", "q");
+			});
+
+			expect(selected).toBeNull();
+		});
+
+		it("emits clipboard selection when leader+y is pressed", () => {
+			let selected: OutputChannel | null | undefined;
+			renderVimMode({
+				onOutputSelected: (channel) => {
+					selected = channel;
+				},
+			});
+
+			act(() => {
+				pressLeader();
+			});
+			act(() => {
+				simulateKey("y", "y");
+			});
+
+			expect(selected).toBe("clipboard");
+		});
+
+		it("emits readline selection when leader+r is pressed", () => {
+			let selected: OutputChannel | null | undefined;
+			renderVimMode({
+				onOutputSelected: (channel) => {
+					selected = channel;
+				},
+			});
+
+			act(() => {
+				pressLeader();
+			});
+			act(() => {
+				simulateKey("r", "r");
+			});
+
+			expect(selected).toBe("readline");
+		});
+
+		it("emits prompt selection when leader+p is pressed", () => {
+			let selected: OutputChannel | null | undefined;
+			renderVimMode({
+				onOutputSelected: (channel) => {
+					selected = channel;
+				},
+			});
+
+			act(() => {
+				pressLeader();
+			});
+			act(() => {
+				simulateKey("p", "p");
+			});
+
+			expect(selected).toBe("prompt");
 		});
 	});
 

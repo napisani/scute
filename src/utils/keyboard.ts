@@ -19,6 +19,9 @@ export function normalizeKeyId(key: KeyboardKey): string {
 	if (sequence === "\r" || sequence === "\n") {
 		return "return";
 	}
+	if (sequence === " ") {
+		return "space";
+	}
 	if (sequence) {
 		return sequence;
 	}

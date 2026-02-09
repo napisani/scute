@@ -112,7 +112,7 @@ export function getConfigSnapshot(): Config {
 	return structuredClone(config);
 }
 
-export type KeybindingAction =
+export type NormalKeybindingAction =
 	| "up"
 	| "down"
 	| "left"
@@ -124,15 +124,22 @@ export type KeybindingAction =
 	| "firstToken"
 	| "lastToken"
 	| "appendLine"
-	| "explain"
-	| "toggleView"
 	| "insert"
 	| "append"
 	| "change"
 	| "exitInsert"
 	| "save";
 
-const defaultKeybindings: Record<KeybindingAction, string[]> = {
+export type LeaderKeybindingAction =
+	| "explain"
+	| "toggleView"
+	| "quit"
+	| "outputClipboard"
+	| "outputReadline"
+	| "outputStdout"
+	| "outputPrompt";
+
+const defaultNormalKeybindings: Record<NormalKeybindingAction, string[]> = {
 	up: ["up"],
 	down: ["down"],
 	left: ["left", "h"],
@@ -144,13 +151,21 @@ const defaultKeybindings: Record<KeybindingAction, string[]> = {
 	firstToken: ["g"],
 	lastToken: ["G"],
 	appendLine: ["A"],
-	explain: ["e"],
-	toggleView: ["m"],
 	insert: ["i"],
 	append: ["a"],
 	change: ["c"],
 	exitInsert: ["escape"],
 	save: ["return"],
+};
+
+const defaultLeaderKeybindings: Record<LeaderKeybindingAction, string[]> = {
+	explain: ["e"],
+	toggleView: ["m"],
+	quit: ["q"],
+	outputClipboard: ["y"],
+	outputReadline: ["r"],
+	outputStdout: ["return"],
+	outputPrompt: ["p"],
 };
 
 const defaultTokenColors: Record<TokenType, string> = {
@@ -177,9 +192,23 @@ const defaultShellKeybindings: Record<ShellKeybindingAction, string[]> = {
 	generate: [],
 };
 
-export function getKeybindings(action: KeybindingAction): string[] {
-	const configured = config.keybindings?.[action];
-	return configured?.length ? [...configured] : [...defaultKeybindings[action]];
+export function getNormalKeybindings(action: NormalKeybindingAction): string[] {
+	const configured = config.normalKeybindings?.[action];
+	return configured?.length
+		? [...configured]
+		: [...defaultNormalKeybindings[action]];
+}
+
+export function getLeaderKeybindings(action: LeaderKeybindingAction): string[] {
+	const configured = config.leaderKeybindings?.[action];
+	return configured?.length
+		? [...configured]
+		: [...defaultLeaderKeybindings[action]];
+}
+
+export function getLeaderKey(): string[] {
+	const configured = config.leaderKey;
+	return configured?.length ? [...configured] : ["space"];
 }
 
 export function getTokenColor(tokenType: TokenType): string {

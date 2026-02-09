@@ -1,6 +1,6 @@
 import type { MutableRefObject } from "react";
 import { useMemo, useState } from "react";
-import { getKeybindings } from "../config";
+import { getNormalKeybindings } from "../config";
 import { logTrace } from "../core/logger";
 import type { ParsedToken } from "../core/shells/common";
 import {
@@ -18,12 +18,12 @@ export interface UseNormalModeOptions {
 	setSelectedIndex: (index: number) => void;
 	viewMode: ViewMode;
 	setViewMode: (mode: ViewMode) => void;
+	handleLeaderKey: (key: KeyboardKey) => boolean;
 	enterInsertMode: (
 		tokenIndex: number,
 		cursorPos: number,
 		clearToken?: boolean,
 	) => void;
-	loadDescriptions: () => void;
 	onSubmit?: () => void;
 	skipNextInsertCharRef: MutableRefObject<boolean>;
 	insertTriggerRef: MutableRefObject<string | null>;
@@ -37,41 +37,49 @@ export function useNormalMode({
 	setSelectedIndex,
 	viewMode,
 	setViewMode,
+	handleLeaderKey,
 	enterInsertMode,
-	loadDescriptions,
 	onSubmit,
 	skipNextInsertCharRef,
 	insertTriggerRef,
 	useKeyboard,
 }: UseNormalModeOptions): void {
 	// Keybindings
-	const upKeys = useMemo(() => getKeybindings("up"), []);
-	const downKeys = useMemo(() => getKeybindings("down"), []);
-	const leftKeys = useMemo(() => getKeybindings("left"), []);
-	const rightKeys = useMemo(() => getKeybindings("right"), []);
-	const wordForwardKeys = useMemo(() => getKeybindings("wordForward"), []);
-	const wordBackwardKeys = useMemo(() => getKeybindings("wordBackward"), []);
-	const lineStartKeys = useMemo(() => getKeybindings("lineStart"), []);
-	const lineEndKeys = useMemo(() => getKeybindings("lineEnd"), []);
-	const lastTokenKeys = useMemo(() => getKeybindings("lastToken"), []);
-	const appendLineKeys = useMemo(() => getKeybindings("appendLine"), []);
-	const toggleViewKeys = useMemo(() => getKeybindings("toggleView"), []);
-	const explainKeys = useMemo(() => getKeybindings("explain"), []);
-	const insertKeys = useMemo(() => getKeybindings("insert"), []);
-	const appendKeys = useMemo(() => getKeybindings("append"), []);
-	const changeKeys = useMemo(() => getKeybindings("change"), []);
-	const saveKeys = useMemo(() => getKeybindings("save"), []);
+	const upKeys = useMemo(() => getNormalKeybindings("up"), []);
+	const downKeys = useMemo(() => getNormalKeybindings("down"), []);
+	const leftKeys = useMemo(() => getNormalKeybindings("left"), []);
+	const rightKeys = useMemo(() => getNormalKeybindings("right"), []);
+	const wordForwardKeys = useMemo(
+		() => getNormalKeybindings("wordForward"),
+		[],
+	);
+	const wordBackwardKeys = useMemo(
+		() => getNormalKeybindings("wordBackward"),
+		[],
+	);
+	const lineStartKeys = useMemo(() => getNormalKeybindings("lineStart"), []);
+	const lineEndKeys = useMemo(() => getNormalKeybindings("lineEnd"), []);
+	const lastTokenKeys = useMemo(() => getNormalKeybindings("lastToken"), []);
+	const appendLineKeys = useMemo(() => getNormalKeybindings("appendLine"), []);
+	const insertKeys = useMemo(() => getNormalKeybindings("insert"), []);
+	const appendKeys = useMemo(() => getNormalKeybindings("append"), []);
+	const changeKeys = useMemo(() => getNormalKeybindings("change"), []);
+	const saveKeys = useMemo(() => getNormalKeybindings("save"), []);
 
 	// Track 'g' key for "gg" command
 	const [gPressed, setGPressed] = useState(false);
 
 	useKeyboard((key: KeyboardKey) => {
 		if (modeRef.current !== "normal") return;
-		if (hasModifierKey(key)) return;
 
 		const keyId = normalizeKeyId(key);
-		const currentViewMode = viewMode;
 		const currentSelectedIndex = selectedIndex;
+
+		if (handleLeaderKey(key)) {
+			return;
+		}
+
+		if (hasModifierKey(key)) return;
 
 		// Shared moveSelection helper (deduplicated from both branches)
 		const moveSelection = (nextIndex: number) => {
@@ -93,23 +101,7 @@ export function useNormalMode({
 			return;
 		}
 
-		if (toggleViewKeys.includes(keyId)) {
-			const nextMode = currentViewMode === "list" ? "annotated" : "list";
-			logTrace("vim:toggleView", {
-				from: currentViewMode,
-				to: nextMode,
-			});
-			setViewMode(nextMode);
-			return;
-		}
-
-		if (explainKeys.includes(keyId)) {
-			logTrace("vim:loadDescriptions", {});
-			loadDescriptions();
-			return;
-		}
-
-		if (currentViewMode === "annotated" && appendLineKeys.includes(keyId)) {
+		if (viewMode === "annotated" && appendLineKeys.includes(keyId)) {
 			const lastIndex = parsedTokens.length - 1;
 			if (lastIndex < 0) return;
 			logTrace("vim:appendLine", {
@@ -151,7 +143,7 @@ export function useNormalMode({
 			return;
 		}
 
-		if (currentViewMode === "annotated") {
+		if (viewMode === "annotated") {
 			if (leftKeys.includes(keyId)) {
 				moveSelection(currentSelectedIndex - 1);
 				return;

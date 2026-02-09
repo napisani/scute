@@ -7,7 +7,7 @@
 		{ "wait_for_prompt": true },
 		{ "clear_buffer": true },
 		{
-			"send_line": "{scute_bin} --config {config} suggest \"git sta\" --output stdout"
+			"send_line": "{scute_bin} --config {config} --output stdout suggest \"git sta\""
 		},
 		{ "wait_for_prompt": true, "timeout": 15 },
 		{ "assert_output_contains": "git" },

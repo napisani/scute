@@ -2,9 +2,11 @@ import { useKeyboard as useOpenTuiKeyboard } from "@opentui/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getInitialViewMode } from "../config";
 import { logTrace } from "../core/logger";
+import type { OutputChannel } from "../core/output";
 import type { ParsedToken } from "../core/shells/common";
 import type { KeyboardHandler, KeyboardKey } from "../utils/keyboard";
 import { useInsertMode } from "./useInsertMode";
+import { useLeaderMode } from "./useLeaderMode";
 import { useNormalMode } from "./useNormalMode";
 
 export type ViewMode = "list" | "annotated";
@@ -17,6 +19,7 @@ export interface VimModeState {
 	mode: VimMode;
 	selectedIndex: number;
 	viewMode: ViewMode;
+	leaderActive: boolean;
 	editingTokenIndex: number | null;
 	editingValue: string;
 	cursorPosition: number;
@@ -46,6 +49,7 @@ export interface UseVimModeOptions {
 	loadDescriptions: () => void;
 	onTokenEdit?: (tokenIndex: number, newValue: string) => void;
 	onSubmit?: () => void;
+	onOutputSelected?: (channel: OutputChannel | null) => void;
 	useKeyboard?: (handler: KeyboardHandler) => void;
 }
 
@@ -55,6 +59,7 @@ export function useVimMode({
 	loadDescriptions,
 	onTokenEdit,
 	onSubmit,
+	onOutputSelected,
 	useKeyboard = useOpenTuiKeyboard,
 }: UseVimModeOptions): VimModeState & VimModeActions {
 	// Shared state
@@ -63,6 +68,12 @@ export function useVimMode({
 	modeRef.current = mode;
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const [viewMode, setViewMode] = useState<ViewMode>(getInitialViewMode);
+	const { leaderActive, handleLeaderKey, resetLeader } = useLeaderMode({
+		viewMode,
+		setViewMode,
+		loadDescriptions,
+		onOutputSelected,
+	});
 	const [editingTokenIndex, setEditingTokenIndex] = useState<number | null>(
 		null,
 	);
@@ -88,9 +99,10 @@ export function useVimMode({
 		setSelectedIndex(0);
 		setEditingTokenIndex(null);
 		setEditorState({ value: "", cursor: 0 });
+		resetLeader();
 		skipNextInsertCharRef.current = false;
 		insertTriggerRef.current = null;
-	}, [parsedTokensKey, parsedTokens.length]);
+	}, [parsedTokensKey, parsedTokens.length, resetLeader]);
 
 	// Shared actions
 	const enterInsertMode = useCallback(
@@ -166,8 +178,8 @@ export function useVimMode({
 		setSelectedIndex,
 		viewMode,
 		setViewMode,
+		handleLeaderKey,
 		enterInsertMode,
-		loadDescriptions,
 		onSubmit,
 		skipNextInsertCharRef,
 		insertTriggerRef,
@@ -190,6 +202,7 @@ export function useVimMode({
 		mode,
 		selectedIndex,
 		viewMode,
+		leaderActive,
 		editingTokenIndex,
 		editingValue: editorState.value,
 		cursorPosition: editorState.cursor,

@@ -32,7 +32,7 @@ _scute_explain() {
 
 # Build current command (clipboard output)
 _scute_build() {
-    "$SCUTE_BIN" build --output clipboard "$READLINE_LINE"
+    "$SCUTE_BIN" build "$READLINE_LINE"
 }
 
 # Suggest replacement for current line

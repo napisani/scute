@@ -1,4 +1,4 @@
-clipboardCommand: "cat > /tmp/scute-clipboard.txt"
+clipboardCommand: "/bin/cat > /tmp/scute-clipboard.txt"
 
 promptDefaults:
   provider: openai
