@@ -1,18 +1,18 @@
 class Scute < Formula
   desc "AI-powered shell assistant"
   homepage "https://github.com/napisani/scute"
-  version "0.0.9"
+  version "0.0.10"
   license "MIT"
   license "MIT"
 
   on_macos do
     url "https://github.com/napisani/scute/releases/download/v#{version}/scute-v#{version}-macos-arm64.tar.gz"
-    sha256 "43629f087b248f510478f2f27a5b08ad1fc7cc31236bd73da5281f841a07b141"
+    sha256 "37069a43bdb57b01724f7148826ce1a470ceab2d0538f13c6e2530d2b030026b"
   end
 
   on_linux do
     url "https://github.com/napisani/scute/releases/download/v#{version}/scute-v#{version}-linux-x86_64.tar.gz"
-    sha256 "18a360723bf2725f4935536c4cd6ef6314faae922c80d85062d93705cd3e6a6d"
+    sha256 "400682da0dac9d987492ba76796bb105006e8e02e4b446534eab65365eed8142"
   end
 
   def install
