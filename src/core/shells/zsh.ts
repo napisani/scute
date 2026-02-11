@@ -26,7 +26,7 @@ if [ -z "\${SCUTE_BIN:-}" ]; then
 fi
 
 _scute_explain() {
-    "$SCUTE_BIN" explain "$BUFFER" "$CURSOR" --output prompt
+    "$SCUTE_BIN" explain "$BUFFER" "$CURSOR"
     zle redisplay
 }
 
@@ -37,19 +37,30 @@ _scute_build() {
 
 _scute_suggest() {
     local COMPLETED_COMMAND
-    COMPLETED_COMMAND="$("$SCUTE_BIN" suggest "$BUFFER" --output readline)"
+    COMPLETED_COMMAND="$("$SCUTE_BIN" suggest "$BUFFER")"
     BUFFER="$COMPLETED_COMMAND"
     CURSOR=\${#BUFFER}
     zle redisplay
 }
 
 _scute_generate() {
-    "$SCUTE_BIN" generate --output readline
+    local COMPLETED_COMMAND
+    COMPLETED_COMMAND="$("$SCUTE_BIN" generate)"
+    BUFFER="$COMPLETED_COMMAND"
+    CURSOR=\${#BUFFER}
     zle redisplay
 }
 
 _scute_choose() {
-    "$SCUTE_BIN" choose "$BUFFER" "$CURSOR" --output stdout
+    local RESULT
+    RESULT="$("$SCUTE_BIN" choose "$BUFFER" "$CURSOR")"
+    local RC=$?
+    if [ $RC -eq 10 ]; then
+        "$SCUTE_BIN" build "$BUFFER"
+    elif [ -n "$RESULT" ]; then
+        BUFFER="$RESULT"
+        CURSOR=\${#BUFFER}
+    fi
     zle redisplay
 }
 
@@ -115,11 +126,6 @@ function getZshInitScript(bindings: ShellKeybindings): string {
 	return `${ZSH_HELPERS}${renderZshKeybindings(bindings)}`;
 }
 
-function normalizeReadlineText(text: string): string {
-	// Remove trailing newlines (both \n and \r\n) and whitespace
-	return text.replace(/\r?\n+$/, "").trimEnd();
-}
-
 export const zshShellHelper: ShellHelper = {
 	shell: "zsh",
 	tokenizeInput: tokenizeWithShellQuote,
@@ -129,16 +135,4 @@ export const zshShellHelper: ShellHelper = {
 		return getReadlineLine() ?? null;
 	},
 	getInitScript: (bindings) => getZshInitScript(bindings),
-	outputToReadline: (text: string): void => {
-		// Zsh uses BUFFER for the current input line
-		// Use ANSI sequences to clear the current line and replace it
-		const normalizedText = normalizeReadlineText(text);
-		if (!process.stdout.isTTY) {
-			process.stdout.write(normalizedText);
-			return;
-		}
-		const clearLine = "\x1b[2K"; // Clear entire line
-		const carriageReturn = "\r"; // Move cursor to beginning of line
-		process.stdout.write(`${carriageReturn}${clearLine}${normalizedText}`);
-	},
 };

@@ -2,7 +2,6 @@ import { useKeyboard as useOpenTuiKeyboard } from "@opentui/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getInitialViewMode } from "../config";
 import { logTrace } from "../core/logger";
-import type { OutputChannel } from "../core/output";
 import type { ParsedToken } from "../core/shells/common";
 import type { KeyboardHandler, KeyboardKey } from "../utils/keyboard";
 import { useInsertMode } from "./useInsertMode";
@@ -49,7 +48,7 @@ export interface UseVimModeOptions {
 	loadDescriptions: () => void;
 	onTokenEdit?: (tokenIndex: number, newValue: string) => void;
 	onSubmit?: () => void;
-	onOutputSelected?: (channel: OutputChannel | null) => void;
+	onExit?: (submitted: boolean) => void;
 	useKeyboard?: (handler: KeyboardHandler) => void;
 }
 
@@ -59,7 +58,7 @@ export function useVimMode({
 	loadDescriptions,
 	onTokenEdit,
 	onSubmit,
-	onOutputSelected,
+	onExit,
 	useKeyboard = useOpenTuiKeyboard,
 }: UseVimModeOptions): VimModeState & VimModeActions {
 	// Shared state
@@ -72,7 +71,7 @@ export function useVimMode({
 		viewMode,
 		setViewMode,
 		loadDescriptions,
-		onOutputSelected,
+		onExit,
 	});
 	const [editingTokenIndex, setEditingTokenIndex] = useState<number | null>(
 		null,

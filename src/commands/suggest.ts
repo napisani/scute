@@ -1,17 +1,13 @@
 // src/commands/suggest.ts
 import { suggest as suggestCommand } from "../core";
 import { logDebug } from "../core/logger";
-import { emitOutput, type OutputChannel } from "../core/output";
+import { emitOutput } from "../core/output";
 
 /**
  * Handles the 'suggest' command by calling the AI service.
  * @param line The current text from the READLINE_LINE environment variable.
  */
-export interface SuggestOptions {
-	output: OutputChannel;
-}
-
-export async function suggest(line: string, { output }: SuggestOptions) {
+export async function suggest(line: string) {
 	logDebug(`command:suggest line="${line}"`);
 	const suggestion = await suggestCommand(line);
 	if (suggestion === null) {
@@ -19,8 +15,5 @@ export async function suggest(line: string, { output }: SuggestOptions) {
 		return;
 	}
 	logDebug(`command:suggest result="${suggestion}"`);
-	emitOutput({
-		channel: output,
-		text: suggestion,
-	});
+	emitOutput(suggestion);
 }

@@ -1,38 +1,16 @@
 import { spawnSync } from "node:child_process";
-import os from "node:os";
-import chalk from "chalk";
 import { getConfigSnapshot } from "../config";
 import { logDebug } from "./logger";
-import { outputToReadline } from "./shells";
 
-export type OutputChannel = "clipboard" | "stdout" | "prompt" | "readline";
-
-export interface EmitOutputOptions {
-	channel: OutputChannel;
-	text: string;
-	promptPrefix?: string;
-}
-
-export function emitOutput({
-	channel,
-	text,
-	promptPrefix,
-}: EmitOutputOptions): void {
-	switch (channel) {
-		case "clipboard":
-			writeToClipboard(text);
-			return;
-		case "prompt":
-			writeToPrompt(text, promptPrefix);
-			return;
-		case "readline":
-			outputToReadline(text);
-			return;
-		case "stdout":
-		default:
-			writeToStdout(text);
-			return;
-	}
+/**
+ * Emit output text.
+ *
+ * Always writes to stdout. If `clipboardCommand` is configured,
+ * also copies the text to the system clipboard.
+ */
+export function emitOutput(text: string): void {
+	writeToStdout(text);
+	copyToClipboard(text);
 }
 
 function writeToStdout(text: string): void {
@@ -40,32 +18,9 @@ function writeToStdout(text: string): void {
 	process.stdout.write(output);
 }
 
-function detectClipboardCommand(): string | null {
-	const platform = os.platform();
-	if (platform === "darwin") return "pbcopy";
-	if (platform === "win32") return "clip.exe";
-	// Linux/WSL — try common clipboard utilities
-	for (const cmd of [
-		"xclip -selection clipboard",
-		"xsel --clipboard --input",
-		"clip.exe",
-	]) {
-		const bin = cmd.split(" ")[0];
-		if (bin && spawnSync("which", [bin], { encoding: "utf8" }).status === 0) {
-			return cmd;
-		}
-	}
-	return null;
-}
-
-function writeToClipboard(text: string): void {
-	const configured = getConfigSnapshot().clipboardCommand;
-	const command = configured ?? detectClipboardCommand();
+function copyToClipboard(text: string): void {
+	const command = getConfigSnapshot().clipboardCommand;
 	if (!command) {
-		logDebug(
-			"No clipboard command found. Set 'clipboardCommand' in config. Falling back to stdout.",
-		);
-		writeToStdout(text);
 		return;
 	}
 	// shell: true is needed to support multi-word commands like "xclip -selection clipboard"
@@ -76,29 +31,8 @@ function writeToClipboard(text: string): void {
 		shell: true,
 	});
 	if (result.error) {
-		writeToStdout(text);
+		logDebug(
+			`Clipboard command "${command}" failed: ${result.error.message}. Output was already written to stdout.`,
+		);
 	}
-}
-
-function writeToPrompt(text: string, prefix?: string): void {
-	const terminalHeight = process.stdout.rows;
-	const hint = prefix ? `${prefix}${text}` : text;
-
-	if (!terminalHeight) {
-		process.stdout.write(`\n${hint}\n`);
-		return;
-	}
-
-	const saveCursor = "\x1b[s";
-	const restoreCursor = "\x1b[u";
-	const moveToBottom = `\x1b[${terminalHeight};1H`;
-	const clearLine = "\x1b[2K";
-	const output = [
-		saveCursor,
-		moveToBottom,
-		clearLine,
-		chalk.gray(hint),
-		restoreCursor,
-	].join("");
-	process.stdout.write(output);
 }

@@ -1,17 +1,10 @@
 // src/commands/generate.ts
 import { generateCommand } from "../core";
 import { logDebug } from "../core/logger";
-import { emitOutput, type OutputChannel } from "../core/output";
+import { emitOutput } from "../core/output";
 import { promptForLine } from "../utils/prompt";
 
-export interface GenerateOptions {
-	output: OutputChannel;
-}
-
-export async function generate(
-	inputParts: string[] = [],
-	{ output }: GenerateOptions,
-): Promise<void> {
+export async function generate(inputParts: string[] = []): Promise<void> {
 	const prompt = await resolvePrompt(inputParts);
 	if (!prompt) {
 		logDebug("command:generate empty prompt");
@@ -23,10 +16,7 @@ export async function generate(
 		logDebug("command:generate result=null");
 		return;
 	}
-	emitOutput({
-		channel: output,
-		text: suggestion,
-	});
+	emitOutput(suggestion);
 	logDebug("command:generate output written");
 }
 

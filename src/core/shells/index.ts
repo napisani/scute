@@ -88,25 +88,6 @@ function hasReadlineLine(): boolean {
 	return !!line && typeof line === "string" && line.length > 0;
 }
 
-function outputToReadline(text: string): void {
-	const shellHelper = getShellHelper();
-	shellHelper.outputToReadline(text);
-}
-
-function restoreReadlineState(line: string, cursor: number | null): void {
-	outputToReadline(line);
-	if (!process.stdout.isTTY) {
-		return;
-	}
-	const safeCursor = Number.isFinite(cursor)
-		? Math.max(0, Math.min(cursor ?? line.length, line.length))
-		: line.length;
-	const moveLeft = line.length - safeCursor;
-	if (moveLeft > 0) {
-		process.stdout.write(`\x1b[${moveLeft}D`);
-	}
-}
-
 export {
 	identifyShell,
 	resetShellCache,
@@ -119,6 +100,4 @@ export {
 	hasReadlineLine,
 	getShellHelperByName,
 	supportedShells,
-	outputToReadline,
-	restoreReadlineState,
 };

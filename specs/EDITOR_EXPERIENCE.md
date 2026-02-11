@@ -56,15 +56,12 @@ Leader keybindings:
 - `toggleView`: `m`
 - `explain`: `e`
 - `quit`: `q`
-- `outputClipboard`: `y`
-- `outputReadline`: `r`
-- `outputStdout`: `return`
-- `outputPrompt`: `p`
+- `submit`: `return`
 
 Notes:
 - `useNormalMode` and `useViewMode` provide fallback defaults for certain actions if config is missing (e.g., `i`, `a`, `c`, `v`), but the canonical defaults come from the config getters.
 - `useVimMode` relies entirely on configured keybindings; it does not provide fallbacks.
-- `explain`, `toggleView`, and output actions are invoked via leader mode (`leaderKey` + keybinding value).
+- `explain`, `toggleView`, `submit`, and `quit` are invoked via leader mode (`leaderKey` + keybinding value).
 - In `useVimMode` normal mode, key matching uses a normalized key ID: `key.sequence` if present, otherwise `key.name`, with single-letter keys uppercased when `shift` is true. This ensures bindings like `G` work even when the event reports `name: "g"` and `shift: true`.
 
 Configuration:
@@ -131,7 +128,7 @@ Behavior:
 - Leader mode:
 - Pressing `leaderKey` arms the next key as a leader sequence.
 - `leaderKey` then `toggleView` or `explain` triggers the respective action.
-- `leaderKey` then output actions (`outputClipboard`, `outputReadline`, `outputStdout`, `outputPrompt`) select an output channel and exit.
+- `leaderKey` then `submit` outputs the command and exits.
 - `leaderKey` then `quit` exits without emitting output.
 - Any other key or `escape` cancels leader mode and returns to normal.
 
@@ -143,9 +140,8 @@ Behavior:
 - `explain` calls `loadDescriptions()`; no other state changes.
 - `explain` is triggered via leader mode (`leaderKey` then `explain`).
 
-### Output selection (build)
-- Output channels are chosen via leader mode (`leaderKey` then output action).
-- `leaderKey` + `outputStdout` submits the command and exits.
+### Submit / Quit (build)
+- `leaderKey` + `submit` outputs the command and exits.
 - `leaderKey` + `quit` exits without emitting output.
 
 ### Insert/Append/Change

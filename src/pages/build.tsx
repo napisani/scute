@@ -3,7 +3,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Footer } from "../components/Footer";
 import { TokenAnnotatedView } from "../components/TokenAnnotatedView";
 import { TokenListView } from "../components/TokenListView";
-import type { OutputChannel } from "../core/output";
+
 import {
 	buildParsedCommand,
 	parseTokens,
@@ -25,10 +25,7 @@ import { calculateTokenPositions } from "../utils/tokenPositions";
 
 type BuildAppProps = {
 	command: string;
-	onOutputSelected?: (
-		nextCommand: string,
-		channel: OutputChannel | null,
-	) => void;
+	onExit?: (nextCommand: string, submitted: boolean) => void;
 };
 
 export interface ApplyTokenEditResult {
@@ -195,7 +192,7 @@ export function applyTokenEdit(
 	};
 }
 
-export function BuildApp({ command, onOutputSelected }: BuildAppProps) {
+export function BuildApp({ command, onExit }: BuildAppProps) {
 	const { parsedCommand, setParsedCommand } = useParsedCommand({ command });
 
 	const parsedTokens = useMemo(
@@ -230,12 +227,12 @@ export function BuildApp({ command, onOutputSelected }: BuildAppProps) {
 		[resetDescriptions, setParsedCommand],
 	);
 
-	const handleOutputSelected = useCallback(
-		(channel: OutputChannel | null) => {
+	const handleExit = useCallback(
+		(submitted: boolean) => {
 			resetDescriptions();
-			onOutputSelected?.(parsedCommand.originalCommand, channel);
+			onExit?.(parsedCommand.originalCommand, submitted);
 		},
-		[onOutputSelected, parsedCommand, resetDescriptions],
+		[onExit, parsedCommand, resetDescriptions],
 	);
 
 	const {
@@ -252,7 +249,7 @@ export function BuildApp({ command, onOutputSelected }: BuildAppProps) {
 		parsedTokens,
 		loadDescriptions,
 		onTokenEdit: handleTokenEdit,
-		onOutputSelected: handleOutputSelected,
+		onExit: handleExit,
 	});
 	const tokenWidths = useTokenWidth({ parsedTokens });
 	const coloredTokens = useColoredTokens({ parsedTokens, selectedIndex });

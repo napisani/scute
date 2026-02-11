@@ -28,10 +28,7 @@ export function Footer({
 	const toggleViewKey = getLeaderKeybindings("toggleView")[0] ?? "m";
 	const explainKey = getLeaderKeybindings("explain")[0] ?? "e";
 	const quitKey = getLeaderKeybindings("quit")[0] ?? "q";
-	const outputClipboardKey = getLeaderKeybindings("outputClipboard")[0] ?? "y";
-	const outputReadlineKey = getLeaderKeybindings("outputReadline")[0] ?? "r";
-	const outputStdoutKey = getLeaderKeybindings("outputStdout")[0] ?? "return";
-	const outputPromptKey = getLeaderKeybindings("outputPrompt")[0] ?? "p";
+	const submitKey = getLeaderKeybindings("submit")[0] ?? "return";
 	const insertKey = getNormalKeybindings("insert")[0] ?? "i";
 	const appendKey = getNormalKeybindings("append")[0] ?? "a";
 	const changeKey = getNormalKeybindings("change")[0] ?? "c";
@@ -54,10 +51,7 @@ export function Footer({
 			return [
 				{ key: toggleViewKey, label: "change view" },
 				{ key: explainKey, label: "explain tokens" },
-				{ key: outputStdoutKey, label: "stdout" },
-				{ key: outputClipboardKey, label: "clipboard" },
-				{ key: outputReadlineKey, label: "readline" },
-				{ key: outputPromptKey, label: "prompt" },
+				{ key: submitKey, label: "submit" },
 				{ key: quitKey, label: "quit" },
 			];
 		}

@@ -1,17 +1,13 @@
 import { getConfigSnapshot } from "../config";
 import { getEnv, SUPPORTED_ENV_VARS } from "../core/environment";
-import { emitOutput, type OutputChannel } from "../core/output";
+import { emitOutput } from "../core/output";
 
 type DebugOutput = {
 	config: ReturnType<typeof getConfigSnapshot>;
 	environment: Record<string, string | undefined>;
 };
 
-export interface ConfigDebugOptions {
-	output: OutputChannel;
-}
-
-export function configDebug({ output }: ConfigDebugOptions): void {
+export function configDebug(): void {
 	const resolvedConfig = getConfigSnapshot();
 	const environment: DebugOutput["environment"] = SUPPORTED_ENV_VARS.reduce(
 		(acc, varName) => {
@@ -26,8 +22,5 @@ export function configDebug({ output }: ConfigDebugOptions): void {
 		environment,
 	};
 
-	emitOutput({
-		channel: output,
-		text: JSON.stringify(payload, null, 2),
-	});
+	emitOutput(JSON.stringify(payload, null, 2));
 }

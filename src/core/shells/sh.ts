@@ -26,7 +26,7 @@ if [ -z "\${SCUTE_BIN:-}" ]; then
 fi
 
 _scute_explain() {
-    "$SCUTE_BIN" explain "$READLINE_LINE" "$READLINE_POINT" --output prompt
+    "$SCUTE_BIN" explain "$READLINE_LINE" "$READLINE_POINT"
 }
 
 _scute_build() {
@@ -35,17 +35,28 @@ _scute_build() {
 
 _scute_suggest() {
     local COMPLETED_COMMAND
-    COMPLETED_COMMAND="$("$SCUTE_BIN" suggest "$READLINE_LINE" --output readline)"
+    COMPLETED_COMMAND="$("$SCUTE_BIN" suggest "$READLINE_LINE")"
     READLINE_LINE="$COMPLETED_COMMAND"
     READLINE_POINT=\${#COMPLETED_COMMAND}
 }
 
 _scute_generate() {
-    "$SCUTE_BIN" generate --output readline
+    local COMPLETED_COMMAND
+    COMPLETED_COMMAND="$("$SCUTE_BIN" generate)"
+    READLINE_LINE="$COMPLETED_COMMAND"
+    READLINE_POINT=\${#COMPLETED_COMMAND}
 }
 
 _scute_choose() {
-    "$SCUTE_BIN" choose "$READLINE_LINE" "$READLINE_POINT" --output stdout
+    local RESULT
+    RESULT="$("$SCUTE_BIN" choose "$READLINE_LINE" "$READLINE_POINT")"
+    local RC=$?
+    if [ $RC -eq 10 ]; then
+        "$SCUTE_BIN" build "$READLINE_LINE"
+    elif [ -n "$RESULT" ]; then
+        READLINE_LINE="$RESULT"
+        READLINE_POINT=\${#RESULT}
+    fi
 }
 
 # --- end scute integration ---
@@ -95,11 +106,6 @@ function getShInitScript(bindings: ShellKeybindings): string {
 	return `${SH_HELPERS}${renderShKeybindings(bindings)}`;
 }
 
-function normalizeReadlineText(text: string): string {
-	// Remove trailing newlines (both \n and \r\n) and whitespace
-	return text.replace(/\r?\n+$/, "").trimEnd();
-}
-
 export const shShellHelper: ShellHelper = {
 	shell: "sh",
 	tokenizeInput: tokenizeWithShellQuote,
@@ -109,16 +115,4 @@ export const shShellHelper: ShellHelper = {
 		return getReadlineLine() ?? null;
 	},
 	getInitScript: (bindings) => getShInitScript(bindings),
-	outputToReadline: (text: string): void => {
-		// Standard sh uses READLINE_LINE (when readline is available)
-		// Use ANSI sequences to clear the current line and replace it
-		const normalizedText = normalizeReadlineText(text);
-		if (!process.stdout.isTTY) {
-			process.stdout.write(normalizedText);
-			return;
-		}
-		const clearLine = "\x1b[2K"; // Clear entire line
-		const carriageReturn = "\r"; // Move cursor to beginning of line
-		process.stdout.write(`${carriageReturn}${clearLine}${normalizedText}`);
-	},
 };

@@ -5,7 +5,6 @@ import path from "node:path";
 import yaml from "js-yaml";
 import { SUPPORTED_PROVIDERS } from "../core/constants";
 import { getEnv, resetEnvGetter, setEnvGetter } from "../core/environment";
-import type { OutputChannel } from "../core/output";
 import type { TokenType } from "../core/shells/common";
 import type {
 	PromptName,
@@ -134,10 +133,7 @@ export type LeaderKeybindingAction =
 	| "explain"
 	| "toggleView"
 	| "quit"
-	| "outputClipboard"
-	| "outputReadline"
-	| "outputStdout"
-	| "outputPrompt";
+	| "submit";
 
 const defaultNormalKeybindings: Record<NormalKeybindingAction, string[]> = {
 	up: ["up"],
@@ -162,10 +158,7 @@ const defaultLeaderKeybindings: Record<LeaderKeybindingAction, string[]> = {
 	explain: ["e"],
 	toggleView: ["m"],
 	quit: ["q"],
-	outputClipboard: ["y"],
-	outputReadline: ["r"],
-	outputStdout: ["return"],
-	outputPrompt: ["p"],
+	submit: ["return"],
 };
 
 const defaultTokenColors: Record<TokenType, string> = {
@@ -228,10 +221,6 @@ export function getPromptConfig(name: PromptName) {
 	const defaults = config.promptDefaults;
 	const overrides = config.prompts[name] as PromptOverridesConfig;
 	return { ...defaults, ...overrides };
-}
-
-export function getPromptOutput(name: PromptName): OutputChannel | undefined {
-	return getPromptConfig(name).output as OutputChannel | undefined;
 }
 
 export function getShellKeybindings(): Record<ShellKeybindingAction, string[]> {

@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { getLeaderKey, getLeaderKeybindings } from "../config";
 import { logTrace } from "../core/logger";
-import type { OutputChannel } from "../core/output";
 import {
 	hasModifierKey,
 	type KeyboardKey,
@@ -13,7 +12,7 @@ export interface UseLeaderModeOptions {
 	viewMode: ViewMode;
 	setViewMode: (mode: ViewMode) => void;
 	loadDescriptions: () => void;
-	onOutputSelected?: (channel: OutputChannel | null) => void;
+	onExit?: (submitted: boolean) => void;
 }
 
 export interface LeaderModeState {
@@ -26,29 +25,14 @@ export function useLeaderMode({
 	viewMode,
 	setViewMode,
 	loadDescriptions,
-	onOutputSelected,
+	onExit,
 }: UseLeaderModeOptions): LeaderModeState {
 	const [leaderActive, setLeaderActive] = useState(false);
 	const leaderKeys = useMemo(() => getLeaderKey(), []);
 	const toggleViewKeys = useMemo(() => getLeaderKeybindings("toggleView"), []);
 	const explainKeys = useMemo(() => getLeaderKeybindings("explain"), []);
 	const quitKeys = useMemo(() => getLeaderKeybindings("quit"), []);
-	const outputClipboardKeys = useMemo(
-		() => getLeaderKeybindings("outputClipboard"),
-		[],
-	);
-	const outputReadlineKeys = useMemo(
-		() => getLeaderKeybindings("outputReadline"),
-		[],
-	);
-	const outputStdoutKeys = useMemo(
-		() => getLeaderKeybindings("outputStdout"),
-		[],
-	);
-	const outputPromptKeys = useMemo(
-		() => getLeaderKeybindings("outputPrompt"),
-		[],
-	);
+	const submitKeys = useMemo(() => getLeaderKeybindings("submit"), []);
 
 	const resetLeader = useCallback(() => {
 		setLeaderActive(false);
@@ -82,23 +66,11 @@ export function useLeaderMode({
 					return true;
 				}
 				if (quitKeys.includes(keyId)) {
-					onOutputSelected?.(null);
+					onExit?.(false);
 					return true;
 				}
-				if (outputClipboardKeys.includes(keyId)) {
-					onOutputSelected?.("clipboard");
-					return true;
-				}
-				if (outputReadlineKeys.includes(keyId)) {
-					onOutputSelected?.("readline");
-					return true;
-				}
-				if (outputStdoutKeys.includes(keyId)) {
-					onOutputSelected?.("stdout");
-					return true;
-				}
-				if (outputPromptKeys.includes(keyId)) {
-					onOutputSelected?.("prompt");
+				if (submitKeys.includes(keyId)) {
+					onExit?.(true);
 					return true;
 				}
 				return true;
@@ -120,11 +92,8 @@ export function useLeaderMode({
 			leaderActive,
 			leaderKeys,
 			loadDescriptions,
-			onOutputSelected,
-			outputClipboardKeys,
-			outputPromptKeys,
-			outputReadlineKeys,
-			outputStdoutKeys,
+			onExit,
+			submitKeys,
 			quitKeys,
 			setViewMode,
 			toggleViewKeys,

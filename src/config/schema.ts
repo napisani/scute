@@ -38,14 +38,6 @@ export const ProviderSchema = z.object({
 
 export type ProviderConfig = z.infer<typeof ProviderSchema>;
 
-const OutputChannelSchema = z.enum([
-	"clipboard",
-	"stdout",
-	"prompt",
-	"readline",
-]);
-export type OutputChannelConfig = z.infer<typeof OutputChannelSchema>;
-
 export const PromptDefaultsSchema = z.object({
 	provider: z.enum(SUPPORTED_PROVIDERS).default(resolvedDefaultProvider),
 	model: z.string().default(resolvedDefaultModel),
@@ -53,7 +45,6 @@ export const PromptDefaultsSchema = z.object({
 	maxTokens: z.number().default(DEFAULT_MAX_TOKENS),
 	userPrompt: z.string().optional(),
 	systemPromptOverride: z.string().optional(),
-	output: OutputChannelSchema.optional(),
 });
 
 export const PromptOverridesSchema = z
@@ -64,7 +55,6 @@ export const PromptOverridesSchema = z
 		maxTokens: z.number().optional(),
 		userPrompt: z.string().optional(),
 		systemPromptOverride: z.string().optional(),
-		output: OutputChannelSchema.optional(),
 	})
 	.default({});
 
@@ -115,19 +105,13 @@ export const LeaderKeybindingsSchema = z
 		explain: z.array(z.string()).default(["e"]),
 		toggleView: z.array(z.string()).default(["m"]),
 		quit: z.array(z.string()).default(["q"]),
-		outputClipboard: z.array(z.string()).default(["y"]),
-		outputReadline: z.array(z.string()).default(["r"]),
-		outputStdout: z.array(z.string()).default(["return"]),
-		outputPrompt: z.array(z.string()).default(["p"]),
+		submit: z.array(z.string()).default(["return"]),
 	})
 	.default({
 		explain: ["e"],
 		toggleView: ["m"],
 		quit: ["q"],
-		outputClipboard: ["y"],
-		outputReadline: ["r"],
-		outputStdout: ["return"],
-		outputPrompt: ["p"],
+		submit: ["return"],
 	});
 
 export const TokenColorsSchema = z

@@ -11,7 +11,7 @@ This skill runs PTY-based smoke scenarios that exercise real shell integration, 
 ## When to Use
 
 - You need to validate shell keybindings (Ctrl+E explain, Alt+G suggest).
-- You need to see prompt/readline output behavior (not just stdout).
+- You need to verify output behavior (stdout and optional clipboard copy).
 - You need to confirm the TUI renders and exits correctly.
 - You need to verify a scute command produces expected output end-to-end.
 
@@ -26,12 +26,15 @@ This skill runs PTY-based smoke scenarios that exercise real shell integration, 
 - PTY runner: `scripts/agent/pty_runner.py`
 - Scenarios (granular, one command each):
   - `scripts/agent/scenarios/suggest-stdout.json` — suggest via CLI, stdout output
-  - `scripts/agent/scenarios/suggest-readline.json` — suggest via Alt+G keybinding
+  - `scripts/agent/scenarios/suggest-keybinding.json` — suggest via Alt+G keybinding
   - `scripts/agent/scenarios/explain-stdout.json` — explain via CLI, stdout output
-  - `scripts/agent/scenarios/explain-keybinding.json` — explain via Ctrl+E keybinding
+  - `scripts/agent/scenarios/explain-keybinding.json` — Ctrl+E → choose menu → explain action
   - `scripts/agent/scenarios/build-stdout.json` — build TUI, submit with Enter
   - `scripts/agent/scenarios/generate-stdout.json` — generate via CLI, stdout output
   - `scripts/agent/scenarios/clipboard-file.json` — suggest to clipboard, verify file
+  - `scripts/agent/scenarios/choose-cancel.json` — choose menu opens, cancel with q
+  - `scripts/agent/scenarios/choose-explain.json` — choose menu → select explain
+  - `scripts/agent/scenarios/choose-keybinding.json` — Ctrl+E → choose menu → cancel
 - Entry scripts:
   - `scripts/agent/run-all` — runs all granular scenarios, prints pass/fail summary
   - `scripts/agent/run-one <name>` — runs a single scenario by name
@@ -59,8 +62,11 @@ scripts/agent/run-one explain-stdout
 scripts/agent/run-one build-stdout
 scripts/agent/run-one generate-stdout
 scripts/agent/run-one clipboard-file
-scripts/agent/run-one suggest-readline
+scripts/agent/run-one suggest-keybinding
 scripts/agent/run-one explain-keybinding
+scripts/agent/run-one choose-cancel
+scripts/agent/run-one choose-explain
+scripts/agent/run-one choose-keybinding
 ```
 
 Override shell/config:

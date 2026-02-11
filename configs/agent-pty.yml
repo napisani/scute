@@ -3,11 +3,3 @@ clipboardCommand: "/bin/cat > /tmp/scute-clipboard.txt"
 promptDefaults:
   provider: openai
   model: gpt-4o-mini
-
-prompts:
-  explain:
-    output: prompt
-  suggest:
-    output: readline
-  generate:
-    output: readline

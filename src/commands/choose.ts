@@ -1,14 +1,3 @@
-import type { OutputChannel } from "../core/output";
-import {
-	getReadlineLine,
-	hasReadlineLine,
-	restoreReadlineState,
-} from "../core/shells";
-
-export interface ChooseOptions {
-	output: OutputChannel;
-}
-
 type ActionChoice =
 	| "explain"
 	| "build"
@@ -30,6 +19,9 @@ const CHOICES: Choice[] = [
 	{ key: "5", label: "Config debug", action: "config-debug" },
 ];
 
+/** Exit code signaling the shell to re-invoke `scute build` directly. */
+const EXIT_BUILD = 10;
+
 /**
  * Read a single keypress from stdin.
  * Returns the key string and cleans up stdin so the event loop can drain.
@@ -44,7 +36,6 @@ function readKeypress(): Promise<string> {
 
 		return new Promise<string>((resolve) => {
 			stdin.once("data", (data: Buffer) => {
-				// Restore original stdin state so event loop can exit
 				if (!wasRaw) {
 					stdin.setRawMode(false);
 				}
@@ -74,100 +65,93 @@ function readKeypress(): Promise<string> {
 
 /**
  * Clear the menu from the terminal using ANSI escape codes.
- * Moves cursor up and clears each line that was printed.
+ * Writes to stderr so it doesn't pollute the stdout captured by $().
  */
 function clearMenu(): void {
-	if (!process.stdout.isTTY) return;
+	if (!process.stderr.isTTY) return;
 
 	// Menu layout: blank line, title, N choices, "q. Cancel", blank line, "Select an action: "
 	// That's 2 + CHOICES.length + 1 + 1 + 1 = CHOICES.length + 5 lines
 	const menuLines = CHOICES.length + 5;
-	let seq = "\r\x1b[K"; // Clear current line ("Select an action: " + user's key)
+	let seq = "\r\x1b[K";
 	for (let i = 0; i < menuLines; i++) {
-		seq += "\x1b[1A\x1b[K"; // Move up one line and clear it
+		seq += "\x1b[1A\x1b[K";
 	}
-	process.stdout.write(seq);
+	process.stderr.write(seq);
+}
+
+/**
+ * Show menu and read selection. Menu is written to stderr so it doesn't
+ * pollute stdout (which the shell captures via $()).
+ */
+function showMenu(): void {
+	process.stderr.write("\n\n");
+	process.stderr.write("━━━ Scute Actions ━━━\n");
+	for (const choice of CHOICES) {
+		process.stderr.write(`  ${choice.key}. ${choice.label}\n`);
+	}
+	process.stderr.write("  q. Cancel\n");
+	process.stderr.write("\n");
+	process.stderr.write("Select an action: ");
 }
 
 export async function choose(
 	lineArg: string | undefined,
 	pointArg: string | undefined,
-	{ output }: ChooseOptions,
 ) {
-	// Capture current readline state before showing menu
-	const envLine = getReadlineLine();
-	const originalLine = lineArg ?? envLine ?? "";
-	const hasLine = lineArg !== undefined || hasReadlineLine();
+	const originalLine = lineArg ?? "";
 	const parsedPoint = pointArg ? Number(pointArg) : undefined;
 	const originalPoint = Number.isFinite(parsedPoint)
 		? Math.max(0, parsedPoint as number)
 		: originalLine.length;
 
-	// Show menu
-	console.log("\n");
-	console.log("━━━ Scute Actions ━━━");
-	for (const choice of CHOICES) {
-		console.log(`  ${choice.key}. ${choice.label}`);
-	}
-	console.log("  q. Cancel");
-	console.log("");
-
-	// Read user input
-	process.stdout.write("Select an action: ");
+	showMenu();
 	const selection = await readKeypress();
-
-	// Clear the menu lines
 	clearMenu();
 
-	// Handle cancel
+	// Cancel or invalid — output original line to preserve BUFFER
 	if (selection === "q" || selection === "\x1b" || selection === "\x03") {
-		if (hasLine) {
-			restoreReadlineState(originalLine, originalPoint);
-		}
+		process.stdout.write(originalLine);
 		return;
 	}
 
-	// Find selected action
 	const choice = CHOICES.find((c) => c.key === selection);
 	if (!choice) {
-		// Invalid selection - restore original line
-		if (hasLine) {
-			restoreReadlineState(originalLine, originalPoint);
-		}
+		process.stdout.write(originalLine);
 		return;
-	}
-
-	// Restore the original line before dispatching
-	if (hasLine) {
-		restoreReadlineState(originalLine, originalPoint);
 	}
 
 	// Dispatch to the selected action.
-	// build manages its own TUI lifecycle; all others are awaited.
+	// All commands write their result to stdout. The shell captures it
+	// and assigns to BUFFER/READLINE_LINE.
+	// Build needs a real TTY, so we exit with code 10 to signal the
+	// shell to re-invoke `scute build` directly.
 	switch (choice.action) {
 		case "explain": {
 			const { explain } = await import("./explain");
-			await explain(originalLine, String(originalPoint), { output: "prompt" });
+			await explain(originalLine, String(originalPoint));
 			break;
 		}
 		case "build": {
-			const { build } = await import("./build");
-			await build([originalLine], {});
+			// Output original line so shell preserves BUFFER, then exit 10
+			// to signal the shell to re-invoke build with direct TTY access.
+			process.stdout.write(originalLine);
+			process.exit(EXIT_BUILD);
 			break;
 		}
 		case "suggest": {
 			const { suggest } = await import("./suggest");
-			await suggest(originalLine, { output: "readline" });
+			await suggest(originalLine);
 			break;
 		}
 		case "generate": {
 			const { generate } = await import("./generate");
-			await generate([], { output: "readline" });
+			await generate([]);
 			break;
 		}
 		case "config-debug": {
 			const { configDebug } = await import("./config-debug");
-			configDebug({ output });
+			configDebug();
 			break;
 		}
 	}

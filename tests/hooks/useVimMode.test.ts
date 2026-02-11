@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { act, renderHook } from "@testing-library/react";
 import { JSDOM } from "jsdom";
-import type { OutputChannel } from "../../src/core/output";
 import type { ParsedToken } from "../../src/core/shells/common";
 import type { KeyboardHandler, KeyboardKey } from "../../src/hooks/useVimMode";
 
@@ -65,7 +64,7 @@ describe("useVimMode", () => {
 		tokens?: ParsedToken[];
 		loadDescriptions?: () => void;
 		onTokenEdit?: (tokenIndex: number, newValue: string) => void;
-		onOutputSelected?: (channel: OutputChannel | null) => void;
+		onExit?: (submitted: boolean) => void;
 		useKeyboard?: (handler: KeyboardHandler) => void;
 	}
 
@@ -73,7 +72,7 @@ describe("useVimMode", () => {
 		tokens = mockTokens,
 		loadDescriptions = () => {},
 		onTokenEdit,
-		onOutputSelected,
+		onExit,
 		useKeyboard = mockUseKeyboard,
 	}: RenderVimModeOptions = {}) {
 		return renderHook(() =>
@@ -81,7 +80,7 @@ describe("useVimMode", () => {
 				parsedTokens: tokens,
 				loadDescriptions,
 				onTokenEdit,
-				onOutputSelected,
+				onExit,
 				useKeyboard,
 			}),
 		);
@@ -730,12 +729,12 @@ describe("useVimMode", () => {
 		});
 	});
 
-	describe("leader output", () => {
+	describe("leader submit/quit", () => {
 		it("does not emit output without leader", () => {
-			let selected: OutputChannel | null | undefined;
+			let selected: boolean | undefined;
 			renderVimMode({
-				onOutputSelected: (channel) => {
-					selected = channel;
+				onExit: (submitted) => {
+					selected = submitted;
 				},
 			});
 
@@ -746,11 +745,11 @@ describe("useVimMode", () => {
 			expect(selected).toBeUndefined();
 		});
 
-		it("emits output selection when leader+enter is pressed", () => {
-			let selected: OutputChannel | null | undefined;
+		it("emits submit when leader+enter is pressed", () => {
+			let selected: boolean | undefined;
 			renderVimMode({
-				onOutputSelected: (channel) => {
-					selected = channel;
+				onExit: (submitted) => {
+					selected = submitted;
 				},
 			});
 
@@ -761,14 +760,14 @@ describe("useVimMode", () => {
 				simulateKey("enter", "\r");
 			});
 
-			expect(selected).toBe("stdout");
+			expect(selected).toBe(true);
 		});
 
-		it("emits quit selection when leader+q is pressed", () => {
-			let selected: OutputChannel | null | undefined;
+		it("emits quit when leader+q is pressed", () => {
+			let selected: boolean | undefined;
 			renderVimMode({
-				onOutputSelected: (channel) => {
-					selected = channel;
+				onExit: (submitted) => {
+					selected = submitted;
 				},
 			});
 
@@ -779,14 +778,14 @@ describe("useVimMode", () => {
 				simulateKey("q", "q");
 			});
 
-			expect(selected).toBeNull();
+			expect(selected).toBe(false);
 		});
 
-		it("emits clipboard selection when leader+y is pressed", () => {
-			let selected: OutputChannel | null | undefined;
+		it("does not emit output for unbound leader+y", () => {
+			let selected: boolean | undefined;
 			renderVimMode({
-				onOutputSelected: (channel) => {
-					selected = channel;
+				onExit: (submitted) => {
+					selected = submitted;
 				},
 			});
 
@@ -797,14 +796,15 @@ describe("useVimMode", () => {
 				simulateKey("y", "y");
 			});
 
-			expect(selected).toBe("clipboard");
+			// "y" is no longer bound (outputClipboard removed)
+			expect(selected).toBeUndefined();
 		});
 
-		it("emits readline selection when leader+r is pressed", () => {
-			let selected: OutputChannel | null | undefined;
+		it("does not emit output for unbound leader+r", () => {
+			let selected: boolean | undefined;
 			renderVimMode({
-				onOutputSelected: (channel) => {
-					selected = channel;
+				onExit: (submitted) => {
+					selected = submitted;
 				},
 			});
 
@@ -815,14 +815,14 @@ describe("useVimMode", () => {
 				simulateKey("r", "r");
 			});
 
-			expect(selected).toBe("readline");
+			expect(selected).toBeUndefined();
 		});
 
-		it("emits prompt selection when leader+p is pressed", () => {
-			let selected: OutputChannel | null | undefined;
+		it("does not emit output for unbound leader+p", () => {
+			let selected: boolean | undefined;
 			renderVimMode({
-				onOutputSelected: (channel) => {
-					selected = channel;
+				onExit: (submitted) => {
+					selected = submitted;
 				},
 			});
 
@@ -833,7 +833,7 @@ describe("useVimMode", () => {
 				simulateKey("p", "p");
 			});
 
-			expect(selected).toBe("prompt");
+			expect(selected).toBeUndefined();
 		});
 	});
 

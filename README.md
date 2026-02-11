@@ -143,18 +143,11 @@ Notes:
 
 Use `promptDefaults` to set shared values for all prompts. Any field omitted on a prompt inherits the value from `promptDefaults`. You can still override individual prompts under `prompts`, including `output` via `prompts.<name>.output`.
 
-### Output channels
+### Output
 
-Output channels control how scute emits results when `--output` is not provided.
+All output is written to stdout. Shell functions use `$()` capture to assign the result to the command line buffer.
 
-- `clipboard`: writes the result to the system clipboard using `clipboardCommand` (or auto-detected clipboard tool). Falls back to stdout if no clipboard command is found.
-- `stdout`: prints the result to stdout with a trailing newline.
-- `prompt`: renders the result at the bottom of the terminal without altering your current input line.
-- `readline`: replaces the current input line (bash/zsh integration).
-
-`--output <channel>` always overrides the config for a single invocation.
-
-Note: `scute build` ignores `--output`. Output is chosen inside the TUI via leader-key commands (e.g., `leader` + `enter` for stdout).
+If `clipboardCommand` is set in your config, output is also copied to the system clipboard automatically. If the clipboard command fails, the output is still available on stdout.
 
 ### Minimal config example
 
@@ -189,7 +182,7 @@ shellKeybindings:
 # viewMode values: horizontal | vertical
 viewMode: horizontal # horizontal -> annotated view, vertical -> list view
 
-# Clipboard command for output channel "clipboard"
+# Clipboard command (optional): if set, output is also copied to clipboard
 clipboardCommand: "pbcopy"
 
 # Providers used by prompts (env vars override these)
@@ -227,10 +220,7 @@ leaderKeybindings:
   explain: ["e"]
   toggleView: ["m"]
   quit: ["q"]
-  outputClipboard: ["y"]
-  outputReadline: ["r"]
-  outputStdout: ["return"]
-  outputPrompt: ["p"]
+  submit: ["return"]
 
 leaderKey: ["space"]
 
@@ -265,20 +255,18 @@ promptDefaults:
   maxTokens: 128000
   userPrompt: ""
   systemPromptOverride: ""
-  # output values: clipboard | stdout | prompt | readline
-  output: readline
 
 # Prompt behavior per command
 prompts:
   explain:
-    # output values: clipboard | stdout | prompt | readline
-    output: prompt
+    provider: openai
+    model: gpt-4
   suggest:
-    # output values: clipboard | stdout | prompt | readline
-    output: readline
+    provider: openai
+    model: gpt-4
   generate:
-    # output values: clipboard | stdout | prompt | readline
-    output: readline
+    provider: openai
+    model: gpt-4
   describeTokens:
     # Internal prompt used by the token editor
 ```
@@ -376,7 +364,7 @@ bun test tests/core/output.test.ts
 
 | File | Tests |
 |------|-------|
-| `tests/core/output.test.ts` | Output channel routing (stdout, clipboard, prompt, readline) |
+| `tests/core/output.test.ts` | Output writing (stdout with newline handling) |
 | `tests/shells.test.ts` | Shell integration (bash/zsh/sh keybindings) |
 | `tests/build-command.test.ts` | Build command argument resolution |
 | `tests/config-overlay.test.ts` | Configuration merging and precedence |
@@ -426,7 +414,7 @@ make test-pty
 
 # Run a single scenario by name
 make test-pty-one SCENARIO=suggest-stdout
-make test-pty-one SCENARIO=explain-stdout
+make test-pty-one SCENARIO=choose-cancel
 make test-pty-one SCENARIO=clipboard-file
 
 # Or run directly with extra options
@@ -439,12 +427,15 @@ scripts/agent/run-all --config configs/openai-config.yml --quiet
 | Scenario | Tests |
 |----------|-------|
 | `suggest-stdout` | `scute suggest` via CLI with stdout output |
-| `suggest-readline` | Alt+G keybinding replaces readline buffer |
+| `suggest-keybinding` | Alt+G keybinding replaces command line buffer |
 | `explain-stdout` | `scute explain` via CLI with stdout output |
-| `explain-keybinding` | Ctrl+E keybinding shows prompt hint |
+| `explain-keybinding` | Ctrl+E → choose menu → explain action |
 | `build-stdout` | TUI opens, submit with Enter |
 | `generate-stdout` | `scute generate` via CLI with stdout output |
 | `clipboard-file` | Clipboard output writes to file |
+| `choose-cancel` | Choose menu opens and cancels cleanly with q |
+| `choose-explain` | Choose menu → select explain action |
+| `choose-keybinding` | Ctrl+E keybinding → choose menu → cancel |
 
 **Logs:** Each scenario writes a log to `/tmp/scute-pty-<scenario>.log` for debugging.
 
@@ -456,7 +447,7 @@ scripts/agent/run-all --config configs/openai-config.yml --quiet
   "steps": [
     {"send_line": "export PS1=\"scute-test$ \""},
     {"wait_for_prompt": true},
-    {"send_line": "scute suggest \"git sta\" --output stdout"},
+    {"send_line": "scute suggest \"git sta\""},
     {"wait_for_prompt": true, "timeout": 15},
     {"assert_output_contains": "git"}
   ]
