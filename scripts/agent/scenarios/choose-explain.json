@@ -1,22 +1,18 @@
 {
 	"prompt": "scute-test$ ",
 	"steps": [
-		{ "delete_file": "/tmp/scute-clipboard.txt" },
 		{ "send_line": "export PS1=\"scute-test$ \"" },
 		{ "wait_for_prompt": true },
 		{ "send_line": "eval \"$({scute_bin} --config {config} init {shell})\"" },
 		{ "wait_for_prompt": true },
 		{ "clear_buffer": true },
 		{
-			"send_line": "{scute_bin} --config {config} --output clipboard config-debug"
+			"send_line": "{scute_bin} --config {config} choose \"ls -la /tmp\" 5"
 		},
+		{ "wait_for_text": "Scute Actions", "timeout": 5 },
+		{ "send_text": "1" },
 		{ "wait_for_prompt": true, "timeout": 15 },
-		{ "sleep": 2.0 },
-		{ "assert_file_exists": "/tmp/scute-clipboard.txt" },
-		{
-			"assert_file_contains": "/tmp/scute-clipboard.txt",
-			"expected": "clipboardCommand"
-		},
+		{ "assert_output_contains": "ls" },
 		{ "send_line": "exit" }
 	]
 }

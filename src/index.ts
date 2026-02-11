@@ -4,6 +4,7 @@ import path from "node:path";
 import { Command } from "commander";
 
 import { build } from "./commands/build";
+import { choose } from "./commands/choose";
 import { configDebug } from "./commands/config-debug";
 import { explain } from "./commands/explain";
 import { generate } from "./commands/generate";
@@ -141,6 +142,18 @@ program
 		const { output } = command.optsWithGlobals() as { output?: string };
 		void generate(promptParts, {
 			output: resolveOutputChannel("generate", output),
+		});
+	});
+
+program
+	.command("choose")
+	.description("Choose a scute action from a menu")
+	.argument("[line]", "Optional readline buffer")
+	.argument("[point]", "Optional readline cursor position")
+	.action((line, point, _options, command) => {
+		const { output } = command.optsWithGlobals() as { output?: string };
+		void choose(line, point, {
+			output: resolveOutputChannel("choose", output),
 		});
 	});
 

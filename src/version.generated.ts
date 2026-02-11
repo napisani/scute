@@ -1,1 +1,1 @@
-export const SCUTE_VERSION = "0.0.7";
+export const SCUTE_VERSION = "0.0.8";

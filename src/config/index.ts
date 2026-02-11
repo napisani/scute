@@ -186,10 +186,11 @@ const defaultTheme: ThemeConfig = {
 };
 
 const defaultShellKeybindings: Record<ShellKeybindingAction, string[]> = {
-	explain: ["Ctrl+E"],
-	build: ["Ctrl+G"],
-	suggest: ["Alt+G"],
+	explain: [],
+	build: [],
+	suggest: [],
 	generate: [],
+	choose: ["Ctrl+E"],
 };
 
 export function getNormalKeybindings(action: NormalKeybindingAction): string[] {

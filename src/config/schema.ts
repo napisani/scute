@@ -185,6 +185,7 @@ export const ShellKeybindingActions = [
 	"build",
 	"suggest",
 	"generate",
+	"choose",
 ] as const;
 export type ShellKeybindingAction = (typeof ShellKeybindingActions)[number];
 
@@ -219,11 +220,16 @@ export const ConfigSchema = z.object({
 			generate: z
 				.union([z.string().min(1), z.array(z.string().min(1))])
 				.optional(),
+			choose: z
+				.union([z.string().min(1), z.array(z.string().min(1))])
+				.optional(),
 		})
 		.default({
-			explain: "Ctrl+E",
-			build: "Ctrl+G",
-			suggest: "Alt+G",
+			explain: [],
+			build: [],
+			suggest: [],
+			generate: [],
+			choose: ["Ctrl+E"],
 		}),
 	promptDefaults: PromptDefaultsSchema.default(buildDefaultPromptDefaults()),
 	prompts: z

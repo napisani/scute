@@ -48,10 +48,16 @@ _scute_generate() {
     zle redisplay
 }
 
+_scute_choose() {
+    "$SCUTE_BIN" choose "$BUFFER" "$CURSOR" --output stdout
+    zle redisplay
+}
+
 zle -N scute-explain _scute_explain
 zle -N scute-build _scute_build
 zle -N scute-suggest _scute_suggest
 zle -N scute-generate _scute_generate
+zle -N scute-choose _scute_choose
 
 # --- end scute integration ---
 `;
@@ -61,6 +67,7 @@ const ZSH_ACTION_WIDGETS: Record<ShellKeybindingAction, string> = {
 	build: "scute-build",
 	suggest: "scute-suggest",
 	generate: "scute-generate",
+	choose: "scute-choose",
 };
 
 function renderZshKeybindings(bindings: ShellKeybindings): string {

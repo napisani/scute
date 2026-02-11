@@ -291,15 +291,28 @@ def run_scenario(args: argparse.Namespace) -> int:
             # Drain any pending output between steps
             buffer = drain_output(fd, log_file, buffer, timeout=0.1)
 
-        # Clean shutdown
+        # Clean shutdown: close PTY fd, send SIGHUP, then SIGKILL if needed
         try:
-            os.kill(pid, signal.SIGHUP)
+            os.close(fd)
         except OSError:
             pass
-        try:
-            os.waitpid(pid, 0)
-        except ChildProcessError:
-            pass
+        for sig in (signal.SIGHUP, signal.SIGKILL):
+            try:
+                os.kill(pid, sig)
+            except OSError:
+                break  # Process already gone
+            deadline = time.time() + 2.0
+            while time.time() < deadline:
+                try:
+                    rpid, _ = os.waitpid(pid, os.WNOHANG)
+                    if rpid != 0:
+                        break
+                except ChildProcessError:
+                    break
+                time.sleep(0.1)
+            else:
+                continue  # Try next signal
+            break  # Process reaped
 
     # Report results
     if failures:

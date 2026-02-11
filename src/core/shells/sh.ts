@@ -44,6 +44,10 @@ _scute_generate() {
     "$SCUTE_BIN" generate --output readline
 }
 
+_scute_choose() {
+    "$SCUTE_BIN" choose "$READLINE_LINE" "$READLINE_POINT" --output stdout
+}
+
 # --- end scute integration ---
 `;
 
@@ -52,6 +56,7 @@ const SH_ACTION_FUNCTIONS: Record<ShellKeybindingAction, string> = {
 	build: "_scute_build",
 	suggest: "_scute_suggest",
 	generate: "_scute_generate",
+	choose: "_scute_choose",
 };
 
 function renderShKeybindings(bindings: ShellKeybindings): string {
