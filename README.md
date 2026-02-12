@@ -149,6 +149,8 @@ All output is written to stdout. Shell functions use `$()` capture to assign the
 
 If `clipboardCommand` is set in your config, output is also copied to the system clipboard automatically. If the clipboard command fails, the output is still available on stdout.
 
+Set `clipboardCommand: "auto"` to let scute detect the right clipboard binary for your system. On macOS it looks for `pbcopy`; on Linux it tries `xclip`, `xsel`, and `wl-copy` in order. If no binary is found, clipboard copying is silently skipped.
+
 ### Minimal config example
 
 ```yaml
@@ -183,7 +185,8 @@ shellKeybindings:
 viewMode: horizontal # horizontal -> annotated view, vertical -> list view
 
 # Clipboard command (optional): if set, output is also copied to clipboard
-clipboardCommand: "pbcopy"
+# Use "auto" to detect the system clipboard binary, or specify one explicitly
+clipboardCommand: "auto"
 
 # Providers used by prompts (env vars override these)
 # provider name values: openai | anthropic | gemini | ollama
