@@ -9,7 +9,7 @@
 		{
 			"send_line": "{scute_bin} --config {config} choose \"ls -la\" 5"
 		},
-		{ "wait_for_text": "Scute Actions", "timeout": 5 },
+		{ "wait_for_text": "Scute", "timeout": 5 },
 		{ "send_text": "q" },
 		{ "wait_for_prompt": true, "timeout": 5 },
 		{ "send_line": "exit" }

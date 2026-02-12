@@ -188,6 +188,9 @@ viewMode: horizontal # horizontal -> annotated view, vertical -> list view
 # Use "auto" to detect the system clipboard binary, or specify one explicitly
 clipboardCommand: "auto"
 
+# External chooser command (optional): delegate the action menu to a fuzzy finder
+# chooserCommand: "fzf --height=8 --border --prompt='Scute> '"
+
 # Providers used by prompts (env vars override these)
 # provider name values: openai | anthropic | gemini | ollama
 providers:
@@ -248,6 +251,19 @@ theme:
     unknown: "#6C7086"
   tokenDescription: "#CDD6F4"
   markerColor: "#CDD6F4"
+  modeInsertColor: "#A6E3A1"
+  modeNormalColor: "#6C7086"
+  errorColor: "#F38BA8"
+  hintLabelColor: "#6C7086"
+  cursorColor: "#F5E0DC"
+  chooseMenu:
+    border: "#585B70"
+    title: "#CBA6F7"
+    text: "#CDD6F4"
+    description: "#6C7086"
+    shortcutKey: "#CBA6F7"
+    pointer: "#A6E3A1"
+    highlightBg: "#45475A"
 
 # Prompt defaults (apply to all prompts unless overridden)
 promptDefaults:
@@ -473,9 +489,28 @@ Run scripts/agent/run-all and report the pass/fail summary. For any failures, in
 
 Once installed and configured, you can use the following keyboard shortcut in your terminal:
 
-- **`Ctrl + E`**: **Choose Action**. Opens a menu to select from available scute actions (explain, build, suggest, generate, config-debug).
+- **`Ctrl + E`**: **Choose Action**. Opens an interactive menu to select from available scute actions:
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `e` | Explain | Explain the current command |
+| `b` | Build | Edit command in TUI builder |
+| `s` | Suggest | AI completion for current command |
+| `g` | Generate | Generate command from prompt |
+
+Navigate with arrow keys or `j`/`k`, confirm with Enter, or press a letter shortcut to select immediately. Cancel with `q` or Esc.
 
 Other actions can be bound via configuration (see shellKeybindings in the config examples above).
+
+### External Chooser
+
+If you prefer a fuzzy finder like `fzf`, set `chooserCommand` in your config to delegate the action menu to an external command:
+
+```yaml
+chooserCommand: "fzf --height=8 --border --prompt='Scute> '"
+```
+
+The configured command receives action labels on stdin (one per line) and should print the selected label to stdout. If the command is not found or the user cancels, scute falls back to the built-in menu.
 
 Check your installed version with:
 

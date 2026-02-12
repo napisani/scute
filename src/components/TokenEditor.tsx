@@ -1,5 +1,6 @@
 import type { InputRenderable } from "@opentui/core";
 import { useEffect, useRef } from "react";
+import { getThemeColorFor } from "../config";
 
 interface TokenEditorProps {
 	value: string;
@@ -38,7 +39,7 @@ export function TokenEditor({
 			focused
 			width={Math.max(value.length + 2, 10)}
 			textColor={color}
-			cursorColor="#FFFFFF"
+			cursorColor={getThemeColorFor("cursorColor")}
 			backgroundColor="transparent"
 		/>
 	);

@@ -2,6 +2,7 @@ import {
 	getLeaderKey,
 	getLeaderKeybindings,
 	getNormalKeybindings,
+	getThemeColorFor,
 } from "../config";
 import type { ViewMode, VimMode } from "../hooks/useVimMode";
 import { KeyHintBar } from "./KeyHintBar";
@@ -22,7 +23,10 @@ export function Footer({
 	isLoading = false,
 	error = null,
 }: FooterProps) {
-	const modeColor = mode === "insert" ? "#00FF00" : "#888";
+	const modeColor =
+		mode === "insert"
+			? getThemeColorFor("modeInsertColor")
+			: getThemeColorFor("modeNormalColor");
 	const modeText = mode === "insert" ? "-- INSERT --" : "-- NORMAL --";
 	const leaderKey = getLeaderKey()[0] ?? "space";
 	const toggleViewKey = getLeaderKeybindings("toggleView")[0] ?? "m";
@@ -67,11 +71,11 @@ export function Footer({
 		<box height={1} flexDirection="row" gap={2}>
 			<text fg={modeColor}>{modeText}</text>
 			{error ? (
-				<text fg="#F38BA8">{error}</text>
+				<text fg={getThemeColorFor("errorColor")}>{error}</text>
 			) : (
 				<>
 					<KeyHintBar hints={keyHints} />
-					<text fg="#888">{viewModeHelp}</text>
+					<text fg={getThemeColorFor("hintLabelColor")}>{viewModeHelp}</text>
 					<Spinner isActive={isLoading} />
 				</>
 			)}

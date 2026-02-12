@@ -11,7 +11,7 @@ interface KeyHintBarProps {
 
 export function KeyHintBar({ hints }: KeyHintBarProps) {
 	const keyColor = getThemeColorFor("markerColor");
-	const labelColor = "#888";
+	const labelColor = getThemeColorFor("hintLabelColor");
 
 	if (!hints.length) {
 		return null;

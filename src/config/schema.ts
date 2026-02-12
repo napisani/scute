@@ -138,11 +138,39 @@ export const TokenColorsSchema = z
 
 export type TokenColorsConfig = z.infer<typeof TokenColorsSchema>;
 
+export const ChooseMenuColorsSchema = z
+	.object({
+		border: z.string().default("#585B70"),
+		title: z.string().default("#CBA6F7"),
+		text: z.string().default("#CDD6F4"),
+		description: z.string().default("#6C7086"),
+		shortcutKey: z.string().default("#CBA6F7"),
+		pointer: z.string().default("#A6E3A1"),
+		highlightBg: z.string().default("#45475A"),
+	})
+	.default({
+		border: "#585B70",
+		title: "#CBA6F7",
+		text: "#CDD6F4",
+		description: "#6C7086",
+		shortcutKey: "#CBA6F7",
+		pointer: "#A6E3A1",
+		highlightBg: "#45475A",
+	});
+
+export type ChooseMenuColorsConfig = z.infer<typeof ChooseMenuColorsSchema>;
+
 export const ThemeSchema = z
 	.object({
 		tokenColors: TokenColorsSchema,
 		tokenDescription: z.string().default("#CDD6F4"),
 		markerColor: z.string().default("#CDD6F4"),
+		modeInsertColor: z.string().default("#A6E3A1"),
+		modeNormalColor: z.string().default("#6C7086"),
+		errorColor: z.string().default("#F38BA8"),
+		hintLabelColor: z.string().default("#6C7086"),
+		cursorColor: z.string().default("#F5E0DC"),
+		chooseMenu: ChooseMenuColorsSchema,
 	})
 	.default({
 		tokenColors: {
@@ -157,6 +185,20 @@ export const ThemeSchema = z
 		},
 		tokenDescription: "#CDD6F4",
 		markerColor: "#CDD6F4",
+		modeInsertColor: "#A6E3A1",
+		modeNormalColor: "#6C7086",
+		errorColor: "#F38BA8",
+		hintLabelColor: "#6C7086",
+		cursorColor: "#F5E0DC",
+		chooseMenu: {
+			border: "#585B70",
+			title: "#CBA6F7",
+			text: "#CDD6F4",
+			description: "#6C7086",
+			shortcutKey: "#CBA6F7",
+			pointer: "#A6E3A1",
+			highlightBg: "#45475A",
+		},
 	});
 
 export type ThemeConfig = z.infer<typeof ThemeSchema>;
@@ -185,6 +227,7 @@ function buildDefaultPromptDefaults() {
 export const ConfigSchema = z.object({
 	viewMode: z.enum(["horizontal", "vertical"]).default("horizontal"),
 	clipboardCommand: z.string().optional(),
+	chooserCommand: z.string().optional(),
 	providers: z.array(ProviderSchema).default([]),
 	normalKeybindings: NormalKeybindingsSchema,
 	leaderKeybindings: LeaderKeybindingsSchema,

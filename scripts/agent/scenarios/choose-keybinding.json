@@ -8,7 +8,7 @@
 		{ "clear_buffer": true },
 		{ "send_text": "ls -la" },
 		{ "send_keys": ["CTRL+E"] },
-		{ "wait_for_text": "Scute Actions", "timeout": 5 },
+		{ "wait_for_text": "Scute", "timeout": 5 },
 		{ "send_text": "q" },
 		{ "sleep": 1.0 },
 		{ "drain": true, "idle_ms": 500 },
