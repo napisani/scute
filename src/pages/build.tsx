@@ -1,4 +1,4 @@
-import { useKeyboard } from "@opentui/react";
+import { useKeyboard, useTerminalDimensions } from "@opentui/react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Footer } from "../components/Footer";
 import { SuggestInput } from "../components/SuggestInput";
@@ -6,7 +6,7 @@ import { TokenAnnotatedView } from "../components/TokenAnnotatedView";
 import { TokenListView } from "../components/TokenListView";
 
 import { getThemeColorFor } from "../config";
-import { generateCommand, suggest } from "../core/llm";
+import { explain, generateCommand, suggest } from "../core/llm";
 import {
 	buildParsedCommand,
 	parseTokens,
@@ -33,6 +33,16 @@ export interface ApplyTokenEditResult {
 	insertedCount: number;
 }
 
+function fitLine(text: string, width: number): string {
+	if (width <= 0) {
+		return "";
+	}
+	if (text.length >= width) {
+		return text.slice(0, width);
+	}
+	return text.padEnd(width, " ");
+}
+
 export function applyTokenEdit(
 	prev: ParsedCommand,
 	tokenIndex: number,
@@ -53,6 +63,8 @@ export function applyTokenEdit(
 }
 
 export function BuildApp({ command, onExit }: BuildAppProps) {
+	const { width: terminalWidth, height: terminalHeight } =
+		useTerminalDimensions();
 	const { parsedCommand, setParsedCommand } = useParsedCommand({ command });
 
 	const parsedTokens = useMemo(
@@ -70,6 +82,19 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 		command: parsedCommand,
 		tokenCount: parsedTokens.length,
 	});
+	const [commandExplanation, setCommandExplanation] = useState<string | null>(
+		null,
+	);
+	const [isLoadingExplain, setIsLoadingExplain] = useState(false);
+	const [explainError, setExplainError] = useState<string | null>(null);
+	const explainRequestIdRef = useRef(0);
+
+	const resetExplanation = useCallback(() => {
+		setCommandExplanation(null);
+		setIsLoadingExplain(false);
+		setExplainError(null);
+		explainRequestIdRef.current += 1;
+	}, []);
 
 	// Handle token edits by updating the parsed command
 	const handleTokenEdit = useCallback(
@@ -81,19 +106,62 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 					newValue,
 				);
 				resetDescriptions();
+				resetExplanation();
 				return nextCommand;
 			});
 		},
-		[resetDescriptions, setParsedCommand],
+		[resetDescriptions, resetExplanation, setParsedCommand],
 	);
 
 	const handleExit = useCallback(
 		(submitted: boolean) => {
 			resetDescriptions();
+			resetExplanation();
 			onExit?.(parsedCommand.originalCommand, submitted);
 		},
-		[onExit, parsedCommand, resetDescriptions],
+		[onExit, parsedCommand, resetDescriptions, resetExplanation],
 	);
+
+	const handleExplain = useCallback(() => {
+		if (isLoadingExplain) {
+			return;
+		}
+		const currentCommand = parsedCommand.originalCommand.trim();
+		if (!currentCommand.length) {
+			return;
+		}
+		loadDescriptions();
+		const requestId = explainRequestIdRef.current + 1;
+		explainRequestIdRef.current = requestId;
+		setIsLoadingExplain(true);
+		setExplainError(null);
+		setCommandExplanation("Explaining command...");
+		explain(currentCommand)
+			.then((result) => {
+				if (explainRequestIdRef.current !== requestId) {
+					return;
+				}
+				if (result) {
+					setCommandExplanation(result);
+				} else {
+					setExplainError("Explain returned no result");
+					setCommandExplanation(null);
+				}
+			})
+			.catch(() => {
+				if (explainRequestIdRef.current !== requestId) {
+					return;
+				}
+				setExplainError("Explain failed");
+				setCommandExplanation(null);
+			})
+			.finally(() => {
+				if (explainRequestIdRef.current !== requestId) {
+					return;
+				}
+				setIsLoadingExplain(false);
+			});
+	}, [isLoadingExplain, loadDescriptions, parsedCommand.originalCommand]);
 
 	const [isLoadingSuggest, setIsLoadingSuggest] = useState(false);
 	const [suggestError, setSuggestError] = useState<string | null>(null);
@@ -108,6 +176,7 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 				.then((result) => {
 					if (result) {
 						resetDescriptions();
+						resetExplanation();
 						setParsedCommand(buildParsedCommand(result));
 					} else {
 						setSuggestError("Suggest returned no result");
@@ -120,7 +189,12 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 					setIsLoadingSuggest(false);
 				});
 		},
-		[parsedCommand.originalCommand, resetDescriptions, setParsedCommand],
+		[
+			parsedCommand.originalCommand,
+			resetDescriptions,
+			resetExplanation,
+			setParsedCommand,
+		],
 	);
 
 	const [isLoadingGenerate, setIsLoadingGenerate] = useState(false);
@@ -134,6 +208,7 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 				.then((result) => {
 					if (result) {
 						resetDescriptions();
+						resetExplanation();
 						setParsedCommand(buildParsedCommand(result));
 					} else {
 						setGenerateError("Generate returned no result");
@@ -146,7 +221,7 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 					setIsLoadingGenerate(false);
 				});
 		},
-		[resetDescriptions, setParsedCommand],
+		[resetDescriptions, resetExplanation, setParsedCommand],
 	);
 
 	const {
@@ -163,7 +238,7 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 		updateGenerateValue,
 	} = useVimMode({
 		parsedTokens,
-		loadDescriptions,
+		loadDescriptions: handleExplain,
 		onTokenEdit: handleTokenEdit,
 		onExit: handleExit,
 		onSuggestSubmit: handleSuggestSubmit,
@@ -186,14 +261,33 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 						return;
 					}
 					resetDescriptions();
+					resetExplanation();
 					setParsedCommand(buildParsedCommand(trimmed));
 				}}
 			/>
 		);
 	}
 
-	const displayError = suggestError ?? generateError ?? error;
-	const displayLoading = isLoading || isLoadingSuggest || isLoadingGenerate;
+	const displayError = suggestError ?? generateError ?? explainError ?? error;
+	const displayLoading =
+		isLoading || isLoadingSuggest || isLoadingGenerate || isLoadingExplain;
+	const explanationLabelColor = getThemeColorFor("hintLabelColor");
+	const explanationTextColor = getThemeColorFor("tokenDescription");
+	const safeTerminalWidth = terminalWidth > 0 ? terminalWidth : 80;
+	const safeTerminalHeight = terminalHeight > 0 ? terminalHeight : 24;
+	const explanationWidth = Math.max(1, safeTerminalWidth - 4);
+	const explanationHeight = 2;
+	const inputHeight = mode === "suggest" || mode === "generate" ? 3 : 0;
+	const footerHeight = 1;
+	const chromeHeight = 4;
+	const availableHeight = Math.max(1, safeTerminalHeight - chromeHeight);
+	const viewHeight = Math.max(
+		1,
+		availableHeight - inputHeight - footerHeight - explanationHeight,
+	);
+	const mainHeight = Math.max(1, viewHeight + explanationHeight);
+	const explanationLabel = commandExplanation ? "Explanation" : "";
+	const explanationText = commandExplanation ?? "";
 
 	return (
 		<box
@@ -214,34 +308,43 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 					title="Generate"
 				/>
 			)}
-			<box
-				flexGrow={1}
-				width="100%"
-				height="100%"
-				justifyContent="center"
-				alignItems="center"
-			>
-				{viewMode === "annotated" ? (
-					<TokenAnnotatedView
-						tokenPositions={tokenPositions}
-						selectedIndex={selectedIndex}
-						mode={mode}
-						editingTokenIndex={editingTokenIndex}
-						editingValue={editingValue}
-						onTokenChange={updateEditingValue}
-					/>
-				) : (
-					<TokenListView
-						coloredTokens={coloredTokens}
-						descriptions={descriptions}
-						tokenWidths={tokenWidths}
-						mode={mode}
-						selectedIndex={selectedIndex}
-						editingTokenIndex={editingTokenIndex}
-						editingValue={editingValue}
-						onTokenChange={updateEditingValue}
-					/>
-				)}
+			<box width="100%" height={mainHeight} flexDirection="column">
+				<box
+					height={viewHeight}
+					width="100%"
+					justifyContent="center"
+					alignItems="center"
+				>
+					{viewMode === "annotated" ? (
+						<TokenAnnotatedView
+							tokenPositions={tokenPositions}
+							selectedIndex={selectedIndex}
+							mode={mode}
+							editingTokenIndex={editingTokenIndex}
+							editingValue={editingValue}
+							onTokenChange={updateEditingValue}
+						/>
+					) : (
+						<TokenListView
+							coloredTokens={coloredTokens}
+							descriptions={descriptions}
+							tokenWidths={tokenWidths}
+							mode={mode}
+							selectedIndex={selectedIndex}
+							editingTokenIndex={editingTokenIndex}
+							editingValue={editingValue}
+							onTokenChange={updateEditingValue}
+						/>
+					)}
+				</box>
+				<box flexDirection="column" width="100%">
+					<text fg={explanationLabelColor}>
+						{fitLine(explanationLabel, explanationWidth)}
+					</text>
+					<text fg={explanationTextColor}>
+						{fitLine(explanationText, explanationWidth)}
+					</text>
+				</box>
 			</box>
 			<Footer
 				mode={mode}
