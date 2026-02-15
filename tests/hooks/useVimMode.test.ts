@@ -1103,6 +1103,39 @@ describe("useVimMode", () => {
 		});
 	});
 
+	describe("history mode", () => {
+		it("enters history mode via leader+r", () => {
+			const { result } = renderVimMode();
+
+			act(() => {
+				pressLeader();
+			});
+			act(() => {
+				simulateKey("r", "r");
+			});
+
+			expect(result.current.mode).toBe("history");
+		});
+
+		it("does not activate history from insert mode", () => {
+			const { result } = renderVimMode();
+
+			act(() => {
+				simulateKey("i", "i");
+			});
+			expect(result.current.mode).toBe("insert");
+
+			act(() => {
+				pressLeader();
+			});
+			act(() => {
+				simulateKey("r", "r");
+			});
+
+			expect(result.current.mode).toBe("insert");
+		});
+	});
+
 	it("retains current view mode when tokens change", () => {
 		const initialTokens = mockTokens;
 		const { result, rerender } = renderHook(

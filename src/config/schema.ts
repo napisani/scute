@@ -112,6 +112,7 @@ export const LeaderKeybindingsSchema = z
 		submit: z.array(z.string()).default(["return"]),
 		suggest: z.array(z.string()).default(["s"]),
 		generate: z.array(z.string()).default(["g"]),
+		history: z.array(z.string()).default(["r"]),
 	})
 	.default({
 		explain: ["e"],
@@ -120,6 +121,7 @@ export const LeaderKeybindingsSchema = z
 		submit: ["return"],
 		suggest: ["s"],
 		generate: ["g"],
+		history: ["r"],
 	});
 
 export const TokenColorsSchema = z
@@ -236,6 +238,7 @@ export const ConfigSchema = z.object({
 	viewMode: z.enum(["horizontal", "vertical"]).default("horizontal"),
 	clipboardCommand: z.string().optional(),
 	chooserCommand: z.string().optional(),
+	historyCommand: z.string().optional(),
 	providers: z.array(ProviderSchema).default([]),
 	normalKeybindings: NormalKeybindingsSchema,
 	leaderKeybindings: LeaderKeybindingsSchema,

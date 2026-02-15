@@ -15,6 +15,7 @@ export interface UseLeaderModeOptions {
 	onExit?: (submitted: boolean) => void;
 	onSuggest?: () => void;
 	onGenerate?: () => void;
+	onHistory?: () => void;
 }
 
 export interface LeaderModeState {
@@ -30,6 +31,7 @@ export function useLeaderMode({
 	onExit,
 	onSuggest,
 	onGenerate,
+	onHistory,
 }: UseLeaderModeOptions): LeaderModeState {
 	const [leaderActive, setLeaderActive] = useState(false);
 	const leaderKeys = useMemo(() => getLeaderKey(), []);
@@ -39,6 +41,7 @@ export function useLeaderMode({
 	const submitKeys = useMemo(() => getLeaderKeybindings("submit"), []);
 	const suggestKeys = useMemo(() => getLeaderKeybindings("suggest"), []);
 	const generateKeys = useMemo(() => getLeaderKeybindings("generate"), []);
+	const historyKeys = useMemo(() => getLeaderKeybindings("history"), []);
 
 	const resetLeader = useCallback(() => {
 		setLeaderActive(false);
@@ -89,6 +92,11 @@ export function useLeaderMode({
 					onGenerate?.();
 					return true;
 				}
+				if (historyKeys.includes(keyId)) {
+					logTrace("vim:history:enter", { via: "leader" });
+					onHistory?.();
+					return true;
+				}
 				return true;
 			}
 
@@ -106,11 +114,13 @@ export function useLeaderMode({
 		[
 			explainKeys,
 			generateKeys,
+			historyKeys,
 			leaderActive,
 			leaderKeys,
 			loadDescriptions,
 			onExit,
 			onGenerate,
+			onHistory,
 			onSuggest,
 			submitKeys,
 			suggestKeys,

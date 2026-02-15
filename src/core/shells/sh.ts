@@ -114,5 +114,13 @@ export const shShellHelper: ShellHelper = {
 	getReadlineLine: () => {
 		return getReadlineLine() ?? null;
 	},
+	getHistoryCommand: () => "history",
+	getHistoryFilePath: () => {
+		if (process.env.HISTFILE) {
+			return process.env.HISTFILE;
+		}
+		const home = process.env.HOME ?? "";
+		return `${home}/.sh_history`;
+	},
 	getInitScript: (bindings) => getShInitScript(bindings),
 };

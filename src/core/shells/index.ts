@@ -88,6 +88,22 @@ function hasReadlineLine(): boolean {
 	return !!line && typeof line === "string" && line.length > 0;
 }
 
+function getShellHistoryCommand(): string {
+	const shell = identifyShell();
+	if (shell && shell in shellRegistry) {
+		return shellRegistry[shell].getHistoryCommand();
+	}
+	return "history";
+}
+
+function getShellHistoryFilePath(): string | null {
+	const shell = identifyShell();
+	if (shell && shell in shellRegistry) {
+		return shellRegistry[shell].getHistoryFilePath();
+	}
+	return null;
+}
+
 export {
 	identifyShell,
 	resetShellCache,
@@ -98,6 +114,8 @@ export {
 	tokenizeInput,
 	getReadlineLine,
 	hasReadlineLine,
+	getShellHistoryCommand,
+	getShellHistoryFilePath,
 	getShellHelperByName,
 	supportedShells,
 };

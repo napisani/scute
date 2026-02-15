@@ -1,0 +1,33 @@
+{
+	"prompt": "scute-test$ ",
+	"steps": [
+		{ "send_line": "export PS1=\"scute-test$ \"" },
+		{ "wait_for_prompt": true },
+		{ "send_line": "eval \"$({scute_bin} --config {config} init {shell})\"" },
+		{ "wait_for_prompt": true },
+		{ "send_line": "printf 'echo hello world\\nls -la /tmp\\ngit status\\n' > /tmp/scute-test-history.txt" },
+		{ "wait_for_prompt": true },
+		{ "clear_buffer": true },
+		{
+			"send_line": "HISTFILE=/tmp/scute-test-history.txt {scute_bin} --config {config} build \"ls -la\""
+		},
+		{ "sleep": 2.0 },
+		{ "wait_for_text": "╭", "timeout": 10 },
+		{ "sleep": 0.5 },
+		{ "send_text": " " },
+		{ "sleep": 0.2 },
+		{ "send_text": "r" },
+		{ "sleep": 1.0 },
+		{ "wait_for_text": "History", "timeout": 5 },
+		{ "assert_output_not_contains": "No history entries found" },
+		{ "wait_for_text": "echo hello world", "timeout": 5 },
+		{ "sleep": 0.5 },
+		{ "send_keys": ["ESC"] },
+		{ "sleep": 0.5 },
+		{ "send_text": " " },
+		{ "send_keys": ["ENTER"] },
+		{ "wait_for_prompt": true, "timeout": 10 },
+		{ "delete_file": "/tmp/scute-test-history.txt" },
+		{ "send_line": "exit" }
+	]
+}

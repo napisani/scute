@@ -138,7 +138,8 @@ export type LeaderKeybindingAction =
 	| "quit"
 	| "submit"
 	| "suggest"
-	| "generate";
+	| "generate"
+	| "history";
 
 const defaultNormalKeybindings: Record<NormalKeybindingAction, string[]> = {
 	up: ["up"],
@@ -168,6 +169,7 @@ const defaultLeaderKeybindings: Record<LeaderKeybindingAction, string[]> = {
 	submit: ["return"],
 	suggest: ["s"],
 	generate: ["g"],
+	history: ["r"],
 };
 
 const defaultTokenColors: Record<TokenType, string> = {

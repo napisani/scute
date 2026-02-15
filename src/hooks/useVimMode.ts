@@ -9,7 +9,7 @@ import { useNormalMode } from "./useNormalMode";
 
 export type ViewMode = "list" | "annotated";
 
-export type VimMode = "normal" | "insert" | "suggest" | "generate";
+export type VimMode = "normal" | "insert" | "suggest" | "generate" | "history";
 
 export type { KeyboardHandler, KeyboardKey };
 
@@ -33,6 +33,7 @@ export interface VimModeActions {
 	loadDescriptions: () => void;
 	updateSuggestValue: (value: string) => void;
 	updateGenerateValue: (value: string) => void;
+	exitHistoryMode: () => void;
 }
 
 export interface UseVimModeOptions {
@@ -127,6 +128,11 @@ export function useVimMode({
 		setMode("generate");
 	}, []);
 
+	const enterHistoryMode = useCallback(() => {
+		logTrace("vim:enterHistory", {});
+		setMode("history");
+	}, []);
+
 	const exitGenerateMode = useCallback(() => {
 		const prompt = generateValueRef.current.trim();
 		if (prompt.length > 0) {
@@ -142,6 +148,10 @@ export function useVimMode({
 		setMode("normal");
 	}, []);
 
+	const exitHistoryMode = useCallback(() => {
+		setMode("normal");
+	}, []);
+
 	const { leaderActive, handleLeaderKey, resetLeader } = useLeaderMode({
 		viewMode,
 		setViewMode,
@@ -149,6 +159,7 @@ export function useVimMode({
 		onExit,
 		onSuggest: enterSuggestMode,
 		onGenerate: enterGenerateMode,
+		onHistory: enterHistoryMode,
 	});
 
 	// Reset state when tokens change
@@ -338,6 +349,7 @@ export function useVimMode({
 		updateEditingValue,
 		updateSuggestValue,
 		updateGenerateValue,
+		exitHistoryMode,
 		setSelectedIndex,
 		setViewMode,
 		loadDescriptions,

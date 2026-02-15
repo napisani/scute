@@ -30,6 +30,8 @@ export type ShellHelper = {
 	parseCommand: TokenParser;
 	joinTokens: (tokens: string[]) => string;
 	getReadlineLine: ReadlineLineGetter;
+	getHistoryCommand: () => string;
+	getHistoryFilePath: () => string;
 	getInitScript: (bindings: ShellKeybindings) => string;
 };
 

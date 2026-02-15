@@ -134,5 +134,13 @@ export const zshShellHelper: ShellHelper = {
 	getReadlineLine: () => {
 		return getReadlineLine() ?? null;
 	},
+	getHistoryCommand: () => "fc -ln 1",
+	getHistoryFilePath: () => {
+		if (process.env.HISTFILE) {
+			return process.env.HISTFILE;
+		}
+		const home = process.env.HOME ?? "";
+		return `${home}/.zsh_history`;
+	},
 	getInitScript: (bindings) => getZshInitScript(bindings),
 };

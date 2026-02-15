@@ -28,7 +28,11 @@ export function Footer({
 	const modeColor = isInsertLike
 		? getThemeColorFor("modeInsertColor")
 		: getThemeColorFor("modeNormalColor");
-	const modeText = isInsertLike ? "-- INSERT --" : "-- NORMAL --";
+	const modeText = isInsertLike
+		? "-- INSERT --"
+		: mode === "history"
+			? "-- HISTORY --"
+			: "-- NORMAL --";
 	const leaderKey = getLeaderKey()[0] ?? "space";
 	const toggleViewKey = getLeaderKeybindings("toggleView")[0] ?? "m";
 	const explainKey = getLeaderKeybindings("explain")[0] ?? "e";
@@ -39,18 +43,29 @@ export function Footer({
 	const changeKey = getNormalKeybindings("change")[0] ?? "c";
 	const suggestKey = getLeaderKeybindings("suggest")[0] ?? "s";
 	const generateKey = getLeaderKeybindings("generate")[0] ?? "g";
+	const historyKey = getLeaderKeybindings("history")[0] ?? "r";
 	const exitInsertKey = getNormalKeybindings("exitInsert")[0] ?? "escape";
 	const saveKey = getNormalKeybindings("save")[0] ?? "return";
 
 	const viewModeHelp =
-		viewMode === "annotated"
-			? "h/l: move, w/b: word, 0/$: line"
-			: "j/k: move, gg/G: jump";
+		mode === "history"
+			? ""
+			: viewMode === "annotated"
+				? "h/l: move, w/b: word, 0/$: line"
+				: "j/k: move, gg/G: jump";
 
 	const keyHints = (() => {
 		if (mode === "suggest" || mode === "generate") {
 			return [
 				{ key: "enter", label: "submit" },
+				{ key: "esc", label: "cancel" },
+			];
+		}
+		if (mode === "history") {
+			return [
+				{ key: "up/k", label: "older" },
+				{ key: "down/j", label: "newer" },
+				{ key: "enter", label: "select" },
 				{ key: "esc", label: "cancel" },
 			];
 		}
@@ -66,6 +81,7 @@ export function Footer({
 				{ key: explainKey, label: "explain tokens" },
 				{ key: suggestKey, label: "suggest" },
 				{ key: generateKey, label: "generate" },
+				{ key: historyKey, label: "history" },
 				{ key: submitKey, label: "submit" },
 				{ key: quitKey, label: "quit" },
 			];
@@ -86,7 +102,11 @@ export function Footer({
 			) : (
 				<>
 					<KeyHintBar hints={keyHints} />
-					<text fg={getThemeColorFor("hintLabelColor")}>{viewModeHelp}</text>
+					{viewModeHelp ? (
+						<text fg={getThemeColorFor("hintLabelColor")}>
+							{viewModeHelp}
+						</text>
+					) : null}
 					<Spinner isActive={isLoading} />
 				</>
 			)}

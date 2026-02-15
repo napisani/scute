@@ -135,6 +135,7 @@ describe("config overlay logic", () => {
 					submit: ["return"],
 					suggest: ["s"],
 					generate: ["g"],
+					history: ["r"],
 				},
 				leaderKey: ["space"],
 				shellKeybindings: {
@@ -267,6 +268,7 @@ describe("config overlay logic", () => {
 					submit: ["return"],
 					suggest: ["s"],
 					generate: ["g"],
+					history: ["r"],
 				},
 				leaderKey: ["space"],
 				shellKeybindings: {
@@ -392,6 +394,7 @@ describe("config overlay logic", () => {
 					submit: ["return"],
 					suggest: ["s"],
 					generate: ["g"],
+					history: ["r"],
 				},
 				leaderKey: ["space"],
 				shellKeybindings: {

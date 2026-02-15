@@ -1,11 +1,13 @@
 import { useKeyboard, useTerminalDimensions } from "@opentui/react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Footer } from "../components/Footer";
+import { HistoryPicker } from "../components/HistoryPicker";
 import { SuggestInput } from "../components/SuggestInput";
 import { TokenAnnotatedView } from "../components/TokenAnnotatedView";
 import { TokenListView } from "../components/TokenListView";
 
 import { getThemeColorFor } from "../config";
+import { fetchShellHistory } from "../core/history";
 import { explain, generateCommand, suggest } from "../core/llm";
 import {
 	buildParsedCommand,
@@ -103,6 +105,8 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 	const [commandExplanation, setCommandExplanation] = useState<string | null>(
 		null,
 	);
+	const [historyEntries, setHistoryEntries] = useState<string[] | null>(null);
+	const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 	const [isLoadingExplain, setIsLoadingExplain] = useState(false);
 	const [explainError, setExplainError] = useState<string | null>(null);
 	const explainRequestIdRef = useRef(0);
@@ -271,6 +275,7 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 		updateEditingValue,
 		updateSuggestValue,
 		updateGenerateValue,
+		exitHistoryMode,
 	} = useVimMode({
 		parsedTokens,
 		loadDescriptions: handleExplain,
@@ -280,6 +285,19 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 		onSuggestSubmit: handleSuggestSubmit,
 		onGenerateSubmit: handleGenerateSubmit,
 	});
+
+	useEffect(() => {
+		if (mode !== "history") {
+			return;
+		}
+		if (historyEntries !== null || isLoadingHistory) {
+			return;
+		}
+		setIsLoadingHistory(true);
+		const entries = fetchShellHistory();
+		setHistoryEntries(entries);
+		setIsLoadingHistory(false);
+	}, [historyEntries, isLoadingHistory, mode]);
 	const tokenWidths = useTokenWidth({ parsedTokens });
 	const coloredTokens = useColoredTokens({ parsedTokens, selectedIndex });
 
@@ -288,7 +306,21 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 		[parsedTokens, descriptions],
 	);
 
-	if (!parsedTokens.length) {
+	const handleHistorySelect = useCallback(
+		(command: string) => {
+			exitHistoryMode();
+			setParsedCommand(buildParsedCommand(command));
+			resetDescriptions();
+			resetExplanation();
+		},
+		[exitHistoryMode, resetDescriptions, resetExplanation, setParsedCommand],
+	);
+
+	const handleHistoryCancel = useCallback(() => {
+		exitHistoryMode();
+	}, [exitHistoryMode]);
+
+	if (!parsedTokens.length && mode !== "history") {
 		return (
 			<EmptyCommandBuilder
 				onSubmit={(draft) => {
@@ -306,13 +338,18 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 
 	const displayError = suggestError ?? generateError ?? explainError ?? error;
 	const displayLoading =
-		isLoading || isLoadingSuggest || isLoadingGenerate || isLoadingExplain;
+		isLoading ||
+		isLoadingSuggest ||
+		isLoadingGenerate ||
+		isLoadingExplain ||
+		isLoadingHistory;
 	const explanationLabelColor = getThemeColorFor("hintLabelColor");
 	const explanationTextColor = getThemeColorFor("tokenDescription");
 	const safeTerminalWidth = terminalWidth > 0 ? terminalWidth : 80;
 	const safeTerminalHeight = terminalHeight > 0 ? terminalHeight : 24;
 	const explanationWidth = Math.max(1, safeTerminalWidth - 4);
-	const explanationHeight = 2;
+	const isHistoryMode = mode === "history";
+	const explanationHeight = isHistoryMode ? 0 : 2;
 	const inputHeight = mode === "suggest" || mode === "generate" ? 3 : 0;
 	const footerHeight = 1;
 	const chromeHeight = 4;
@@ -344,44 +381,55 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 					title="Generate"
 				/>
 			)}
-			<box width="100%" height={mainHeight} flexDirection="column">
-				<box
-					height={viewHeight}
-					width="100%"
-					justifyContent="center"
-					alignItems="center"
-				>
-					{viewMode === "annotated" ? (
-						<TokenAnnotatedView
-							tokenPositions={tokenPositions}
-							selectedIndex={selectedIndex}
-							mode={mode}
-							editingTokenIndex={editingTokenIndex}
-							editingValue={editingValue}
-							onTokenChange={updateEditingValue}
-						/>
-					) : (
-						<TokenListView
-							coloredTokens={coloredTokens}
-							descriptions={descriptions}
-							tokenWidths={tokenWidths}
-							mode={mode}
-							selectedIndex={selectedIndex}
-							editingTokenIndex={editingTokenIndex}
-							editingValue={editingValue}
-							onTokenChange={updateEditingValue}
-						/>
-					)}
+			{isHistoryMode ? (
+				<box width="100%" height={mainHeight}>
+					<HistoryPicker
+						history={historyEntries ?? []}
+						isLoading={isLoadingHistory}
+						onSelect={handleHistorySelect}
+						onCancel={handleHistoryCancel}
+					/>
 				</box>
-				<box flexDirection="column" width="100%">
-					<text fg={explanationLabelColor}>
-						{fitLine(explanationLabel, explanationWidth)}
-					</text>
-					<text fg={explanationTextColor}>
-						{fitLine(explanationText, explanationWidth)}
-					</text>
+			) : (
+				<box width="100%" height={mainHeight} flexDirection="column">
+					<box
+						height={viewHeight}
+						width="100%"
+						justifyContent="center"
+						alignItems="center"
+					>
+						{viewMode === "annotated" ? (
+							<TokenAnnotatedView
+								tokenPositions={tokenPositions}
+								selectedIndex={selectedIndex}
+								mode={mode}
+								editingTokenIndex={editingTokenIndex}
+								editingValue={editingValue}
+								onTokenChange={updateEditingValue}
+							/>
+						) : (
+							<TokenListView
+								coloredTokens={coloredTokens}
+								descriptions={descriptions}
+								tokenWidths={tokenWidths}
+								mode={mode}
+								selectedIndex={selectedIndex}
+								editingTokenIndex={editingTokenIndex}
+								editingValue={editingValue}
+								onTokenChange={updateEditingValue}
+							/>
+						)}
+					</box>
+					<box flexDirection="column" width="100%">
+						<text fg={explanationLabelColor}>
+							{fitLine(explanationLabel, explanationWidth)}
+						</text>
+						<text fg={explanationTextColor}>
+							{fitLine(explanationText, explanationWidth)}
+						</text>
+					</box>
 				</box>
-			</box>
+			)}
 			<Footer
 				mode={mode}
 				viewMode={viewMode}
