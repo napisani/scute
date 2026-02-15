@@ -20,6 +20,11 @@ export interface UseNormalModeOptions {
 	setViewMode: (mode: ViewMode) => void;
 	handleLeaderKey: (key: KeyboardKey) => boolean;
 	enterInsertMode: (tokenIndex: number, initialValue: string) => void;
+	onTokenDelete: (options: {
+		tokenIndex: number;
+		deleteToEnd: boolean;
+		nextSelectedIndex: number;
+	}) => void;
 	onSubmit?: () => void;
 	useKeyboard: (handler: KeyboardHandler) => void;
 }
@@ -33,6 +38,7 @@ export function useNormalMode({
 	setViewMode,
 	handleLeaderKey,
 	enterInsertMode,
+	onTokenDelete,
 	onSubmit,
 	useKeyboard,
 }: UseNormalModeOptions): void {
@@ -56,6 +62,8 @@ export function useNormalMode({
 	const insertKeys = useMemo(() => getNormalKeybindings("insert"), []);
 	const appendKeys = useMemo(() => getNormalKeybindings("append"), []);
 	const changeKeys = useMemo(() => getNormalKeybindings("change"), []);
+	const deleteKeys = useMemo(() => getNormalKeybindings("delete"), []);
+	const deleteLineKeys = useMemo(() => getNormalKeybindings("deleteLine"), []);
 	const saveKeys = useMemo(() => getNormalKeybindings("save"), []);
 
 	// Track 'g' key for "gg" command
@@ -128,6 +136,34 @@ export function useNormalMode({
 				targetIndex: currentSelectedIndex,
 			});
 			enterInsertMode(currentSelectedIndex, "");
+			return;
+		}
+
+		if (deleteKeys.includes(keyId)) {
+			logTrace("vim:commandDelete", {
+				targetIndex: currentSelectedIndex,
+			});
+			const nextSelectedIndex = Math.max(0, currentSelectedIndex - 1);
+			setSelectedIndex(nextSelectedIndex);
+			onTokenDelete({
+				tokenIndex: currentSelectedIndex,
+				deleteToEnd: false,
+				nextSelectedIndex,
+			});
+			return;
+		}
+
+		if (deleteLineKeys.includes(keyId)) {
+			logTrace("vim:commandDeleteLine", {
+				targetIndex: currentSelectedIndex,
+			});
+			const nextSelectedIndex = Math.max(0, currentSelectedIndex - 1);
+			setSelectedIndex(nextSelectedIndex);
+			onTokenDelete({
+				tokenIndex: currentSelectedIndex,
+				deleteToEnd: true,
+				nextSelectedIndex,
+			});
 			return;
 		}
 

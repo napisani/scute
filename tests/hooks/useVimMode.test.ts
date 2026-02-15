@@ -63,6 +63,10 @@ describe("useVimMode", () => {
 		tokens?: ParsedToken[];
 		loadDescriptions?: () => void;
 		onTokenEdit?: (tokenIndex: number, newValue: string) => void;
+		onTokenDelete?: (options: {
+			tokenIndex: number;
+			deleteToEnd: boolean;
+		}) => void;
 		onExit?: (submitted: boolean) => void;
 		onSuggestSubmit?: (prompt: string) => void;
 		onGenerateSubmit?: (prompt: string) => void;
@@ -73,6 +77,7 @@ describe("useVimMode", () => {
 		tokens = mockTokens,
 		loadDescriptions = () => {},
 		onTokenEdit,
+		onTokenDelete,
 		onExit,
 		onSuggestSubmit,
 		onGenerateSubmit,
@@ -83,6 +88,7 @@ describe("useVimMode", () => {
 				parsedTokens: tokens,
 				loadDescriptions,
 				onTokenEdit,
+				onTokenDelete,
 				onExit,
 				onSuggestSubmit,
 				onGenerateSubmit,
@@ -246,6 +252,136 @@ describe("useVimMode", () => {
 
 			expect(result.current.mode).toBe("normal");
 			expect(capturedEdit).toBeUndefined();
+		});
+	});
+
+	describe("delete token (d key)", () => {
+		it("calls onTokenDelete with the selected token index", () => {
+			let capturedIndex: number | undefined;
+			let capturedDeleteToEnd: boolean | undefined;
+			const onTokenDelete = (options: {
+				tokenIndex: number;
+				deleteToEnd: boolean;
+			}) => {
+				capturedIndex = options.tokenIndex;
+				capturedDeleteToEnd = options.deleteToEnd;
+			};
+
+			const { result } = renderVimMode({ onTokenDelete });
+
+			act(() => {
+				simulateKey("d", "d");
+			});
+
+			expect(capturedIndex).toBe(0);
+			expect(capturedDeleteToEnd).toBe(false);
+			expect(result.current.selectedIndex).toBe(0);
+		});
+
+		it("deletes the correct token after navigating", () => {
+			let capturedIndex: number | undefined;
+			let capturedDeleteToEnd: boolean | undefined;
+			const onTokenDelete = (options: {
+				tokenIndex: number;
+				deleteToEnd: boolean;
+			}) => {
+				capturedIndex = options.tokenIndex;
+				capturedDeleteToEnd = options.deleteToEnd;
+			};
+
+			const { result } = renderVimMode({ onTokenDelete });
+
+			act(() => {
+				simulateKey("right");
+			});
+
+			act(() => {
+				simulateKey("d", "d");
+			});
+
+			expect(capturedIndex).toBe(1);
+			expect(capturedDeleteToEnd).toBe(false);
+			expect(result.current.selectedIndex).toBe(0);
+		});
+
+		it("does not call onTokenDelete when not provided", () => {
+			const { result } = renderVimMode();
+
+			act(() => {
+				simulateKey("d", "d");
+			});
+
+			// Should stay in normal mode, no crash
+			expect(result.current.mode).toBe("normal");
+		});
+
+		it("does not trigger delete with ctrl+d", () => {
+			let wasCalled = false;
+			const onTokenDelete = (_options: {
+				tokenIndex: number;
+				deleteToEnd: boolean;
+			}) => {
+				wasCalled = true;
+			};
+
+			renderVimMode({ onTokenDelete });
+
+			act(() => {
+				simulateKey("d", "\u0004", { ctrl: true });
+			});
+
+			expect(wasCalled).toBe(false);
+		});
+
+		it("does not trigger delete in insert mode", () => {
+			let wasCalled = false;
+			const onTokenDelete = (_options: {
+				tokenIndex: number;
+				deleteToEnd: boolean;
+			}) => {
+				wasCalled = true;
+			};
+
+			const { result } = renderVimMode({ onTokenDelete });
+
+			act(() => {
+				simulateKey("i", "i");
+			});
+			expect(result.current.mode).toBe("insert");
+
+			act(() => {
+				simulateKey("d", "d");
+			});
+
+			expect(wasCalled).toBe(false);
+		});
+	});
+
+	describe("delete to end (D key)", () => {
+		it("calls onTokenDelete with deleteToEnd", () => {
+			let capturedIndex: number | undefined;
+			let capturedDeleteToEnd: boolean | undefined;
+			const onTokenDelete = (options: {
+				tokenIndex: number;
+				deleteToEnd: boolean;
+			}) => {
+				capturedIndex = options.tokenIndex;
+				capturedDeleteToEnd = options.deleteToEnd;
+			};
+
+			const { result } = renderVimMode({ onTokenDelete });
+
+			act(() => {
+				simulateKey("right");
+			});
+
+			act(() => {
+				simulateKey("d", "D", { shift: true });
+			});
+
+			expect(capturedIndex).toBe(1);
+			expect(capturedDeleteToEnd).toBe(true);
+			expect(result.current.selectedIndex).toBe(0);
 		});
 	});
 

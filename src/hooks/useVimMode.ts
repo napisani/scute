@@ -39,6 +39,10 @@ export interface UseVimModeOptions {
 	parsedTokens: ParsedToken[];
 	loadDescriptions: () => void;
 	onTokenEdit?: (tokenIndex: number, newValue: string) => void;
+	onTokenDelete?: (options: {
+		tokenIndex: number;
+		deleteToEnd: boolean;
+	}) => void;
 	onSubmit?: () => void;
 	onExit?: (submitted: boolean) => void;
 	onSuggestSubmit?: (prompt: string) => void;
@@ -51,6 +55,7 @@ export function useVimMode({
 	parsedTokens,
 	loadDescriptions,
 	onTokenEdit,
+	onTokenDelete,
 	onSubmit,
 	onExit,
 	onSuggestSubmit,
@@ -87,6 +92,9 @@ export function useVimMode({
 	generateValueRef.current = generateValue;
 	const onTokenEditRef = useRef(onTokenEdit);
 	onTokenEditRef.current = onTokenEdit;
+	const onTokenDeleteRef = useRef(onTokenDelete);
+	onTokenDeleteRef.current = onTokenDelete;
+	const nextSelectedIndexRef = useRef<number | null>(null);
 	const onSuggestSubmitRef = useRef(onSuggestSubmit);
 	onSuggestSubmitRef.current = onSuggestSubmit;
 	const onGenerateSubmitRef = useRef(onGenerateSubmit);
@@ -155,7 +163,9 @@ export function useVimMode({
 			tokenCount: parsedTokens.length,
 		});
 		setMode("normal");
-		setSelectedIndex(0);
+		const nextSelectedIndex = nextSelectedIndexRef.current;
+		nextSelectedIndexRef.current = null;
+		setSelectedIndex(nextSelectedIndex ?? 0);
 		setEditingTokenIndex(null);
 		setEditingValue("");
 		setSuggestValue("");
@@ -282,6 +292,21 @@ export function useVimMode({
 		}
 	});
 
+	const handleTokenDelete = useCallback(
+		(options: {
+			tokenIndex: number;
+			deleteToEnd: boolean;
+			nextSelectedIndex: number;
+		}) => {
+			nextSelectedIndexRef.current = options.nextSelectedIndex;
+			onTokenDeleteRef.current?.({
+				tokenIndex: options.tokenIndex,
+				deleteToEnd: options.deleteToEnd,
+			});
+		},
+		[],
+	);
+
 	// Compose normal mode (the only remaining sub-hook)
 	useNormalMode({
 		modeRef,
@@ -292,6 +317,7 @@ export function useVimMode({
 		setViewMode,
 		handleLeaderKey,
 		enterInsertMode,
+		onTokenDelete: handleTokenDelete,
 		onSubmit,
 		useKeyboard,
 	});

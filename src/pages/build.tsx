@@ -62,6 +62,24 @@ export function applyTokenEdit(
 	};
 }
 
+export function applyTokenDelete(
+	prev: ParsedCommand,
+	tokenIndex: number,
+	deleteToEnd: boolean,
+): ParsedCommand {
+	const boundedIndex = Math.max(
+		0,
+		Math.min(prev.tokens.length - 1, tokenIndex),
+	);
+	const splicedTokens = deleteToEnd
+		? [...prev.tokens.slice(0, boundedIndex)]
+		: [
+				...prev.tokens.slice(0, boundedIndex),
+				...prev.tokens.slice(boundedIndex + 1),
+			];
+	return rebuildParsedCommandFromTokens(splicedTokens);
+}
+
 export function BuildApp({ command, onExit }: BuildAppProps) {
 	const { width: terminalWidth, height: terminalHeight } =
 		useTerminalDimensions();
@@ -104,6 +122,23 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 					prev,
 					tokenIndex,
 					newValue,
+				);
+				resetDescriptions();
+				resetExplanation();
+				return nextCommand;
+			});
+		},
+		[resetDescriptions, resetExplanation, setParsedCommand],
+	);
+
+	// Handle token deletion by removing the token at the given index
+	const handleTokenDelete = useCallback(
+		(options: { tokenIndex: number; deleteToEnd: boolean }) => {
+			setParsedCommand((prev) => {
+				const nextCommand = applyTokenDelete(
+					prev,
+					options.tokenIndex,
+					options.deleteToEnd,
 				);
 				resetDescriptions();
 				resetExplanation();
@@ -240,6 +275,7 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 		parsedTokens,
 		loadDescriptions: handleExplain,
 		onTokenEdit: handleTokenEdit,
+		onTokenDelete: handleTokenDelete,
 		onExit: handleExit,
 		onSuggestSubmit: handleSuggestSubmit,
 		onGenerateSubmit: handleGenerateSubmit,

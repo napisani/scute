@@ -78,6 +78,8 @@ export const NormalKeybindingsSchema = z
 		insert: z.array(z.string()).default(["i"]),
 		append: z.array(z.string()).default(["a"]),
 		change: z.array(z.string()).default(["c"]),
+		delete: z.array(z.string()).default(["d"]),
+		deleteLine: z.array(z.string()).default(["D"]),
 		exitInsert: z.array(z.string()).default(["escape"]),
 		save: z.array(z.string()).default(["return"]),
 	})
@@ -96,6 +98,8 @@ export const NormalKeybindingsSchema = z
 		insert: ["i"],
 		append: ["a"],
 		change: ["c"],
+		delete: ["d"],
+		deleteLine: ["D"],
 		exitInsert: ["escape"],
 		save: ["return"],
 	});

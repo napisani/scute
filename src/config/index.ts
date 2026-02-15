@@ -127,6 +127,8 @@ export type NormalKeybindingAction =
 	| "insert"
 	| "append"
 	| "change"
+	| "delete"
+	| "deleteLine"
 	| "exitInsert"
 	| "save";
 
@@ -153,6 +155,8 @@ const defaultNormalKeybindings: Record<NormalKeybindingAction, string[]> = {
 	insert: ["i"],
 	append: ["a"],
 	change: ["c"],
+	delete: ["d"],
+	deleteLine: ["D"],
 	exitInsert: ["escape"],
 	save: ["return"],
 };
