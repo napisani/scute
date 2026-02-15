@@ -131,6 +131,8 @@ describe("config overlay logic", () => {
 					toggleView: ["m"],
 					quit: ["q"],
 					submit: ["return"],
+					suggest: ["s"],
+					generate: ["g"],
 				},
 				leaderKey: ["space"],
 				shellKeybindings: {
@@ -259,6 +261,8 @@ describe("config overlay logic", () => {
 					toggleView: ["m"],
 					quit: ["q"],
 					submit: ["return"],
+					suggest: ["s"],
+					generate: ["g"],
 				},
 				leaderKey: ["space"],
 				shellKeybindings: {
@@ -380,6 +384,8 @@ describe("config overlay logic", () => {
 					toggleView: ["m"],
 					quit: ["q"],
 					submit: ["return"],
+					suggest: ["s"],
+					generate: ["g"],
 				},
 				leaderKey: ["space"],
 				shellKeybindings: {

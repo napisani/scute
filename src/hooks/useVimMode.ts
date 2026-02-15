@@ -4,13 +4,12 @@ import { getInitialViewMode } from "../config";
 import { logTrace } from "../core/logger";
 import type { ParsedToken } from "../core/shells/common";
 import type { KeyboardHandler, KeyboardKey } from "../utils/keyboard";
-import { useInsertMode } from "./useInsertMode";
 import { useLeaderMode } from "./useLeaderMode";
 import { useNormalMode } from "./useNormalMode";
 
 export type ViewMode = "list" | "annotated";
 
-export type VimMode = "normal" | "insert";
+export type VimMode = "normal" | "insert" | "suggest" | "generate";
 
 export type { KeyboardHandler, KeyboardKey };
 
@@ -21,26 +20,19 @@ export interface VimModeState {
 	leaderActive: boolean;
 	editingTokenIndex: number | null;
 	editingValue: string;
-	cursorPosition: number;
+	suggestValue: string;
+	generateValue: string;
 }
 
 export interface VimModeActions {
-	enterInsertMode: (
-		tokenIndex: number,
-		cursorPos: number,
-		clearToken?: boolean,
-	) => void;
+	enterInsertMode: (tokenIndex: number, initialValue: string) => void;
 	exitInsertMode: (save: boolean) => void;
 	updateEditingValue: (value: string) => void;
-	moveCursor: (position: number) => void;
 	setSelectedIndex: (index: number) => void;
 	setViewMode: (mode: ViewMode) => void;
 	loadDescriptions: () => void;
-}
-
-interface EditorState {
-	value: string;
-	cursor: number;
+	updateSuggestValue: (value: string) => void;
+	updateGenerateValue: (value: string) => void;
 }
 
 export interface UseVimModeOptions {
@@ -49,6 +41,8 @@ export interface UseVimModeOptions {
 	onTokenEdit?: (tokenIndex: number, newValue: string) => void;
 	onSubmit?: () => void;
 	onExit?: (submitted: boolean) => void;
+	onSuggestSubmit?: (prompt: string) => void;
+	onGenerateSubmit?: (prompt: string) => void;
 	useKeyboard?: (handler: KeyboardHandler) => void;
 }
 
@@ -59,6 +53,8 @@ export function useVimMode({
 	onTokenEdit,
 	onSubmit,
 	onExit,
+	onSuggestSubmit,
+	onGenerateSubmit,
 	useKeyboard = useOpenTuiKeyboard,
 }: UseVimModeOptions): VimModeState & VimModeActions {
 	// Shared state
@@ -67,21 +63,85 @@ export function useVimMode({
 	modeRef.current = mode;
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const [viewMode, setViewMode] = useState<ViewMode>(getInitialViewMode);
+
+	// Insert state — value owned by <input>, we just track it for save/cancel
+	const [editingTokenIndex, setEditingTokenIndex] = useState<number | null>(
+		null,
+	);
+	const [editingValue, setEditingValue] = useState("");
+
+	// Suggest state — value owned by <input>
+	const [suggestValue, setSuggestValue] = useState("");
+
+	// Generate state — value owned by <input>
+	const [generateValue, setGenerateValue] = useState("");
+
+	// Refs to hold current values so useKeyboard closures always read latest state
+	const editingTokenIndexRef = useRef(editingTokenIndex);
+	editingTokenIndexRef.current = editingTokenIndex;
+	const editingValueRef = useRef(editingValue);
+	editingValueRef.current = editingValue;
+	const suggestValueRef = useRef(suggestValue);
+	suggestValueRef.current = suggestValue;
+	const generateValueRef = useRef(generateValue);
+	generateValueRef.current = generateValue;
+	const onTokenEditRef = useRef(onTokenEdit);
+	onTokenEditRef.current = onTokenEdit;
+	const onSuggestSubmitRef = useRef(onSuggestSubmit);
+	onSuggestSubmitRef.current = onSuggestSubmit;
+	const onGenerateSubmitRef = useRef(onGenerateSubmit);
+	onGenerateSubmitRef.current = onGenerateSubmit;
+
+	const enterSuggestMode = useCallback(() => {
+		logTrace("vim:enterSuggest", {});
+		setSuggestValue("");
+		setMode("suggest");
+	}, []);
+
+	const exitSuggestMode = useCallback(() => {
+		const prompt = suggestValueRef.current.trim();
+		if (prompt.length > 0) {
+			logTrace("vim:suggest:submit", { promptLength: prompt.length });
+			onSuggestSubmitRef.current?.(prompt);
+		}
+		setSuggestValue("");
+		setMode("normal");
+	}, []);
+
+	const cancelSuggestMode = useCallback(() => {
+		setSuggestValue("");
+		setMode("normal");
+	}, []);
+
+	const enterGenerateMode = useCallback(() => {
+		logTrace("vim:enterGenerate", {});
+		setGenerateValue("");
+		setMode("generate");
+	}, []);
+
+	const exitGenerateMode = useCallback(() => {
+		const prompt = generateValueRef.current.trim();
+		if (prompt.length > 0) {
+			logTrace("vim:generate:submit", { promptLength: prompt.length });
+			onGenerateSubmitRef.current?.(prompt);
+		}
+		setGenerateValue("");
+		setMode("normal");
+	}, []);
+
+	const cancelGenerateMode = useCallback(() => {
+		setGenerateValue("");
+		setMode("normal");
+	}, []);
+
 	const { leaderActive, handleLeaderKey, resetLeader } = useLeaderMode({
 		viewMode,
 		setViewMode,
 		loadDescriptions,
 		onExit,
+		onSuggest: enterSuggestMode,
+		onGenerate: enterGenerateMode,
 	});
-	const [editingTokenIndex, setEditingTokenIndex] = useState<number | null>(
-		null,
-	);
-	const [editorState, setEditorState] = useState<EditorState>({
-		value: "",
-		cursor: 0,
-	});
-	const skipNextInsertCharRef = useRef(false);
-	const insertTriggerRef = useRef<string | null>(null);
 
 	// Reset state when tokens change
 	const parsedTokensKey = useMemo(
@@ -97,52 +157,63 @@ export function useVimMode({
 		setMode("normal");
 		setSelectedIndex(0);
 		setEditingTokenIndex(null);
-		setEditorState({ value: "", cursor: 0 });
+		setEditingValue("");
+		setSuggestValue("");
+		setGenerateValue("");
 		resetLeader();
-		skipNextInsertCharRef.current = false;
-		insertTriggerRef.current = null;
 	}, [parsedTokensKey, parsedTokens.length, resetLeader]);
 
 	// Shared actions
 	const enterInsertMode = useCallback(
-		(tokenIndex: number, cursorPos: number, clearToken = false) => {
-			const initialValue = clearToken
-				? ""
-				: (parsedTokens[tokenIndex]?.value ?? "");
-			const nextCursor = Math.min(cursorPos, initialValue.length);
+		(tokenIndex: number, initialValue: string) => {
 			logTrace("vim:enterInsert", {
 				tokenIndex,
-				cursorPos,
-				clearToken,
 				initialValueLength: initialValue.length,
 			});
 			setEditingTokenIndex(tokenIndex);
-			setEditorState({
-				value: initialValue,
-				cursor: nextCursor,
-			});
+			setEditingValue(initialValue);
 			setMode("insert");
 		},
-		[parsedTokens],
+		[],
 	);
 
+	const saveInsertMode = useCallback(() => {
+		const tokenIndex = editingTokenIndexRef.current;
+		const value = editingValueRef.current;
+		logTrace("vim:exitInsert", {
+			save: true,
+			editingTokenIndex: tokenIndex,
+			valueLength: value.length,
+		});
+		if (tokenIndex !== null && value.length > 0) {
+			onTokenEditRef.current?.(tokenIndex, value);
+		}
+		setEditingTokenIndex(null);
+		setEditingValue("");
+		setMode("normal");
+	}, []);
+
+	const cancelInsertMode = useCallback(() => {
+		logTrace("vim:exitInsert", {
+			save: false,
+			editingTokenIndex: editingTokenIndexRef.current,
+			valueLength: editingValueRef.current.length,
+		});
+		setEditingTokenIndex(null);
+		setEditingValue("");
+		setMode("normal");
+	}, []);
+
+	// exitInsertMode is the public API that delegates to save/cancel
 	const exitInsertMode = useCallback(
 		(save: boolean) => {
-			logTrace("vim:exitInsert", {
-				save,
-				editingTokenIndex,
-				valueLength: editorState.value.length,
-			});
-			if (editingTokenIndex !== null) {
-				if (save && editorState.value.length > 0) {
-					onTokenEdit?.(editingTokenIndex, editorState.value);
-				}
-				setEditingTokenIndex(null);
-				setEditorState({ value: "", cursor: 0 });
+			if (save) {
+				saveInsertMode();
+			} else {
+				cancelInsertMode();
 			}
-			setMode("normal");
 		},
-		[editingTokenIndex, editorState.value, onTokenEdit],
+		[saveInsertMode, cancelInsertMode],
 	);
 
 	const updateEditingValue = useCallback(
@@ -153,23 +224,65 @@ export function useVimMode({
 				valueLength: value.length,
 				preview,
 			});
-			setEditorState((prev) => ({ ...prev, value }));
+			setEditingValue(value);
 		},
 		[editingTokenIndex],
 	);
 
-	const moveCursor = useCallback(
-		(position: number) => {
-			logTrace("vim:moveCursor", {
-				tokenIndex: editingTokenIndex,
-				position,
-			});
-			setEditorState((prev) => ({ ...prev, cursor: position }));
-		},
-		[editingTokenIndex],
-	);
+	const updateSuggestValue = useCallback((value: string) => {
+		setSuggestValue(value);
+	}, []);
 
-	// Compose sub-hooks (each calls useKeyboard once)
+	const updateGenerateValue = useCallback((value: string) => {
+		setGenerateValue(value);
+	}, []);
+
+	// Single useKeyboard handler for insert/suggest/generate mode interception
+	// This fires BEFORE the focused <input>, so preventDefault() blocks
+	// the <input> from seeing Escape/Enter.
+	// Uses refs to avoid stale closure issues — the handler is registered once
+	// but always reads the latest state via refs.
+	useKeyboard((key: KeyboardKey) => {
+		const currentMode = modeRef.current;
+		if (currentMode === "insert") {
+			if (key.name === "escape") {
+				key.preventDefault?.();
+				cancelInsertMode();
+				return;
+			}
+			if (key.name === "return" || key.sequence === "\r") {
+				key.preventDefault?.();
+				saveInsertMode();
+				return;
+			}
+		}
+		if (currentMode === "suggest") {
+			if (key.name === "escape") {
+				key.preventDefault?.();
+				cancelSuggestMode();
+				return;
+			}
+			if (key.name === "return" || key.sequence === "\r") {
+				key.preventDefault?.();
+				exitSuggestMode();
+				return;
+			}
+		}
+		if (currentMode === "generate") {
+			if (key.name === "escape") {
+				key.preventDefault?.();
+				cancelGenerateMode();
+				return;
+			}
+			if (key.name === "return" || key.sequence === "\r") {
+				key.preventDefault?.();
+				exitGenerateMode();
+				return;
+			}
+		}
+	});
+
+	// Compose normal mode (the only remaining sub-hook)
 	useNormalMode({
 		modeRef,
 		parsedTokens,
@@ -180,19 +293,6 @@ export function useVimMode({
 		handleLeaderKey,
 		enterInsertMode,
 		onSubmit,
-		skipNextInsertCharRef,
-		insertTriggerRef,
-		useKeyboard,
-	});
-
-	useInsertMode({
-		modeRef,
-		editorState,
-		setEditorState,
-		editingTokenIndex,
-		exitInsertMode,
-		skipNextInsertCharRef,
-		insertTriggerRef,
 		useKeyboard,
 	});
 
@@ -203,13 +303,15 @@ export function useVimMode({
 		viewMode,
 		leaderActive,
 		editingTokenIndex,
-		editingValue: editorState.value,
-		cursorPosition: editorState.cursor,
+		editingValue,
+		suggestValue,
+		generateValue,
 		// Actions
 		enterInsertMode,
 		exitInsertMode,
 		updateEditingValue,
-		moveCursor,
+		updateSuggestValue,
+		updateGenerateValue,
 		setSelectedIndex,
 		setViewMode,
 		loadDescriptions,

@@ -106,12 +106,16 @@ export const LeaderKeybindingsSchema = z
 		toggleView: z.array(z.string()).default(["m"]),
 		quit: z.array(z.string()).default(["q"]),
 		submit: z.array(z.string()).default(["return"]),
+		suggest: z.array(z.string()).default(["s"]),
+		generate: z.array(z.string()).default(["g"]),
 	})
 	.default({
 		explain: ["e"],
 		toggleView: ["m"],
 		quit: ["q"],
 		submit: ["return"],
+		suggest: ["s"],
+		generate: ["g"],
 	});
 
 export const TokenColorsSchema = z

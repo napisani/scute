@@ -19,14 +19,8 @@ export interface UseNormalModeOptions {
 	viewMode: ViewMode;
 	setViewMode: (mode: ViewMode) => void;
 	handleLeaderKey: (key: KeyboardKey) => boolean;
-	enterInsertMode: (
-		tokenIndex: number,
-		cursorPos: number,
-		clearToken?: boolean,
-	) => void;
+	enterInsertMode: (tokenIndex: number, initialValue: string) => void;
 	onSubmit?: () => void;
-	skipNextInsertCharRef: MutableRefObject<boolean>;
-	insertTriggerRef: MutableRefObject<string | null>;
 	useKeyboard: (handler: KeyboardHandler) => void;
 }
 
@@ -40,8 +34,6 @@ export function useNormalMode({
 	handleLeaderKey,
 	enterInsertMode,
 	onSubmit,
-	skipNextInsertCharRef,
-	insertTriggerRef,
 	useKeyboard,
 }: UseNormalModeOptions): void {
 	// Keybindings
@@ -109,7 +101,7 @@ export function useNormalMode({
 			});
 			setSelectedIndex(lastIndex);
 			const tokenValue = parsedTokens[lastIndex]?.value ?? "";
-			enterInsertMode(lastIndex, tokenValue.length, false);
+			enterInsertMode(lastIndex, tokenValue);
 			return;
 		}
 
@@ -117,9 +109,8 @@ export function useNormalMode({
 			logTrace("vim:commandInsert", {
 				targetIndex: currentSelectedIndex,
 			});
-			skipNextInsertCharRef.current = true;
-			insertTriggerRef.current = key.sequence ?? key.name;
-			enterInsertMode(currentSelectedIndex, 0, false);
+			const tokenValue = parsedTokens[currentSelectedIndex]?.value ?? "";
+			enterInsertMode(currentSelectedIndex, tokenValue);
 			return;
 		}
 
@@ -127,9 +118,8 @@ export function useNormalMode({
 			logTrace("vim:commandAppend", {
 				targetIndex: currentSelectedIndex,
 			});
-			skipNextInsertCharRef.current = true;
-			insertTriggerRef.current = key.sequence ?? key.name;
-			enterInsertMode(currentSelectedIndex, 1, false);
+			const tokenValue = parsedTokens[currentSelectedIndex]?.value ?? "";
+			enterInsertMode(currentSelectedIndex, tokenValue);
 			return;
 		}
 
@@ -137,9 +127,7 @@ export function useNormalMode({
 			logTrace("vim:commandChange", {
 				targetIndex: currentSelectedIndex,
 			});
-			skipNextInsertCharRef.current = true;
-			insertTriggerRef.current = key.sequence ?? key.name;
-			enterInsertMode(currentSelectedIndex, 0, true);
+			enterInsertMode(currentSelectedIndex, "");
 			return;
 		}
 

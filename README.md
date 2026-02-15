@@ -227,6 +227,7 @@ leaderKeybindings:
   toggleView: ["m"]
   quit: ["q"]
   submit: ["return"]
+  suggest: ["s"]
 
 leaderKey: ["space"]
 

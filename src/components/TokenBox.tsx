@@ -7,7 +7,6 @@ interface TokenBoxProps {
 	isSelected: boolean;
 	isEditing: boolean;
 	editingValue: string;
-	cursorPosition: number;
 	onTokenChange: (value: string) => void;
 }
 
@@ -16,7 +15,6 @@ export function TokenBox({
 	isSelected,
 	isEditing,
 	editingValue,
-	cursorPosition,
 	onTokenChange,
 }: TokenBoxProps) {
 	const tokenColor = getTokenColor(tp.token.type);
@@ -32,7 +30,6 @@ export function TokenBox({
 			>
 				<TokenEditor
 					value={editingValue}
-					cursorPosition={cursorPosition}
 					color={tokenColor}
 					onChange={onTokenChange}
 				/>

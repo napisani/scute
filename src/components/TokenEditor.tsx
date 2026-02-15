@@ -1,39 +1,16 @@
-import type { InputRenderable } from "@opentui/core";
-import { useEffect, useRef } from "react";
 import { getThemeColorFor } from "../config";
 
 interface TokenEditorProps {
 	value: string;
-	cursorPosition: number;
 	color: string;
 	onChange: (value: string) => void;
 }
 
-export function TokenEditor({
-	value,
-	cursorPosition,
-	color,
-	onChange,
-}: TokenEditorProps) {
-	const inputRef = useRef<InputRenderable | null>(null);
-
-	useEffect(() => {
-		const input = inputRef.current;
-		if (!input) {
-			return;
-		}
-		const clampedCursor = Math.max(0, Math.min(cursorPosition, value.length));
-		input.cursorOffset = clampedCursor;
-		if (input.value !== value) {
-			input.value = value;
-		}
-	}, [cursorPosition, value]);
-
+export function TokenEditor({ value, color, onChange }: TokenEditorProps) {
 	return (
 		<input
-			ref={inputRef}
 			value={value}
-			onChange={(newValue) => {
+			onInput={(newValue) => {
 				onChange(newValue);
 			}}
 			focused

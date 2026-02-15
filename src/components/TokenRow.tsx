@@ -15,7 +15,6 @@ interface TokenRowProps {
 	mode: VimMode;
 	editingTokenIndex: number | null;
 	editingValue: string;
-	cursorPosition: number;
 	onTokenChange: (value: string) => void;
 	maxWidth: number;
 }
@@ -26,7 +25,6 @@ export function TokenRow({
 	mode,
 	editingTokenIndex,
 	editingValue,
-	cursorPosition,
 	onTokenChange,
 	maxWidth,
 }: TokenRowProps) {
@@ -76,7 +74,6 @@ export function TokenRow({
 						isSelected={tp.index === selectedIndex}
 						isEditing={mode === "insert" && editingTokenIndex === tp.index}
 						editingValue={editingValue}
-						cursorPosition={cursorPosition}
 						onTokenChange={onTokenChange}
 					/>
 				))}

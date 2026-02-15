@@ -6,6 +6,7 @@ export interface KeyboardKey {
 	shift?: boolean;
 	option?: boolean;
 	alt?: boolean;
+	preventDefault?: () => void;
 }
 
 export type KeyboardHandler = (key: KeyboardKey) => void;

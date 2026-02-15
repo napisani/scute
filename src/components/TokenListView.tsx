@@ -14,7 +14,6 @@ interface TokenListViewProps {
 	selectedIndex: number;
 	editingTokenIndex: number | null;
 	editingValue: string;
-	cursorPosition: number;
 	onTokenChange: (value: string) => void;
 }
 
@@ -26,7 +25,6 @@ export function TokenListView({
 	selectedIndex,
 	editingTokenIndex,
 	editingValue,
-	cursorPosition,
 	onTokenChange,
 }: TokenListViewProps) {
 	const { typeWidth, tokenWidth } = tokenWidths;
@@ -82,7 +80,6 @@ export function TokenListView({
 									token={coloredToken}
 									isEditing={isEditing}
 									editValue={editingValue}
-									cursorPosition={cursorPosition}
 									onChange={onTokenChange}
 								/>
 								<text fg={color}>

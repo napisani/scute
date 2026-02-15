@@ -10,7 +10,7 @@ global.document = dom.window.document;
 global.window = dom.window as unknown as Window & typeof globalThis;
 
 // Track keyboard handlers - only keep the most recent ones
-// The hook registers 2 handlers: normal mode and insert mode
+// The hook registers 2 handlers: insert/suggest interception + normal mode
 let latestHandlers: KeyboardHandler[] = [];
 
 const mockUseKeyboard = (handler: KeyboardHandler) => {
@@ -26,17 +26,16 @@ const simulateKey = (
 	sequence?: string,
 	overrides: Partial<KeyboardKey> = {},
 ) => {
-	const key: KeyboardKey = { name, sequence, ...overrides };
+	const key: KeyboardKey = {
+		name,
+		sequence,
+		preventDefault: () => {},
+		...overrides,
+	};
 	// Call only the most recent handlers
 	latestHandlers.forEach((handler) => {
 		handler(key);
 	});
-};
-
-const simulateType = (text: string) => {
-	for (const char of text) {
-		simulateKey(char, char);
-	}
 };
 
 const pressLeader = () => {
@@ -65,6 +64,8 @@ describe("useVimMode", () => {
 		loadDescriptions?: () => void;
 		onTokenEdit?: (tokenIndex: number, newValue: string) => void;
 		onExit?: (submitted: boolean) => void;
+		onSuggestSubmit?: (prompt: string) => void;
+		onGenerateSubmit?: (prompt: string) => void;
 		useKeyboard?: (handler: KeyboardHandler) => void;
 	}
 
@@ -73,6 +74,8 @@ describe("useVimMode", () => {
 		loadDescriptions = () => {},
 		onTokenEdit,
 		onExit,
+		onSuggestSubmit,
+		onGenerateSubmit,
 		useKeyboard = mockUseKeyboard,
 	}: RenderVimModeOptions = {}) {
 		return renderHook(() =>
@@ -81,6 +84,8 @@ describe("useVimMode", () => {
 				loadDescriptions,
 				onTokenEdit,
 				onExit,
+				onSuggestSubmit,
+				onGenerateSubmit,
 				useKeyboard,
 			}),
 		);
@@ -88,20 +93,14 @@ describe("useVimMode", () => {
 
 	describe("basic navigation", () => {
 		it("starts with first token selected", () => {
-			const mockLoadDescriptions = () => {};
-			const { result } = renderVimMode({
-				loadDescriptions: mockLoadDescriptions,
-			});
+			const { result } = renderVimMode();
 
 			expect(result.current.selectedIndex).toBe(0);
 			expect(result.current.mode).toBe("normal");
 		});
 
 		it("moves selection with j and k keys", () => {
-			const mockLoadDescriptions = () => {};
-			const { result } = renderVimMode({
-				loadDescriptions: mockLoadDescriptions,
-			});
+			const { result } = renderVimMode();
 
 			act(() => {
 				pressLeader();
@@ -121,10 +120,7 @@ describe("useVimMode", () => {
 		});
 
 		it("stops at boundaries", () => {
-			const mockLoadDescriptions = () => {};
-			const { result } = renderVimMode({
-				loadDescriptions: mockLoadDescriptions,
-			});
+			const { result } = renderVimMode();
 
 			act(() => {
 				pressLeader();
@@ -151,10 +147,7 @@ describe("useVimMode", () => {
 
 	describe("view mode toggle", () => {
 		it("does not toggle view mode without leader", () => {
-			const mockLoadDescriptions = () => {};
-			const { result } = renderVimMode({
-				loadDescriptions: mockLoadDescriptions,
-			});
+			const { result } = renderVimMode();
 
 			expect(result.current.viewMode).toBe("annotated");
 
@@ -165,10 +158,7 @@ describe("useVimMode", () => {
 		});
 
 		it("toggles view mode with leader+m", () => {
-			const mockLoadDescriptions = () => {};
-			const { result } = renderVimMode({
-				loadDescriptions: mockLoadDescriptions,
-			});
+			const { result } = renderVimMode();
 
 			expect(result.current.viewMode).toBe("annotated");
 
@@ -184,10 +174,7 @@ describe("useVimMode", () => {
 
 	describe("insert mode - change (c key)", () => {
 		it("enters insert mode with cleared value", () => {
-			const mockLoadDescriptions = () => {};
-			const { result } = renderVimMode({
-				loadDescriptions: mockLoadDescriptions,
-			});
+			const { result } = renderVimMode();
 
 			act(() => {
 				simulateKey("right");
@@ -200,65 +187,15 @@ describe("useVimMode", () => {
 			expect(result.current.mode).toBe("insert");
 			expect(result.current.editingTokenIndex).toBe(1);
 			expect(result.current.editingValue).toBe("");
-			expect(result.current.cursorPosition).toBe(0);
 		});
 
-		it("types text correctly in insert mode", () => {
-			const mockLoadDescriptions = () => {};
-			const { result } = renderVimMode({
-				loadDescriptions: mockLoadDescriptions,
-			});
-
-			act(() => {
-				simulateKey("right");
-			});
-
-			act(() => {
-				simulateKey("c");
-			});
-
-			act(() => {
-				simulateType("hello");
-			});
-
-			expect(result.current.editingValue).toBe("hello");
-			expect(result.current.cursorPosition).toBe(5);
-		});
-
-		it("handles backspace in insert mode", () => {
-			const mockLoadDescriptions = () => {};
-			const { result } = renderVimMode({
-				loadDescriptions: mockLoadDescriptions,
-			});
-
-			act(() => {
-				simulateKey("right");
-			});
-
-			act(() => {
-				simulateKey("c");
-			});
-
-			act(() => {
-				simulateType("hello");
-				simulateKey("backspace");
-			});
-
-			expect(result.current.editingValue).toBe("hell");
-			expect(result.current.cursorPosition).toBe(4);
-		});
-
-		it("saves edit on Enter", () => {
-			const mockLoadDescriptions = () => {};
+		it("saves edit on Enter via updateEditingValue then Enter", () => {
 			let capturedEdit: { index: number; value: string } | undefined;
 			const onTokenEdit = (tokenIndex: number, newValue: string) => {
 				capturedEdit = { index: tokenIndex, value: newValue };
 			};
 
-			const { result } = renderVimMode({
-				loadDescriptions: mockLoadDescriptions,
-				onTokenEdit,
-			});
+			const { result } = renderVimMode({ onTokenEdit });
 
 			act(() => {
 				simulateKey("right");
@@ -268,8 +205,9 @@ describe("useVimMode", () => {
 				simulateKey("c");
 			});
 
+			// Simulate <input> onChange by calling updateEditingValue
 			act(() => {
-				simulateType("hello");
+				result.current.updateEditingValue("hello");
 			});
 
 			act(() => {
@@ -283,16 +221,12 @@ describe("useVimMode", () => {
 		});
 
 		it("discards edit on Escape", () => {
-			const mockLoadDescriptions = () => {};
 			let capturedEdit: { index: number; value: string } | undefined;
 			const onTokenEdit = (tokenIndex: number, newValue: string) => {
 				capturedEdit = { index: tokenIndex, value: newValue };
 			};
 
-			const { result } = renderVimMode({
-				loadDescriptions: mockLoadDescriptions,
-				onTokenEdit,
-			});
+			const { result } = renderVimMode({ onTokenEdit });
 
 			act(() => {
 				simulateKey("right");
@@ -303,7 +237,7 @@ describe("useVimMode", () => {
 			});
 
 			act(() => {
-				simulateType("hello");
+				result.current.updateEditingValue("hello");
 			});
 
 			act(() => {
@@ -316,88 +250,20 @@ describe("useVimMode", () => {
 	});
 
 	describe("insert mode - insert (i key)", () => {
-		it("does not insert the triggering i into the buffer", () => {
-			const mockLoadDescriptions = () => {};
-			const { result } = renderVimMode({
-				loadDescriptions: mockLoadDescriptions,
-			});
+		it("enters insert mode with existing token value", () => {
+			const { result } = renderVimMode();
 
 			act(() => {
 				simulateKey("i", "i");
 			});
 
-			act(() => {
-				simulateType("| grep -i test |");
-			});
-
 			expect(result.current.mode).toBe("insert");
-			expect(result.current.editingValue).toBe("| grep -i test |echo");
-			expect(result.current.editingValue.startsWith("i")).toBe(false);
-		});
-	});
-
-	describe("insert mode - append (a key)", () => {
-		it("enters insert mode at position 1", () => {
-			const mockLoadDescriptions = () => {};
-			const { result } = renderVimMode({
-				loadDescriptions: mockLoadDescriptions,
-			});
-
-			act(() => {
-				simulateKey("right");
-			});
-
-			act(() => {
-				simulateKey("a");
-			});
-
-			expect(result.current.mode).toBe("insert");
-			expect(result.current.editingTokenIndex).toBe(1);
-			expect(result.current.editingValue).toBe("test");
-			expect(result.current.cursorPosition).toBe(1);
+			expect(result.current.editingTokenIndex).toBe(0);
+			expect(result.current.editingValue).toBe("echo");
 		});
 
-		it("appends text correctly", () => {
-			const mockLoadDescriptions = () => {};
-			let capturedEdit: { index: number; value: string } | undefined;
-			const onTokenEdit = (tokenIndex: number, newValue: string) => {
-				capturedEdit = { index: tokenIndex, value: newValue };
-			};
-			const { result } = renderVimMode({
-				loadDescriptions: mockLoadDescriptions,
-				onTokenEdit,
-			});
-
-			act(() => {
-				simulateKey("right");
-			});
-
-			act(() => {
-				simulateKey("a");
-			});
-
-			act(() => {
-				simulateType("ing");
-			});
-
-			act(() => {
-				simulateKey("return");
-			});
-
-			// 'a' puts cursor at position 1, so typing "ing" inserts there
-			// "test" with "ing" inserted at position 1 = "tingest"
-			expect(capturedEdit).toBeDefined();
-			expect(capturedEdit?.index).toBe(1);
-			expect(capturedEdit?.value).toBe("tingest");
-		});
-	});
-
-	describe("insert mode - insert (i key)", () => {
-		it("enters insert mode at position 0", () => {
-			const mockLoadDescriptions = () => {};
-			const { result } = renderVimMode({
-				loadDescriptions: mockLoadDescriptions,
-			});
+		it("enters insert mode on second token", () => {
+			const { result } = renderVimMode();
 
 			act(() => {
 				simulateKey("right");
@@ -410,19 +276,14 @@ describe("useVimMode", () => {
 			expect(result.current.mode).toBe("insert");
 			expect(result.current.editingTokenIndex).toBe(1);
 			expect(result.current.editingValue).toBe("test");
-			expect(result.current.cursorPosition).toBe(0);
 		});
 
-		it("inserts text at beginning", () => {
-			const mockLoadDescriptions = () => {};
+		it("saves edit via updateEditingValue then Enter", () => {
 			let capturedEdit: { index: number; value: string } | undefined;
 			const onTokenEdit = (tokenIndex: number, newValue: string) => {
 				capturedEdit = { index: tokenIndex, value: newValue };
 			};
-			const { result } = renderVimMode({
-				loadDescriptions: mockLoadDescriptions,
-				onTokenEdit,
-			});
+			const { result } = renderVimMode({ onTokenEdit });
 
 			act(() => {
 				simulateKey("right");
@@ -433,7 +294,7 @@ describe("useVimMode", () => {
 			});
 
 			act(() => {
-				simulateType("re");
+				result.current.updateEditingValue("retest");
 			});
 
 			act(() => {
@@ -446,14 +307,60 @@ describe("useVimMode", () => {
 		});
 	});
 
+	describe("insert mode - append (a key)", () => {
+		it("enters insert mode with existing token value", () => {
+			const { result } = renderVimMode();
+
+			act(() => {
+				simulateKey("right");
+			});
+
+			act(() => {
+				simulateKey("a");
+			});
+
+			expect(result.current.mode).toBe("insert");
+			expect(result.current.editingTokenIndex).toBe(1);
+			expect(result.current.editingValue).toBe("test");
+		});
+
+		it("saves appended text correctly", () => {
+			let capturedEdit: { index: number; value: string } | undefined;
+			const onTokenEdit = (tokenIndex: number, newValue: string) => {
+				capturedEdit = { index: tokenIndex, value: newValue };
+			};
+			const { result } = renderVimMode({ onTokenEdit });
+
+			act(() => {
+				simulateKey("right");
+			});
+
+			act(() => {
+				simulateKey("a");
+			});
+
+			// Simulate <input> updating the value (append appends at cursor end)
+			act(() => {
+				result.current.updateEditingValue("testing");
+			});
+
+			act(() => {
+				simulateKey("return");
+			});
+
+			expect(capturedEdit).toBeDefined();
+			expect(capturedEdit?.index).toBe(1);
+			expect(capturedEdit?.value).toBe("testing");
+		});
+	});
+
 	describe("state reset", () => {
 		it("resets editor state when tokens change", () => {
-			const mockLoadDescriptions = () => {};
 			const { result, rerender } = renderHook(
 				({ tokens }) =>
 					useVimMode({
 						parsedTokens: tokens,
-						loadDescriptions: mockLoadDescriptions,
+						loadDescriptions: () => {},
 						useKeyboard: mockUseKeyboard,
 					}),
 				{
@@ -463,7 +370,10 @@ describe("useVimMode", () => {
 
 			act(() => {
 				simulateKey("i");
-				simulateType("changed");
+			});
+
+			act(() => {
+				result.current.updateEditingValue("changed");
 			});
 
 			const nextTokens: ParsedToken[] = [
@@ -481,33 +391,25 @@ describe("useVimMode", () => {
 	});
 
 	describe("complex editing with pipes", () => {
-		it("handles adding pipes to token", () => {
-			const mockLoadDescriptions = () => {};
+		it("handles multi-token edits via updateEditingValue", () => {
 			let capturedEdit: { index: number; value: string } | undefined;
 			const onTokenEdit = (tokenIndex: number, newValue: string) => {
 				capturedEdit = { index: tokenIndex, value: newValue };
 			};
 
-			const { result } = renderVimMode({
-				loadDescriptions: mockLoadDescriptions,
-				onTokenEdit,
-			});
+			const { result } = renderVimMode({ onTokenEdit });
 
 			act(() => {
 				simulateKey("right");
 			});
 
-			// Use 'i' to enter insert mode at position 0, then move to end
 			act(() => {
 				simulateKey("i");
 			});
 
+			// Simulate <input> editing the value to include pipes
 			act(() => {
-				simulateKey("end");
-			});
-
-			act(() => {
-				simulateType(" | cat | grep test");
+				result.current.updateEditingValue("test | cat | grep test");
 			});
 
 			act(() => {
@@ -520,69 +422,9 @@ describe("useVimMode", () => {
 		});
 	});
 
-	describe("cursor movement", () => {
-		it("moves cursor with arrow keys", () => {
-			const mockLoadDescriptions = () => {};
-			const { result } = renderVimMode({
-				loadDescriptions: mockLoadDescriptions,
-			});
-
-			act(() => {
-				simulateKey("right");
-			});
-
-			act(() => {
-				simulateKey("a");
-			});
-
-			act(() => {
-				simulateKey("right");
-				simulateKey("right");
-			});
-
-			expect(result.current.cursorPosition).toBe(3);
-
-			act(() => {
-				simulateKey("left");
-			});
-
-			expect(result.current.cursorPosition).toBe(2);
-		});
-
-		it("moves to start with home key", () => {
-			const mockLoadDescriptions = () => {};
-			const { result } = renderVimMode({
-				loadDescriptions: mockLoadDescriptions,
-			});
-
-			act(() => {
-				simulateKey("right");
-			});
-
-			act(() => {
-				simulateKey("a");
-			});
-
-			act(() => {
-				simulateKey("end");
-			});
-
-			expect(result.current.cursorPosition).toBe(4);
-
-			act(() => {
-				simulateKey("home");
-			});
-
-			expect(result.current.cursorPosition).toBe(0);
-		});
-	});
-
 	describe("appendLine keybinding (A key in annotated mode)", () => {
 		it("selects last token and enters insert at end when in annotated mode", () => {
-			const mockLoadDescriptions = () => {};
-			const { result } = renderVimMode({
-				loadDescriptions: mockLoadDescriptions,
-			});
+			const { result } = renderVimMode();
 
 			expect(result.current.viewMode).toBe("annotated");
 
@@ -594,14 +436,10 @@ describe("useVimMode", () => {
 			expect(result.current.selectedIndex).toBe(1);
 			expect(result.current.editingTokenIndex).toBe(1);
 			expect(result.current.editingValue).toBe("test");
-			expect(result.current.cursorPosition).toBe(4);
 		});
 
 		it("does not work in list mode", () => {
-			const mockLoadDescriptions = () => {};
-			const { result } = renderVimMode({
-				loadDescriptions: mockLoadDescriptions,
-			});
+			const { result } = renderVimMode();
 
 			expect(result.current.viewMode).toBe("annotated");
 
@@ -625,10 +463,7 @@ describe("useVimMode", () => {
 
 	describe("lastToken keybinding (G in annotated mode)", () => {
 		it("moves selection to last token", () => {
-			const mockLoadDescriptions = () => {};
-			const { result } = renderVimMode({
-				loadDescriptions: mockLoadDescriptions,
-			});
+			const { result } = renderVimMode();
 
 			expect(result.current.viewMode).toBe("annotated");
 
@@ -681,10 +516,7 @@ describe("useVimMode", () => {
 
 	describe("leader mode", () => {
 		it("cancels on escape", () => {
-			const mockLoadDescriptions = () => {};
-			const { result } = renderVimMode({
-				loadDescriptions: mockLoadDescriptions,
-			});
+			const { result } = renderVimMode();
 
 			act(() => {
 				pressLeader();
@@ -697,10 +529,7 @@ describe("useVimMode", () => {
 		});
 
 		it("cancels on unrelated key", () => {
-			const mockLoadDescriptions = () => {};
-			const { result } = renderVimMode({
-				loadDescriptions: mockLoadDescriptions,
-			});
+			const { result } = renderVimMode();
 
 			act(() => {
 				pressLeader();
@@ -713,10 +542,7 @@ describe("useVimMode", () => {
 		});
 
 		it("does not trigger in insert mode", () => {
-			const mockLoadDescriptions = () => {};
-			const { result } = renderVimMode({
-				loadDescriptions: mockLoadDescriptions,
-			});
+			const { result } = renderVimMode();
 
 			act(() => {
 				simulateKey("i", "i");
@@ -725,6 +551,7 @@ describe("useVimMode", () => {
 				pressLeader();
 			});
 
+			// Space in insert mode does NOT activate leader (it goes to <input>)
 			expect(result.current.mode).toBe("insert");
 		});
 	});
@@ -839,10 +666,7 @@ describe("useVimMode", () => {
 
 	describe("modifier keys", () => {
 		it("ignores ctrl-modified key presses in normal mode", () => {
-			const loadDescriptions = () => {};
-			const { result } = renderVimMode({
-				loadDescriptions,
-			});
+			const { result } = renderVimMode();
 
 			act(() => {
 				simulateKey("c", "\u0003", { ctrl: true });
@@ -852,41 +676,304 @@ describe("useVimMode", () => {
 			expect(result.current.editingTokenIndex).toBeNull();
 			expect(result.current.editingValue).toBe("");
 		});
+	});
 
-		it("does not mutate insert buffer for ctrl-modified keys", () => {
-			const loadDescriptions = () => {};
+	describe("suggest mode", () => {
+		it("enters suggest mode via leader+s", () => {
+			const { result } = renderVimMode();
+
+			act(() => {
+				pressLeader();
+			});
+			act(() => {
+				simulateKey("s", "s");
+			});
+
+			expect(result.current.mode).toBe("suggest");
+			expect(result.current.suggestValue).toBe("");
+		});
+
+		it("updates suggest value via updateSuggestValue", () => {
+			const { result } = renderVimMode();
+
+			act(() => {
+				pressLeader();
+			});
+			act(() => {
+				simulateKey("s", "s");
+			});
+			act(() => {
+				result.current.updateSuggestValue("sort by size");
+			});
+
+			expect(result.current.mode).toBe("suggest");
+			expect(result.current.suggestValue).toBe("sort by size");
+		});
+
+		it("cancels suggest mode on Escape", () => {
+			const { result } = renderVimMode();
+
+			act(() => {
+				pressLeader();
+			});
+			act(() => {
+				simulateKey("s", "s");
+			});
+			act(() => {
+				result.current.updateSuggestValue("test");
+			});
+			act(() => {
+				simulateKey("escape", "\u001b");
+			});
+
+			expect(result.current.mode).toBe("normal");
+			expect(result.current.suggestValue).toBe("");
+		});
+
+		it("calls onSuggestSubmit on Enter with non-empty prompt", () => {
+			let capturedPrompt: string | undefined;
 			const { result } = renderVimMode({
-				loadDescriptions,
+				onSuggestSubmit: (prompt) => {
+					capturedPrompt = prompt;
+				},
 			});
 
 			act(() => {
-				simulateKey("i", "i");
+				pressLeader();
+			});
+			act(() => {
+				simulateKey("s", "s");
+			});
+			act(() => {
+				result.current.updateSuggestValue("sort desc");
+			});
+			act(() => {
+				simulateKey("return", "\r");
+			});
+
+			expect(result.current.mode).toBe("normal");
+			expect(capturedPrompt).toBe("sort desc");
+		});
+
+		it("does not call onSuggestSubmit on Enter with empty prompt", () => {
+			let wasCalled = false;
+			const { result } = renderVimMode({
+				onSuggestSubmit: () => {
+					wasCalled = true;
+				},
 			});
 
 			act(() => {
-				simulateType("abc");
+				pressLeader();
+			});
+			act(() => {
+				simulateKey("s", "s");
+			});
+			act(() => {
+				simulateKey("return", "\r");
 			});
 
+			expect(result.current.mode).toBe("normal");
+			expect(wasCalled).toBe(false);
+		});
+
+		it("resets suggest state when tokens change", () => {
+			const initialTokens = mockTokens;
+			const { result, rerender } = renderHook(
+				({ tokens }: { tokens: ParsedToken[] }) =>
+					useVimMode({
+						parsedTokens: tokens,
+						loadDescriptions: () => {},
+						useKeyboard: mockUseKeyboard,
+					}),
+				{ initialProps: { tokens: initialTokens } },
+			);
+
+			// Enter suggest mode and update value
+			act(() => {
+				pressLeader();
+			});
+			act(() => {
+				simulateKey("s", "s");
+			});
+			act(() => {
+				result.current.updateSuggestValue("test");
+			});
+			expect(result.current.mode).toBe("suggest");
+
+			// Change tokens
+			const updatedTokens: ParsedToken[] = [
+				{ value: "printf", type: "command" },
+			];
+			rerender({ tokens: updatedTokens });
+
+			expect(result.current.mode).toBe("normal");
+			expect(result.current.suggestValue).toBe("");
+		});
+
+		it("does not activate suggest from insert mode", () => {
+			const { result } = renderVimMode();
+
+			// Enter insert mode
+			act(() => {
+				simulateKey("i");
+			});
 			expect(result.current.mode).toBe("insert");
-			const beforeModifier = result.current.editingValue;
 
+			// Try leader+s — leader should not activate in insert mode
 			act(() => {
-				simulateKey("c", "\u0003", { ctrl: true });
+				pressLeader();
+			});
+			act(() => {
+				simulateKey("s", "s");
 			});
 
+			// Should still be in insert mode (leader not processed)
 			expect(result.current.mode).toBe("insert");
-			expect(result.current.editingValue).toBe(beforeModifier);
+		});
+	});
+
+	describe("generate mode", () => {
+		it("enters generate mode via leader+g", () => {
+			const { result } = renderVimMode();
+
+			act(() => {
+				pressLeader();
+			});
+			act(() => {
+				simulateKey("g", "g");
+			});
+
+			expect(result.current.mode).toBe("generate");
+			expect(result.current.generateValue).toBe("");
+		});
+
+		it("updates generate value via updateGenerateValue", () => {
+			const { result } = renderVimMode();
+
+			act(() => {
+				pressLeader();
+			});
+			act(() => {
+				simulateKey("g", "g");
+			});
+			act(() => {
+				result.current.updateGenerateValue("list files recursively");
+			});
+
+			expect(result.current.mode).toBe("generate");
+			expect(result.current.generateValue).toBe("list files recursively");
+		});
+
+		it("cancels generate mode on Escape", () => {
+			const { result } = renderVimMode();
+
+			act(() => {
+				pressLeader();
+			});
+			act(() => {
+				simulateKey("g", "g");
+			});
+			act(() => {
+				result.current.updateGenerateValue("test");
+			});
+			act(() => {
+				simulateKey("escape", "\u001b");
+			});
+
+			expect(result.current.mode).toBe("normal");
+			expect(result.current.generateValue).toBe("");
+		});
+
+		it("calls onGenerateSubmit on Enter with non-empty prompt", () => {
+			let capturedPrompt: string | undefined;
+			const { result } = renderVimMode({
+				onGenerateSubmit: (prompt) => {
+					capturedPrompt = prompt;
+				},
+			});
+
+			act(() => {
+				pressLeader();
+			});
+			act(() => {
+				simulateKey("g", "g");
+			});
+			act(() => {
+				result.current.updateGenerateValue("find large files");
+			});
+			act(() => {
+				simulateKey("return", "\r");
+			});
+
+			expect(result.current.mode).toBe("normal");
+			expect(capturedPrompt).toBe("find large files");
+		});
+
+		it("does not call onGenerateSubmit on Enter with empty prompt", () => {
+			let wasCalled = false;
+			const { result } = renderVimMode({
+				onGenerateSubmit: () => {
+					wasCalled = true;
+				},
+			});
+
+			act(() => {
+				pressLeader();
+			});
+			act(() => {
+				simulateKey("g", "g");
+			});
+			act(() => {
+				simulateKey("return", "\r");
+			});
+
+			expect(result.current.mode).toBe("normal");
+			expect(wasCalled).toBe(false);
+		});
+
+		it("resets generate state when tokens change", () => {
+			const initialTokens = mockTokens;
+			const { result, rerender } = renderHook(
+				({ tokens }: { tokens: ParsedToken[] }) =>
+					useVimMode({
+						parsedTokens: tokens,
+						loadDescriptions: () => {},
+						useKeyboard: mockUseKeyboard,
+					}),
+				{ initialProps: { tokens: initialTokens } },
+			);
+
+			// Enter generate mode and update value
+			act(() => {
+				pressLeader();
+			});
+			act(() => {
+				simulateKey("g", "g");
+			});
+			act(() => {
+				result.current.updateGenerateValue("test");
+			});
+			expect(result.current.mode).toBe("generate");
+
+			// Change tokens
+			const updatedTokens: ParsedToken[] = [
+				{ value: "printf", type: "command" },
+			];
+			rerender({ tokens: updatedTokens });
+
+			expect(result.current.mode).toBe("normal");
+			expect(result.current.generateValue).toBe("");
 		});
 	});
 
 	it("retains current view mode when tokens change", () => {
-		const mockLoadDescriptions = () => {};
 		const initialTokens = mockTokens;
 		const { result, rerender } = renderHook(
 			({ tokens }: { tokens: ParsedToken[] }) =>
 				useVimMode({
 					parsedTokens: tokens,
-					loadDescriptions: mockLoadDescriptions,
+					loadDescriptions: () => {},
 					useKeyboard: mockUseKeyboard,
 				}),
 			{ initialProps: { tokens: initialTokens } },

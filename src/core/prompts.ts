@@ -15,11 +15,18 @@ You will be provided with a JSON payload containing:
 - "input": the partial ${shell} command the user has typed (may include inline comments that describe intent)
 - "tokens": an array of parsed tokens for the current input
 - "context": concise excerpts from relevant man pages and documentation
- Your job is to produce the single best complete ${shell} command that satisfies the described intent.
- - You may replace or reorder the tokens as needed; do not merely append text.
- - Honor any intent described in comments or obvious from the tokens.
- - Return exactly one command line with no trailing commentary, explanations, or markdown.
- - Do not include surrounding quotes, code fences, prompt characters (like "$"), or additional notes.
+
+Your job is to complete or refine the input into the single best ${shell} command that satisfies the user's intent.
+
+Rules:
+1. Return EXACTLY ONE line containing a valid ${shell} command. Nothing else.
+2. The result must be a single executable shell command line. Use pipes, subshells, or compound operators (&&, ||, ;) to keep everything on one line when multiple operations are needed.
+3. Do NOT return multiple lines, multiple separate commands, bullet points, explanations, or commentary.
+4. Do NOT wrap the output in quotes, backticks, code fences, or markdown of any kind.
+5. Do NOT prefix with prompt characters like "$", ">", or "#".
+6. You may replace, reorder, add, or remove tokens as needed; do not merely append text to the end.
+7. Honor any intent described in inline comments (text after #) or obvious from the token structure.
+8. Prefer common, portable flags and idioms for the detected shell.
 `;
 }
 export function getExplainSystemPrompt(): string {
@@ -41,10 +48,16 @@ export function getGenerateSystemPrompt(): string {
 	const shell = identifyShell();
 	return `
 ${getRoleVerbiage()}
-You will be provided with a natural language prompt describing a task. 
- Your task is to generate the single, most likely ${shell} command that achieves the user's goal. 
- The shell command can be multiple commands combined with pipes, conditionals, or other shell operators as needed, but it must be a single line.
- ONLY return the command itself, with no additional explanation or formatting (no prompt characters like "$" or "> ").
+You will be provided with a natural language prompt describing a task.
+Your job is to generate the single best ${shell} command that achieves the user's goal.
+
+Rules:
+1. Return EXACTLY ONE line containing a valid ${shell} command. Nothing else.
+2. The result must be a single executable shell command line. Use pipes, subshells, or compound operators (&&, ||, ;) to keep everything on one line when multiple operations are needed.
+3. Do NOT return multiple lines, multiple separate commands, bullet points, explanations, or commentary.
+4. Do NOT wrap the output in quotes, backticks, code fences, or markdown of any kind.
+5. Do NOT prefix with prompt characters like "$", ">", or "#".
+6. Prefer common, portable flags and idioms for the detected shell.
 `;
 }
 

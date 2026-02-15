@@ -1,9 +1,12 @@
 import { useKeyboard } from "@opentui/react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Footer } from "../components/Footer";
+import { SuggestInput } from "../components/SuggestInput";
 import { TokenAnnotatedView } from "../components/TokenAnnotatedView";
 import { TokenListView } from "../components/TokenListView";
 
+import { getThemeColorFor } from "../config";
+import { generateCommand, suggest } from "../core/llm";
 import {
 	buildParsedCommand,
 	parseTokens,
@@ -16,11 +19,6 @@ import { useParsedCommand } from "../hooks/useParsedCommand";
 import { useTokenDescriptions } from "../hooks/useTokenDescriptions";
 import { useTokenWidth } from "../hooks/useTokenWidth";
 import { useVimMode } from "../hooks/useVimMode";
-import {
-	hasModifierKey,
-	type KeyboardKey,
-	normalizeKeyId,
-} from "../utils/keyboard";
 import { calculateTokenPositions } from "../utils/tokenPositions";
 
 type BuildAppProps = {
@@ -33,144 +31,6 @@ export interface ApplyTokenEditResult {
 	startIndex: number;
 	removedCount: number;
 	insertedCount: number;
-}
-
-export interface EmptyDraftState {
-	value: string;
-	cursor: number;
-}
-
-export interface EmptyDraftResult {
-	state: EmptyDraftState;
-	submittedValue: string | null;
-}
-
-export const emptyDraftInitialState: EmptyDraftState = {
-	value: "",
-	cursor: 0,
-};
-
-export function processEmptyDraftKey(
-	state: EmptyDraftState,
-	key: KeyboardKey,
-): EmptyDraftResult {
-	if (hasModifierKey(key)) {
-		return { state, submittedValue: null };
-	}
-
-	const keyId = normalizeKeyId(key);
-
-	if (keyId === "return") {
-		const candidate = state.value;
-		if (candidate.trim().length === 0) {
-			return { state, submittedValue: null };
-		}
-		return { state, submittedValue: candidate };
-	}
-
-	if (key.name === "backspace") {
-		if (state.cursor <= 0) {
-			return { state, submittedValue: null };
-		}
-		const nextValue =
-			state.value.slice(0, state.cursor - 1) + state.value.slice(state.cursor);
-		return {
-			state: {
-				value: nextValue,
-				cursor: state.cursor - 1,
-			},
-			submittedValue: null,
-		};
-	}
-
-	if (key.name === "delete") {
-		if (state.cursor >= state.value.length) {
-			return { state, submittedValue: null };
-		}
-		return {
-			state: {
-				value:
-					state.value.slice(0, state.cursor) +
-					state.value.slice(state.cursor + 1),
-				cursor: state.cursor,
-			},
-			submittedValue: null,
-		};
-	}
-
-	if (key.name === "left") {
-		return {
-			state: {
-				value: state.value,
-				cursor: Math.max(0, state.cursor - 1),
-			},
-			submittedValue: null,
-		};
-	}
-
-	if (key.name === "right") {
-		return {
-			state: {
-				value: state.value,
-				cursor: Math.min(state.value.length, state.cursor + 1),
-			},
-			submittedValue: null,
-		};
-	}
-
-	if (key.name === "home") {
-		return {
-			state: {
-				value: state.value,
-				cursor: 0,
-			},
-			submittedValue: null,
-		};
-	}
-
-	if (key.name === "end") {
-		return {
-			state: {
-				value: state.value,
-				cursor: state.value.length,
-			},
-			submittedValue: null,
-		};
-	}
-
-	const sequence = key.sequence ?? "";
-	const singleChar = sequence.length === 1 ? sequence : null;
-	const isBackspaceChar = singleChar === "\u0008" || singleChar === "\u007f";
-	if (isBackspaceChar) {
-		if (state.cursor <= 0) {
-			return { state, submittedValue: null };
-		}
-		const nextValue =
-			state.value.slice(0, state.cursor - 1) + state.value.slice(state.cursor);
-		return {
-			state: {
-				value: nextValue,
-				cursor: state.cursor - 1,
-			},
-			submittedValue: null,
-		};
-	}
-
-	if (singleChar && singleChar >= " " && singleChar <= "~") {
-		const nextValue =
-			state.value.slice(0, state.cursor) +
-			singleChar +
-			state.value.slice(state.cursor);
-		return {
-			state: {
-				value: nextValue,
-				cursor: state.cursor + 1,
-			},
-			submittedValue: null,
-		};
-	}
-
-	return { state, submittedValue: null };
 }
 
 export function applyTokenEdit(
@@ -235,6 +95,60 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 		[onExit, parsedCommand, resetDescriptions],
 	);
 
+	const [isLoadingSuggest, setIsLoadingSuggest] = useState(false);
+	const [suggestError, setSuggestError] = useState<string | null>(null);
+
+	const handleSuggestSubmit = useCallback(
+		(prompt: string) => {
+			const currentCommand = parsedCommand.originalCommand;
+			const commandWithHint = `${currentCommand} # ${prompt}`;
+			setIsLoadingSuggest(true);
+			setSuggestError(null);
+			suggest(commandWithHint)
+				.then((result) => {
+					if (result) {
+						resetDescriptions();
+						setParsedCommand(buildParsedCommand(result));
+					} else {
+						setSuggestError("Suggest returned no result");
+					}
+				})
+				.catch(() => {
+					setSuggestError("Suggest failed");
+				})
+				.finally(() => {
+					setIsLoadingSuggest(false);
+				});
+		},
+		[parsedCommand.originalCommand, resetDescriptions, setParsedCommand],
+	);
+
+	const [isLoadingGenerate, setIsLoadingGenerate] = useState(false);
+	const [generateError, setGenerateError] = useState<string | null>(null);
+
+	const handleGenerateSubmit = useCallback(
+		(prompt: string) => {
+			setIsLoadingGenerate(true);
+			setGenerateError(null);
+			generateCommand(prompt)
+				.then((result) => {
+					if (result) {
+						resetDescriptions();
+						setParsedCommand(buildParsedCommand(result));
+					} else {
+						setGenerateError("Generate returned no result");
+					}
+				})
+				.catch(() => {
+					setGenerateError("Generate failed");
+				})
+				.finally(() => {
+					setIsLoadingGenerate(false);
+				});
+		},
+		[resetDescriptions, setParsedCommand],
+	);
+
 	const {
 		mode,
 		selectedIndex,
@@ -242,14 +156,18 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 		leaderActive,
 		editingTokenIndex,
 		editingValue,
-		cursorPosition,
-		exitInsertMode,
+		suggestValue,
+		generateValue,
 		updateEditingValue,
+		updateSuggestValue,
+		updateGenerateValue,
 	} = useVimMode({
 		parsedTokens,
 		loadDescriptions,
 		onTokenEdit: handleTokenEdit,
 		onExit: handleExit,
+		onSuggestSubmit: handleSuggestSubmit,
+		onGenerateSubmit: handleGenerateSubmit,
 	});
 	const tokenWidths = useTokenWidth({ parsedTokens });
 	const coloredTokens = useColoredTokens({ parsedTokens, selectedIndex });
@@ -274,6 +192,9 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 		);
 	}
 
+	const displayError = suggestError ?? generateError ?? error;
+	const displayLoading = isLoading || isLoadingSuggest || isLoadingGenerate;
+
 	return (
 		<box
 			border
@@ -283,6 +204,16 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 			width="100%"
 			padding={1}
 		>
+			{mode === "suggest" && (
+				<SuggestInput value={suggestValue} onChange={updateSuggestValue} />
+			)}
+			{mode === "generate" && (
+				<SuggestInput
+					value={generateValue}
+					onChange={updateGenerateValue}
+					title="Generate"
+				/>
+			)}
 			<box
 				flexGrow={1}
 				width="100%"
@@ -297,7 +228,6 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 						mode={mode}
 						editingTokenIndex={editingTokenIndex}
 						editingValue={editingValue}
-						cursorPosition={cursorPosition}
 						onTokenChange={updateEditingValue}
 					/>
 				) : (
@@ -309,7 +239,6 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 						selectedIndex={selectedIndex}
 						editingTokenIndex={editingTokenIndex}
 						editingValue={editingValue}
-						cursorPosition={cursorPosition}
 						onTokenChange={updateEditingValue}
 					/>
 				)}
@@ -318,8 +247,8 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 				mode={mode}
 				viewMode={viewMode}
 				leaderActive={leaderActive}
-				isLoading={isLoading}
-				error={error}
+				isLoading={displayLoading}
+				error={displayError}
 			/>
 		</box>
 	);
@@ -330,27 +259,23 @@ interface EmptyCommandBuilderProps {
 }
 
 function EmptyCommandBuilder({ onSubmit }: EmptyCommandBuilderProps) {
-	const [draftState, setDraftState] = useState<EmptyDraftState>(
-		emptyDraftInitialState,
-	);
+	const [draftValue, setDraftValue] = useState("");
+	const draftValueRef = useRef(draftValue);
+	draftValueRef.current = draftValue;
+	const onSubmitRef = useRef(onSubmit);
+	onSubmitRef.current = onSubmit;
+	const cursorColor = getThemeColorFor("cursorColor");
 
 	useKeyboard((key) => {
-		setDraftState((prev) => {
-			const result = processEmptyDraftKey(prev, key);
-			if (result.submittedValue !== null) {
-				const trimmed = result.submittedValue.trim();
-				if (trimmed.length > 0) {
-					onSubmit(trimmed);
-				}
-				return emptyDraftInitialState;
+		if (key.name === "return" || key.sequence === "\r") {
+			key.preventDefault?.();
+			const trimmed = draftValueRef.current.trim();
+			if (trimmed.length > 0) {
+				onSubmitRef.current(trimmed);
+				setDraftValue("");
 			}
-			return result.state;
-		});
+		}
 	});
-
-	const before = draftState.value.slice(0, draftState.cursor);
-	const after = draftState.value.slice(draftState.cursor);
-	const caretLine = `${before}|${after}`;
 
 	return (
 		<box
@@ -363,7 +288,14 @@ function EmptyCommandBuilder({ onSubmit }: EmptyCommandBuilderProps) {
 			<text>Start building a command</text>
 			<text>Type to add text, press Enter to continue</text>
 			<box marginTop={1}>
-				<text>{caretLine.length ? caretLine : "|"}</text>
+				<input
+					value={draftValue}
+					onInput={setDraftValue}
+					focused
+					width={Math.max(draftValue.length + 2, 20)}
+					cursorColor={cursorColor}
+					backgroundColor="transparent"
+				/>
 			</box>
 		</box>
 	);

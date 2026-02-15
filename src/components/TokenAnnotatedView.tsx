@@ -9,7 +9,6 @@ interface TokenAnnotatedViewProps {
 	mode: VimMode;
 	editingTokenIndex: number | null;
 	editingValue: string;
-	cursorPosition: number;
 	onTokenChange: (value: string) => void;
 }
 
@@ -19,7 +18,6 @@ export function TokenAnnotatedView({
 	mode,
 	editingTokenIndex,
 	editingValue,
-	cursorPosition,
 	onTokenChange,
 }: TokenAnnotatedViewProps) {
 	const { width } = useTerminalDimensions();
@@ -34,7 +32,6 @@ export function TokenAnnotatedView({
 					mode={mode}
 					editingTokenIndex={editingTokenIndex}
 					editingValue={editingValue}
-					cursorPosition={cursorPosition}
 					onTokenChange={onTokenChange}
 					maxWidth={maxWidth}
 				/>

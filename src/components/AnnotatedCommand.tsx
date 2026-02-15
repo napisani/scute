@@ -10,7 +10,6 @@ interface AnnotatedCommandProps {
 	mode: VimMode;
 	editingTokenIndex: number | null;
 	editingValue: string;
-	cursorPosition: number;
 	onTokenChange: (value: string) => void;
 	maxWidth: number;
 }
@@ -21,7 +20,6 @@ export function AnnotatedCommand({
 	mode,
 	editingTokenIndex,
 	editingValue,
-	cursorPosition,
 	onTokenChange,
 	maxWidth,
 }: AnnotatedCommandProps) {
@@ -49,7 +47,6 @@ export function AnnotatedCommand({
 					mode={mode}
 					editingTokenIndex={editingTokenIndex}
 					editingValue={editingValue}
-					cursorPosition={cursorPosition}
 					onTokenChange={onTokenChange}
 					maxWidth={maxWidth}
 				/>

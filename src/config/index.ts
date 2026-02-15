@@ -134,7 +134,9 @@ export type LeaderKeybindingAction =
 	| "explain"
 	| "toggleView"
 	| "quit"
-	| "submit";
+	| "submit"
+	| "suggest"
+	| "generate";
 
 const defaultNormalKeybindings: Record<NormalKeybindingAction, string[]> = {
 	up: ["up"],
@@ -160,6 +162,8 @@ const defaultLeaderKeybindings: Record<LeaderKeybindingAction, string[]> = {
 	toggleView: ["m"],
 	quit: ["q"],
 	submit: ["return"],
+	suggest: ["s"],
+	generate: ["g"],
 };
 
 const defaultTokenColors: Record<TokenType, string> = {

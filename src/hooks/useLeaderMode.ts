@@ -13,6 +13,8 @@ export interface UseLeaderModeOptions {
 	setViewMode: (mode: ViewMode) => void;
 	loadDescriptions: () => void;
 	onExit?: (submitted: boolean) => void;
+	onSuggest?: () => void;
+	onGenerate?: () => void;
 }
 
 export interface LeaderModeState {
@@ -26,6 +28,8 @@ export function useLeaderMode({
 	setViewMode,
 	loadDescriptions,
 	onExit,
+	onSuggest,
+	onGenerate,
 }: UseLeaderModeOptions): LeaderModeState {
 	const [leaderActive, setLeaderActive] = useState(false);
 	const leaderKeys = useMemo(() => getLeaderKey(), []);
@@ -33,6 +37,8 @@ export function useLeaderMode({
 	const explainKeys = useMemo(() => getLeaderKeybindings("explain"), []);
 	const quitKeys = useMemo(() => getLeaderKeybindings("quit"), []);
 	const submitKeys = useMemo(() => getLeaderKeybindings("submit"), []);
+	const suggestKeys = useMemo(() => getLeaderKeybindings("suggest"), []);
+	const generateKeys = useMemo(() => getLeaderKeybindings("generate"), []);
 
 	const resetLeader = useCallback(() => {
 		setLeaderActive(false);
@@ -73,6 +79,16 @@ export function useLeaderMode({
 					onExit?.(true);
 					return true;
 				}
+				if (suggestKeys.includes(keyId)) {
+					logTrace("vim:suggest:enter", { via: "leader" });
+					onSuggest?.();
+					return true;
+				}
+				if (generateKeys.includes(keyId)) {
+					logTrace("vim:generate:enter", { via: "leader" });
+					onGenerate?.();
+					return true;
+				}
 				return true;
 			}
 
@@ -89,11 +105,15 @@ export function useLeaderMode({
 		},
 		[
 			explainKeys,
+			generateKeys,
 			leaderActive,
 			leaderKeys,
 			loadDescriptions,
 			onExit,
+			onGenerate,
+			onSuggest,
 			submitKeys,
+			suggestKeys,
 			quitKeys,
 			setViewMode,
 			toggleViewKeys,

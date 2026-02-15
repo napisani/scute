@@ -23,11 +23,12 @@ export function Footer({
 	isLoading = false,
 	error = null,
 }: FooterProps) {
-	const modeColor =
-		mode === "insert"
-			? getThemeColorFor("modeInsertColor")
-			: getThemeColorFor("modeNormalColor");
-	const modeText = mode === "insert" ? "-- INSERT --" : "-- NORMAL --";
+	const isInsertLike =
+		mode === "insert" || mode === "suggest" || mode === "generate";
+	const modeColor = isInsertLike
+		? getThemeColorFor("modeInsertColor")
+		: getThemeColorFor("modeNormalColor");
+	const modeText = isInsertLike ? "-- INSERT --" : "-- NORMAL --";
 	const leaderKey = getLeaderKey()[0] ?? "space";
 	const toggleViewKey = getLeaderKeybindings("toggleView")[0] ?? "m";
 	const explainKey = getLeaderKeybindings("explain")[0] ?? "e";
@@ -36,6 +37,8 @@ export function Footer({
 	const insertKey = getNormalKeybindings("insert")[0] ?? "i";
 	const appendKey = getNormalKeybindings("append")[0] ?? "a";
 	const changeKey = getNormalKeybindings("change")[0] ?? "c";
+	const suggestKey = getLeaderKeybindings("suggest")[0] ?? "s";
+	const generateKey = getLeaderKeybindings("generate")[0] ?? "g";
 	const exitInsertKey = getNormalKeybindings("exitInsert")[0] ?? "escape";
 	const saveKey = getNormalKeybindings("save")[0] ?? "return";
 
@@ -45,6 +48,12 @@ export function Footer({
 			: "j/k: move, gg/G: jump";
 
 	const keyHints = (() => {
+		if (mode === "suggest" || mode === "generate") {
+			return [
+				{ key: "enter", label: "submit" },
+				{ key: "esc", label: "cancel" },
+			];
+		}
 		if (mode === "insert") {
 			return [
 				{ key: exitInsertKey, label: "cancel" },
@@ -55,6 +64,8 @@ export function Footer({
 			return [
 				{ key: toggleViewKey, label: "change view" },
 				{ key: explainKey, label: "explain tokens" },
+				{ key: suggestKey, label: "suggest" },
+				{ key: generateKey, label: "generate" },
 				{ key: submitKey, label: "submit" },
 				{ key: quitKey, label: "quit" },
 			];
