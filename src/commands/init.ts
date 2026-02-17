@@ -1,7 +1,6 @@
 // src/commands/init.ts
 
 import { getShellKeybindings } from "../config";
-import { emitOutput } from "../core/output";
 import { getShellHelperByName, supportedShells } from "../core/shells";
 import type { ShellName } from "../core/shells/common";
 
@@ -18,5 +17,8 @@ export function init(shell: string) {
 	const shellHelper = getShellHelperByName(shell as ShellName);
 	const initScript = shellHelper.getInitScript(getShellKeybindings());
 
-	emitOutput(initScript);
+	// Write directly to stdout — init output is eval'd by the shell,
+	// so it must never include clipboard messages or other side-channel text.
+	const output = initScript.endsWith("\n") ? initScript : `${initScript}\n`;
+	process.stdout.write(output);
 }

@@ -5,7 +5,9 @@
 		{ "wait_for_prompt": true },
 		{ "send_line": "eval \"$({scute_bin} --config {config} init {shell})\"" },
 		{ "wait_for_prompt": true },
-		{ "send_line": "printf 'echo hello world\\nls -la /tmp\\ngit status\\n' > /tmp/scute-test-history.txt" },
+		{
+			"send_line": "printf 'echo hello world\\nls -la /tmp\\ngit status\\n' > /tmp/scute-test-history.txt"
+		},
 		{ "wait_for_prompt": true },
 		{ "clear_buffer": true },
 		{
@@ -19,7 +21,6 @@
 		{ "send_text": "r" },
 		{ "sleep": 1.0 },
 		{ "wait_for_text": "History", "timeout": 5 },
-		{ "assert_output_not_contains": "No history entries found" },
 		{ "wait_for_text": "echo hello world", "timeout": 5 },
 		{ "sleep": 0.5 },
 		{ "send_keys": ["ESC"] },

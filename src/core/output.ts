@@ -114,6 +114,6 @@ function copyToClipboard(text: string): void {
 			`Clipboard command "${command}" failed: ${result.error.message}. Output was already written to stdout.`,
 		);
 	} else {
-		process.stdout.write("(Copied to clipboard!)\n");
+		process.stderr.write("(Copied to clipboard!)\n");
 	}
 }
