@@ -1,3 +1,4 @@
+import { getEnv } from "../environment";
 import type { ShellKeybindings } from "./keybindings";
 
 type Tokenizer = (input: string | null | undefined) => string[];
@@ -30,13 +31,24 @@ export type ShellHelper = {
 	parseCommand: TokenParser;
 	joinTokens: (tokens: string[]) => string;
 	getReadlineLine: ReadlineLineGetter;
-	getHistoryCommand: () => string;
-	getHistoryFilePath: () => string;
+	getHistoryFilePath: () => string | null;
 	getInitScript: (bindings: ShellKeybindings) => string;
 };
 
 export const supportedShells = ["bash", "zsh", "sh"] as const;
 export type ShellName = (typeof supportedShells)[number];
+export function getDefaultHistoryFilePath(filename: string): string | null {
+	const histFile = getEnv("HISTFILE");
+	if (histFile) {
+		return histFile;
+	}
+	const home = getEnv("HOME");
+	if (!home) {
+		return null;
+	}
+	return `${home}/${filename}`;
+}
+
 export function tokenizeWithShellQuote(
 	input: string | null | undefined,
 ): string[] {

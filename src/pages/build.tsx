@@ -309,6 +309,7 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 	const handleHistorySelect = useCallback(
 		(command: string) => {
 			exitHistoryMode();
+			setHistoryEntries(null);
 			setParsedCommand(buildParsedCommand(command));
 			resetDescriptions();
 			resetExplanation();
@@ -318,6 +319,7 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 
 	const handleHistoryCancel = useCallback(() => {
 		exitHistoryMode();
+		setHistoryEntries(null);
 	}, [exitHistoryMode]);
 
 	if (!parsedTokens.length && mode !== "history") {

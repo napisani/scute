@@ -3,6 +3,7 @@ import type { ShellKeybindingAction } from "../../config/schema";
 import { ShellKeybindingActions } from "../../config/schema";
 import { logDebug } from "../logger";
 import {
+	getDefaultHistoryFilePath,
 	joinTokensCommon,
 	parseCommand,
 	type ShellHelper,
@@ -134,13 +135,6 @@ export const zshShellHelper: ShellHelper = {
 	getReadlineLine: () => {
 		return getReadlineLine() ?? null;
 	},
-	getHistoryCommand: () => "fc -ln 1",
-	getHistoryFilePath: () => {
-		if (process.env.HISTFILE) {
-			return process.env.HISTFILE;
-		}
-		const home = process.env.HOME ?? "";
-		return `${home}/.zsh_history`;
-	},
+	getHistoryFilePath: () => getDefaultHistoryFilePath(".zsh_history"),
 	getInitScript: (bindings) => getZshInitScript(bindings),
 };

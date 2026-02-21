@@ -9,6 +9,8 @@ export const SUPPORTED_ENV_VARS = [
 	"READLINE_LINE",
 	"SCUTE_DEFAULT_MODEL",
 	"SCUTE_DEFAULT_PROVIDER",
+	"HISTFILE",
+	"HOME",
 ] as const;
 
 export type EnvVarName = (typeof SUPPORTED_ENV_VARS)[number];
