@@ -1,9 +1,10 @@
-import { useKeyboard, useTerminalDimensions } from "@opentui/react";
+import { useTerminalDimensions } from "@opentui/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Footer } from "../components/Footer";
 import { HistoryPicker } from "../components/HistoryPicker";
 import { SuggestInput } from "../components/SuggestInput";
 import { TokenAnnotatedView } from "../components/TokenAnnotatedView";
+import { TokenEditor } from "../components/TokenEditor";
 import { TokenListView } from "../components/TokenListView";
 
 import { getThemeColorFor } from "../config";
@@ -322,22 +323,6 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 		setHistoryEntries(null);
 	}, [exitHistoryMode]);
 
-	if (!parsedTokens.length && mode !== "history") {
-		return (
-			<EmptyCommandBuilder
-				onSubmit={(draft) => {
-					const trimmed = draft.trim();
-					if (!trimmed.length) {
-						return;
-					}
-					resetDescriptions();
-					resetExplanation();
-					setParsedCommand(buildParsedCommand(trimmed));
-				}}
-			/>
-		);
-	}
-
 	const displayError = suggestError ?? generateError ?? explainError ?? error;
 	const displayLoading =
 		isLoading ||
@@ -392,6 +377,31 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 						onCancel={handleHistoryCancel}
 					/>
 				</box>
+			) : !parsedTokens.length ? (
+				<box
+					width="100%"
+					height={mainHeight}
+					flexDirection="column"
+					justifyContent="center"
+					alignItems="center"
+				>
+					{mode === "insert" && editingTokenIndex !== null ? (
+						<TokenEditor
+							value={editingValue}
+							color={getThemeColorFor("tokenDescription")}
+							onChange={updateEditingValue}
+						/>
+					) : (
+						<>
+							<text fg={getThemeColorFor("hintLabelColor")}>
+								No command yet
+							</text>
+							<text fg={getThemeColorFor("hintLabelColor")}>
+								Press i to type, space for actions
+							</text>
+						</>
+					)}
+				</box>
 			) : (
 				<box width="100%" height={mainHeight} flexDirection="column">
 					<box
@@ -439,53 +449,6 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 				isLoading={displayLoading}
 				error={displayError}
 			/>
-		</box>
-	);
-}
-
-interface EmptyCommandBuilderProps {
-	onSubmit: (draft: string) => void;
-}
-
-function EmptyCommandBuilder({ onSubmit }: EmptyCommandBuilderProps) {
-	const [draftValue, setDraftValue] = useState("");
-	const draftValueRef = useRef(draftValue);
-	draftValueRef.current = draftValue;
-	const onSubmitRef = useRef(onSubmit);
-	onSubmitRef.current = onSubmit;
-	const cursorColor = getThemeColorFor("cursorColor");
-
-	useKeyboard((key) => {
-		if (key.name === "return" || key.sequence === "\r") {
-			key.preventDefault?.();
-			const trimmed = draftValueRef.current.trim();
-			if (trimmed.length > 0) {
-				onSubmitRef.current(trimmed);
-				setDraftValue("");
-			}
-		}
-	});
-
-	return (
-		<box
-			flexDirection="column"
-			alignItems="center"
-			justifyContent="center"
-			height="100%"
-			width="100%"
-		>
-			<text>Start building a command</text>
-			<text>Type to add text, press Enter to continue</text>
-			<box marginTop={1}>
-				<input
-					value={draftValue}
-					onInput={setDraftValue}
-					focused
-					width={Math.max(draftValue.length + 2, 20)}
-					cursorColor={cursorColor}
-					backgroundColor="transparent"
-				/>
-			</box>
 		</box>
 	);
 }

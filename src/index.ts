@@ -4,12 +4,8 @@ import path from "node:path";
 import { Command } from "commander";
 
 import { build } from "./commands/build";
-import { choose } from "./commands/choose";
 import { configDebug } from "./commands/config-debug";
-import { explain } from "./commands/explain";
-import { generate } from "./commands/generate";
 import { init } from "./commands/init";
-import { suggest } from "./commands/suggest";
 import { loadConfigFromPath, setConfigOverride } from "./config";
 import { SCUTE_VERSION } from "./version";
 
@@ -64,38 +60,6 @@ program
 	)
 	.action(() => {
 		configDebug();
-	});
-
-program
-	.command("suggest")
-	.argument("<line>", "The current readline buffer")
-	.action((line) => {
-		void suggest(line);
-	});
-
-program
-	.command("explain")
-	.argument("<line>", "The current readline buffer")
-	.argument("<point>", "The current readline cursor position")
-	.action((line, point) => {
-		void explain(line, point);
-	});
-
-program
-	.command("generate")
-	.description("Generate a command from a prompt")
-	.argument("[prompt...]", "Natural language request")
-	.action((promptParts) => {
-		void generate(promptParts);
-	});
-
-program
-	.command("choose")
-	.description("Choose a scute action from a menu")
-	.argument("[line]", "Optional readline buffer")
-	.argument("[point]", "Optional readline cursor position")
-	.action((line, point) => {
-		void choose(line, point);
 	});
 
 program.parse(process.argv);

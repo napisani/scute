@@ -26,37 +26,13 @@ if [ -z "\${SCUTE_BIN:-}" ]; then
     fi
 fi
 
-_scute_explain() {
-    "$SCUTE_BIN" explain "$READLINE_LINE" "$READLINE_POINT"
-}
-
 _scute_build() {
-    "$SCUTE_BIN" build "$READLINE_LINE"
-}
-
-_scute_suggest() {
-    local COMPLETED_COMMAND
-    COMPLETED_COMMAND="$("$SCUTE_BIN" suggest "$READLINE_LINE")"
-    READLINE_LINE="$COMPLETED_COMMAND"
-    READLINE_POINT=\${#COMPLETED_COMMAND}
-}
-
-_scute_generate() {
-    local COMPLETED_COMMAND
-    COMPLETED_COMMAND="$("$SCUTE_BIN" generate)"
-    READLINE_LINE="$COMPLETED_COMMAND"
-    READLINE_POINT=\${#COMPLETED_COMMAND}
-}
-
-_scute_choose() {
-    local RESULT
-    RESULT="$("$SCUTE_BIN" choose "$READLINE_LINE" "$READLINE_POINT")"
-    local RC=$?
-    if [ $RC -eq 10 ]; then
-        "$SCUTE_BIN" build "$READLINE_LINE"
-    elif [ -n "$RESULT" ]; then
-        READLINE_LINE="$RESULT"
-        READLINE_POINT=\${#RESULT}
+    local tmpfile=$(mktemp /tmp/scute-output.XXXXXX) || return
+    SCUTE_OUTPUT_FILE="$tmpfile" "$SCUTE_BIN" build "$READLINE_LINE"
+    if [ -f "$tmpfile" ]; then
+        READLINE_LINE=$(< "$tmpfile")
+        READLINE_POINT=\${#READLINE_LINE}
+        rm -f "$tmpfile"
     fi
 }
 
@@ -64,11 +40,7 @@ _scute_choose() {
 `;
 
 const BASH_ACTION_FUNCTIONS: Record<ShellKeybindingAction, string> = {
-	explain: "_scute_explain",
 	build: "_scute_build",
-	suggest: "_scute_suggest",
-	generate: "_scute_generate",
-	choose: "_scute_choose",
 };
 
 function renderBashKeybindings(bindings: ShellKeybindings): string {

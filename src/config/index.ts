@@ -7,7 +7,6 @@ import { SUPPORTED_PROVIDERS } from "../core/constants";
 import { getEnv, resetEnvGetter, setEnvGetter } from "../core/environment";
 import type { TokenType } from "../core/shells/common";
 import type {
-	ChooseMenuColorsConfig,
 	PromptName,
 	PromptOverridesConfig,
 	ShellKeybindingAction,
@@ -183,16 +182,6 @@ const defaultTokenColors: Record<TokenType, string> = {
 	unknown: "#6C7086",
 };
 
-const defaultChooseMenuColors: ChooseMenuColorsConfig = {
-	border: "#585B70",
-	title: "#CBA6F7",
-	text: "#CDD6F4",
-	description: "#6C7086",
-	shortcutKey: "#CBA6F7",
-	pointer: "#A6E3A1",
-	highlightBg: "#45475A",
-};
-
 const defaultTheme: ThemeConfig = {
 	tokenColors: defaultTokenColors,
 	tokenDescription: "#CDD6F4",
@@ -202,15 +191,10 @@ const defaultTheme: ThemeConfig = {
 	errorColor: "#F38BA8",
 	hintLabelColor: "#6C7086",
 	cursorColor: "#F5E0DC",
-	chooseMenu: defaultChooseMenuColors,
 };
 
 const defaultShellKeybindings: Record<ShellKeybindingAction, string[]> = {
-	explain: [],
-	build: [],
-	suggest: [],
-	generate: [],
-	choose: ["Ctrl+E"],
+	build: ["Ctrl+E"],
 };
 
 export function getNormalKeybindings(action: NormalKeybindingAction): string[] {
@@ -238,17 +222,10 @@ export function getTokenColor(tokenType: TokenType): string {
 	);
 }
 
-export type ThemeColorAttribute = Exclude<
-	keyof ThemeConfig,
-	"tokenColors" | "chooseMenu"
->;
+export type ThemeColorAttribute = Exclude<keyof ThemeConfig, "tokenColors">;
 
 export function getThemeColorFor(attr: ThemeColorAttribute): string {
 	return config.theme?.[attr] ?? defaultTheme[attr];
-}
-
-export function getChooseMenuColors(): ChooseMenuColorsConfig {
-	return { ...defaultChooseMenuColors, ...config.theme?.chooseMenu };
 }
 
 export function getPromptConfig(name: PromptName) {

@@ -1,5 +1,7 @@
 import { spawnSync } from "node:child_process";
+import fs from "node:fs";
 import { getConfigSnapshot } from "../config";
+import { getEnv } from "./environment";
 import { logDebug } from "./logger";
 
 /**
@@ -94,7 +96,15 @@ export function emitOutput(text: string): void {
 
 function writeToStdout(text: string): void {
 	const output = text.endsWith("\n") ? text : `${text}\n`;
-	process.stdout.write(output);
+	const outputFile = getEnv("SCUTE_OUTPUT_FILE");
+	if (outputFile) {
+		fs.writeFileSync(outputFile, output);
+	} else {
+		process.stdout.write(output);
+		// Echo to stderr so the command is visible when running
+		// scute build directly (not via shell integration).
+		process.stderr.write(output);
+	}
 }
 
 function copyToClipboard(text: string): void {

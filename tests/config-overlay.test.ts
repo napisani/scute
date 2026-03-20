@@ -139,11 +139,7 @@ describe("config overlay logic", () => {
 				},
 				leaderKey: ["space"],
 				shellKeybindings: {
-					explain: [],
-					build: [],
-					suggest: [],
-					generate: [],
-					choose: ["Ctrl+E"],
+					build: ["Ctrl+E"],
 				},
 				theme: {
 					tokenColors: {
@@ -163,15 +159,6 @@ describe("config overlay logic", () => {
 					errorColor: "#F38BA8",
 					hintLabelColor: "#6C7086",
 					cursorColor: "#F5E0DC",
-					chooseMenu: {
-						border: "#585B70",
-						title: "#CBA6F7",
-						text: "#CDD6F4",
-						description: "#6C7086",
-						shortcutKey: "#CBA6F7",
-						pointer: "#A6E3A1",
-						highlightBg: "#45475A",
-					},
 				},
 				promptDefaults: {
 					provider: "openai",
@@ -272,11 +259,7 @@ describe("config overlay logic", () => {
 				},
 				leaderKey: ["space"],
 				shellKeybindings: {
-					explain: [],
-					build: [],
-					suggest: [],
-					generate: [],
-					choose: ["Ctrl+E"],
+					build: ["Ctrl+E"],
 				},
 				theme: {
 					tokenColors: {
@@ -296,15 +279,6 @@ describe("config overlay logic", () => {
 					errorColor: "#F38BA8",
 					hintLabelColor: "#6C7086",
 					cursorColor: "#F5E0DC",
-					chooseMenu: {
-						border: "#585B70",
-						title: "#CBA6F7",
-						text: "#CDD6F4",
-						description: "#6C7086",
-						shortcutKey: "#CBA6F7",
-						pointer: "#A6E3A1",
-						highlightBg: "#45475A",
-					},
 				},
 				promptDefaults: {
 					provider: "ollama",
@@ -398,11 +372,7 @@ describe("config overlay logic", () => {
 				},
 				leaderKey: ["space"],
 				shellKeybindings: {
-					explain: [],
-					build: [],
-					suggest: [],
-					generate: [],
-					choose: ["Ctrl+E"],
+					build: ["Ctrl+E"],
 				},
 				theme: {
 					tokenColors: {
@@ -422,15 +392,6 @@ describe("config overlay logic", () => {
 					errorColor: "#F38BA8",
 					hintLabelColor: "#6C7086",
 					cursorColor: "#F5E0DC",
-					chooseMenu: {
-						border: "#585B70",
-						title: "#CBA6F7",
-						text: "#CDD6F4",
-						description: "#6C7086",
-						shortcutKey: "#CBA6F7",
-						pointer: "#A6E3A1",
-						highlightBg: "#45475A",
-					},
 				},
 				promptDefaults: {
 					provider: "ollama",

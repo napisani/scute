@@ -26,60 +26,24 @@ if [ -z "\${SCUTE_BIN:-}" ]; then
     fi
 fi
 
-_scute_explain() {
-    "$SCUTE_BIN" explain "$BUFFER" "$CURSOR"
-    zle redisplay
-}
-
 _scute_build() {
-    "$SCUTE_BIN" build "$BUFFER"
-    zle redisplay
-}
-
-_scute_suggest() {
-    local COMPLETED_COMMAND
-    COMPLETED_COMMAND="$("$SCUTE_BIN" suggest "$BUFFER")"
-    BUFFER="$COMPLETED_COMMAND"
-    CURSOR=\${#BUFFER}
-    zle redisplay
-}
-
-_scute_generate() {
-    local COMPLETED_COMMAND
-    COMPLETED_COMMAND="$("$SCUTE_BIN" generate)"
-    BUFFER="$COMPLETED_COMMAND"
-    CURSOR=\${#BUFFER}
-    zle redisplay
-}
-
-_scute_choose() {
-    local RESULT
-    RESULT="$("$SCUTE_BIN" choose "$BUFFER" "$CURSOR")"
-    local RC=$?
-    if [ $RC -eq 10 ]; then
-        "$SCUTE_BIN" build "$BUFFER"
-    elif [ -n "$RESULT" ]; then
-        BUFFER="$RESULT"
+    local tmpfile=$(mktemp /tmp/scute-output.XXXXXX) || return
+    SCUTE_OUTPUT_FILE="$tmpfile" "$SCUTE_BIN" build "$BUFFER"
+    if [ -f "$tmpfile" ]; then
+        BUFFER=$(<"$tmpfile")
         CURSOR=\${#BUFFER}
+        rm -f "$tmpfile"
     fi
     zle redisplay
 }
 
-zle -N scute-explain _scute_explain
 zle -N scute-build _scute_build
-zle -N scute-suggest _scute_suggest
-zle -N scute-generate _scute_generate
-zle -N scute-choose _scute_choose
 
 # --- end scute integration ---
 `;
 
 const ZSH_ACTION_WIDGETS: Record<ShellKeybindingAction, string> = {
-	explain: "scute-explain",
 	build: "scute-build",
-	suggest: "scute-suggest",
-	generate: "scute-generate",
-	choose: "scute-choose",
 };
 
 function renderZshKeybindings(bindings: ShellKeybindings): string {

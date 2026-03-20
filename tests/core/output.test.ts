@@ -1,4 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import {
 	detectClipboardCommand,
 	emitOutput,
@@ -8,13 +11,16 @@ import {
 
 describe("emitOutput", () => {
 	let stdoutSpy: ReturnType<typeof spyOn>;
+	let stderrSpy: ReturnType<typeof spyOn>;
 
 	beforeEach(() => {
 		stdoutSpy = spyOn(process.stdout, "write").mockImplementation(() => true);
+		stderrSpy = spyOn(process.stderr, "write").mockImplementation(() => true);
 	});
 
 	afterEach(() => {
 		stdoutSpy.mockRestore();
+		stderrSpy.mockRestore();
 	});
 
 	it("should write text with trailing newline", () => {
@@ -25,6 +31,44 @@ describe("emitOutput", () => {
 	it("should not add extra newline if already present", () => {
 		emitOutput("hello\n");
 		expect(stdoutSpy).toHaveBeenCalledWith("hello\n");
+	});
+
+	it("should echo to stderr for visibility when no output file", () => {
+		emitOutput("hello");
+		expect(stderrSpy).toHaveBeenCalledWith("hello\n");
+	});
+});
+
+describe("emitOutput with SCUTE_OUTPUT_FILE", () => {
+	let tmpFile: string;
+
+	beforeEach(() => {
+		tmpFile = path.join(os.tmpdir(), `scute-test-${Date.now()}.txt`);
+		process.env.SCUTE_OUTPUT_FILE = tmpFile;
+	});
+
+	afterEach(() => {
+		delete process.env.SCUTE_OUTPUT_FILE;
+		try {
+			fs.unlinkSync(tmpFile);
+		} catch {
+			// ignore if file doesn't exist
+		}
+	});
+
+	it("should write to file when SCUTE_OUTPUT_FILE is set", () => {
+		emitOutput("hello from file");
+		const content = fs.readFileSync(tmpFile, "utf8");
+		expect(content).toBe("hello from file\n");
+	});
+
+	it("should not write to stdout when SCUTE_OUTPUT_FILE is set", () => {
+		const stdoutSpy = spyOn(process.stdout, "write").mockImplementation(
+			() => true,
+		);
+		emitOutput("hello from file");
+		expect(stdoutSpy).not.toHaveBeenCalled();
+		stdoutSpy.mockRestore();
 	});
 });
 

@@ -4,12 +4,13 @@
 
 ## Purpose / Goal
 
-`scute` is a CLI companion for your shell. It adds fast, context-aware command generation, suggestion, and explanation directly in your terminal workflow. The goal is to reduce friction when crafting commands by:
+`scute` is a CLI companion for your shell. It provides an interactive TUI (terminal user interface) for building, editing, and understanding shell commands with AI assistance. The goal is to reduce friction when crafting commands by:
 
+- Building and editing commands in a vim-style token editor with syntax highlighting
 - Generating commands from natural language prompts
 - Suggesting completions for partially typed commands
-- Explaining commands without disrupting your prompt
-- Integrating through lightweight keybindings and shell hooks
+- Explaining commands with per-token descriptions
+- Integrating through a single keybinding that launches the TUI
 
 The name comes from the scute, the protective shell plate on a turtle, and the tool itself is meant to assist with shell commands.
 
@@ -145,7 +146,9 @@ Use `promptDefaults` to set shared values for all prompts. Any field omitted on 
 
 ### Output
 
-All output is written to stdout. Shell functions use `$()` capture to assign the result to the command line buffer.
+When invoked via shell integration (the `Ctrl+E` keybinding), scute writes the resulting command to a temp file which the shell reads back into the command line buffer. This allows the TUI to use the full terminal (alternate screen) without interfering with output capture.
+
+When invoked directly from the command line (`scute build ...`), output is written to both stdout (for piping/capture) and stderr (for visibility).
 
 If `clipboardCommand` is set in your config, output is also copied to the system clipboard automatically. If the clipboard command fails, the output is still available on stdout.
 
@@ -166,13 +169,9 @@ providers:
   - name: openai
     apiKey: ${OPENAI_API_KEY}
 
-# Optional: adjust shell keybindings (universal syntax)
+# Optional: change the shell keybinding (universal syntax)
 shellKeybindings:
-  explain: ""
-  build: ""
-  suggest: ""
-  generate: ""
-  choose: "Ctrl+E"
+  build: "Ctrl+E"
 ```
 
 ### Fully configured example
@@ -187,9 +186,6 @@ viewMode: horizontal # horizontal -> annotated view, vertical -> list view
 # Clipboard command (optional): if set, output is also copied to clipboard
 # Use "auto" to detect the system clipboard binary, or specify one explicitly
 clipboardCommand: "auto"
-
-# External chooser command (optional): delegate the action menu to a fuzzy finder
-# chooserCommand: "fzf --height=8 --border --prompt='Scute> '"
 
 # Providers used by prompts (env vars override these)
 # provider name values: openai | anthropic | gemini | ollama
@@ -228,16 +224,14 @@ leaderKeybindings:
   quit: ["q"]
   submit: ["return"]
   suggest: ["s"]
+  generate: ["g"]
+  history: ["r"]
 
 leaderKey: ["space"]
 
-# Shell keybindings in universal syntax (rendered by scute init)
+# Shell keybinding in universal syntax (rendered by scute init)
 shellKeybindings:
-  explain: ""
-  build: ""
-  suggest: ""
-  generate: ""
-  choose: "Ctrl+E"
+  build: "Ctrl+E"
 
 # Theme colors (catppuccin defaults shown)
 theme:
@@ -257,14 +251,6 @@ theme:
   errorColor: "#F38BA8"
   hintLabelColor: "#6C7086"
   cursorColor: "#F5E0DC"
-  chooseMenu:
-    border: "#585B70"
-    title: "#CBA6F7"
-    text: "#CDD6F4"
-    description: "#6C7086"
-    shortcutKey: "#CBA6F7"
-    pointer: "#A6E3A1"
-    highlightBg: "#45475A"
 
 # Prompt defaults (apply to all prompts unless overridden)
 promptDefaults:
@@ -276,7 +262,7 @@ promptDefaults:
   userPrompt: ""
   systemPromptOverride: ""
 
-# Prompt behavior per command
+# Prompt behavior per action
 prompts:
   explain:
     provider: openai
@@ -306,12 +292,23 @@ Runtime behavior:
 
 - `SCUTE_DEBUG` (set to `1` or `true` for verbose logging)
 - `SCUTE_SHELL` (override detected shell name)
+- `SCUTE_OUTPUT_FILE` (temp file path for shell integration output; set automatically by the shell wrapper)
 - `SHELL` (standard shell env var)
 - `READLINE_LINE` (readline current line, when present)
 
 ## Shell Integration
 
-`scute` integrates with your shell via a script that needs to be loaded by your shell's configuration file (e.g., `.bashrc`).
+`scute` integrates with your shell via a script that needs to be loaded by your shell's configuration file. The init script installs a single keybinding (`Ctrl+E` by default) that launches the TUI.
+
+### For Zsh
+
+Add the following line to the end of your `~/.zshrc` file:
+
+```sh
+eval "$(scute init zsh)"
+```
+
+After adding the line, restart your terminal or run `source ~/.zshrc` to apply the changes.
 
 ### For Bash
 
@@ -325,7 +322,18 @@ After adding the line, restart your terminal or run `source ~/.bashrc` to apply 
 
 ### For Nix/home-manager Users
 
-If you use `home-manager` to manage your dotfiles, you cannot edit `.bashrc` directly. Instead, add the following to your `home.nix` configuration:
+If you use `home-manager` to manage your dotfiles, you cannot edit `.bashrc`/`.zshrc` directly. Instead, add the following to your `home.nix` configuration:
+
+```nix
+programs.zsh = {
+  enable = true;
+  initExtra = ''
+    eval "$(scute init zsh)"
+  '';
+};
+```
+
+Or for Bash:
 
 ```nix
 programs.bash = {
@@ -384,7 +392,7 @@ bun test tests/core/output.test.ts
 
 | File | Tests |
 |------|-------|
-| `tests/core/output.test.ts` | Output writing (stdout with newline handling) |
+| `tests/core/output.test.ts` | Output writing (stdout, stderr echo, SCUTE_OUTPUT_FILE) |
 | `tests/shells.test.ts` | Shell integration (bash/zsh/sh keybindings) |
 | `tests/build-command.test.ts` | Build command argument resolution |
 | `tests/config-overlay.test.ts` | Configuration merging and precedence |
@@ -433,12 +441,11 @@ PTY tests open a real pseudo-terminal, spawn a clean shell, initialize scute, an
 make test-pty
 
 # Run a single scenario by name
-make test-pty-one SCENARIO=suggest-stdout
-make test-pty-one SCENARIO=choose-cancel
+make test-pty-one SCENARIO=build-stdout
 make test-pty-one SCENARIO=clipboard-file
 
 # Or run directly with extra options
-scripts/agent/run-one suggest-stdout --shell zsh
+scripts/agent/run-one build-stdout --shell zsh
 scripts/agent/run-all --config configs/openai-config.yml --quiet
 ```
 
@@ -446,16 +453,11 @@ scripts/agent/run-all --config configs/openai-config.yml --quiet
 
 | Scenario | Tests |
 |----------|-------|
-| `suggest-stdout` | `scute suggest` via CLI with stdout output |
-| `suggest-keybinding` | Alt+G keybinding replaces command line buffer |
-| `explain-stdout` | `scute explain` via CLI with stdout output |
-| `explain-keybinding` | Ctrl+E → choose menu → explain action |
 | `build-stdout` | TUI opens, submit with Enter |
-| `generate-stdout` | `scute generate` via CLI with stdout output |
+| `build-edit-token` | TUI opens, edit a token, submit |
+| `build-explain-layout` | TUI opens, explain tokens via leader key |
+| `build-history-picker` | TUI opens, browse shell history |
 | `clipboard-file` | Clipboard output writes to file |
-| `choose-cancel` | Choose menu opens and cancels cleanly with q |
-| `choose-explain` | Choose menu → select explain action |
-| `choose-keybinding` | Ctrl+E keybinding → choose menu → cancel |
 
 **Logs:** Each scenario writes a log to `/tmp/scute-pty-<scenario>.log` for debugging.
 
@@ -488,30 +490,54 @@ Run scripts/agent/run-all and report the pass/fail summary. For any failures, in
 
 ## Usage
 
-Once installed and configured, you can use the following keyboard shortcut in your terminal:
+Once installed and configured, press **`Ctrl+E`** in your terminal to launch the scute TUI. The TUI opens with your current command line buffer (or an empty editor if the buffer is empty).
 
-- **`Ctrl + E`**: **Choose Action**. Opens an interactive menu to select from available scute actions:
+### TUI Modes
+
+The TUI uses vim-style modal editing:
+
+- **Normal mode** -- navigate between tokens, trigger actions via leader key
+- **Insert mode** -- edit individual tokens inline
+- **Suggest mode** -- prompt AI to complete/improve the current command
+- **Generate mode** -- prompt AI to generate a command from natural language
+- **History mode** -- browse shell history and select a command
+
+### Keybindings
+
+In **normal mode**, press `Space` (leader key) to access actions:
 
 | Key | Action | Description |
 |-----|--------|-------------|
-| `e` | Explain | Explain the current command |
-| `b` | Build | Edit command in TUI builder |
+| `e` | Explain | Show per-token descriptions and command explanation |
 | `s` | Suggest | AI completion for current command |
-| `g` | Generate | Generate command from prompt |
+| `g` | Generate | Generate command from natural language prompt |
+| `r` | History | Browse and select from shell history |
+| `m` | Toggle view | Switch between annotated and list views |
+| `q` | Quit | Exit without saving |
+| `Enter` | Submit | Accept the command and return to shell |
 
-Navigate with arrow keys or `j`/`k`, confirm with Enter, or press a letter shortcut to select immediately. Cancel with `q` or Esc.
+In **normal mode** (without leader):
 
-Other actions can be bound via configuration (see shellKeybindings in the config examples above).
+| Key | Action |
+|-----|--------|
+| `i` | Enter insert mode on current token |
+| `a` | Append to current token |
+| `c` | Change (replace) current token |
+| `d` | Delete current token |
+| `h`/`l` | Move left/right between tokens (annotated view) |
+| `j`/`k` | Move up/down between tokens (list view) |
+| `Enter` | Submit command |
 
-### External Chooser
+### Running Directly
 
-If you prefer a fuzzy finder like `fzf`, set `chooserCommand` in your config to delegate the action menu to an external command:
+You can also run the TUI directly without shell integration:
 
-```yaml
-chooserCommand: "fzf --height=8 --border --prompt='Scute> '"
+```sh
+scute build "git log --oneline"
+scute build
 ```
 
-The configured command receives action labels on stdin (one per line) and should print the selected label to stdout. If the command is not found or the user cancels, scute falls back to the built-in menu.
+When run directly, the resulting command is printed to both stdout and stderr on exit.
 
 Check your installed version with:
 

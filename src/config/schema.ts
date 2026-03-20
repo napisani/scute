@@ -148,28 +148,6 @@ export const TokenColorsSchema = z
 
 export type TokenColorsConfig = z.infer<typeof TokenColorsSchema>;
 
-export const ChooseMenuColorsSchema = z
-	.object({
-		border: z.string().default("#585B70"),
-		title: z.string().default("#CBA6F7"),
-		text: z.string().default("#CDD6F4"),
-		description: z.string().default("#6C7086"),
-		shortcutKey: z.string().default("#CBA6F7"),
-		pointer: z.string().default("#A6E3A1"),
-		highlightBg: z.string().default("#45475A"),
-	})
-	.default({
-		border: "#585B70",
-		title: "#CBA6F7",
-		text: "#CDD6F4",
-		description: "#6C7086",
-		shortcutKey: "#CBA6F7",
-		pointer: "#A6E3A1",
-		highlightBg: "#45475A",
-	});
-
-export type ChooseMenuColorsConfig = z.infer<typeof ChooseMenuColorsSchema>;
-
 export const ThemeSchema = z
 	.object({
 		tokenColors: TokenColorsSchema,
@@ -180,7 +158,6 @@ export const ThemeSchema = z
 		errorColor: z.string().default("#F38BA8"),
 		hintLabelColor: z.string().default("#6C7086"),
 		cursorColor: z.string().default("#F5E0DC"),
-		chooseMenu: ChooseMenuColorsSchema,
 	})
 	.default({
 		tokenColors: {
@@ -200,15 +177,6 @@ export const ThemeSchema = z
 		errorColor: "#F38BA8",
 		hintLabelColor: "#6C7086",
 		cursorColor: "#F5E0DC",
-		chooseMenu: {
-			border: "#585B70",
-			title: "#CBA6F7",
-			text: "#CDD6F4",
-			description: "#6C7086",
-			shortcutKey: "#CBA6F7",
-			pointer: "#A6E3A1",
-			highlightBg: "#45475A",
-		},
 	});
 
 export type ThemeConfig = z.infer<typeof ThemeSchema>;
@@ -216,13 +184,7 @@ export type ThemeConfig = z.infer<typeof ThemeSchema>;
 export type NormalKeybindingsConfig = z.infer<typeof NormalKeybindingsSchema>;
 export type LeaderKeybindingsConfig = z.infer<typeof LeaderKeybindingsSchema>;
 
-export const ShellKeybindingActions = [
-	"explain",
-	"build",
-	"suggest",
-	"generate",
-	"choose",
-] as const;
+export const ShellKeybindingActions = ["build"] as const;
 export type ShellKeybindingAction = (typeof ShellKeybindingActions)[number];
 
 function buildDefaultPromptDefaults() {
@@ -237,7 +199,6 @@ function buildDefaultPromptDefaults() {
 export const ConfigSchema = z.object({
 	viewMode: z.enum(["horizontal", "vertical"]).default("horizontal"),
 	clipboardCommand: z.string().optional(),
-	chooserCommand: z.string().optional(),
 	historyCommand: z.string().optional(),
 	providers: z.array(ProviderSchema).default([]),
 	normalKeybindings: NormalKeybindingsSchema,
@@ -246,28 +207,12 @@ export const ConfigSchema = z.object({
 	theme: ThemeSchema,
 	shellKeybindings: z
 		.object({
-			explain: z
-				.union([z.string().min(1), z.array(z.string().min(1))])
-				.optional(),
 			build: z
-				.union([z.string().min(1), z.array(z.string().min(1))])
-				.optional(),
-			suggest: z
-				.union([z.string().min(1), z.array(z.string().min(1))])
-				.optional(),
-			generate: z
-				.union([z.string().min(1), z.array(z.string().min(1))])
-				.optional(),
-			choose: z
 				.union([z.string().min(1), z.array(z.string().min(1))])
 				.optional(),
 		})
 		.default({
-			explain: [],
-			build: [],
-			suggest: [],
-			generate: [],
-			choose: ["Ctrl+E"],
+			build: ["Ctrl+E"],
 		}),
 	promptDefaults: PromptDefaultsSchema.default(buildDefaultPromptDefaults()),
 	prompts: z
