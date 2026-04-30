@@ -81,7 +81,8 @@ function renderBashKeybindings(bindings: ShellKeybindings): string {
 	if (!lines.length) {
 		return "";
 	}
-	return `\n# Keybindings\n${lines.join("\n")}\n`;
+	const indentedLines = lines.map((line) => `    ${line}`).join("\n");
+	return `\n# Keybindings\nif [[ $- == *i* ]] && [[ -t 0 ]] && bind -v >/dev/null 2>&1; then\n${indentedLines}\nfi\n`;
 }
 
 function getBashInitScript(bindings: ShellKeybindings): string {

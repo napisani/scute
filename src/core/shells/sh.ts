@@ -72,7 +72,8 @@ function renderShKeybindings(bindings: ShellKeybindings): string {
 	if (!lines.length) {
 		return "";
 	}
-	return `\n# Keybindings\n${lines.join("\n")}\n`;
+	const indentedLines = lines.map((line) => `    ${line}`).join("\n");
+	return `\n# Keybindings\nif [ -t 0 ] && command -v bind >/dev/null 2>&1 && bind -v >/dev/null 2>&1; then\n${indentedLines}\nfi\n`;
 }
 
 function getShInitScript(bindings: ShellKeybindings): string {

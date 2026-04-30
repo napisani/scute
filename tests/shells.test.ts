@@ -1,4 +1,7 @@
 import { describe, expect, it } from "bun:test";
+import { spawnSync } from "node:child_process";
+import { bashShellHelper } from "../src/core/shells/bash";
+import { shShellHelper } from "../src/core/shells/sh";
 import { withMockedEnv } from "./utils/env";
 
 const shells = ["bash", "zsh", "sh"] as const;
@@ -136,4 +139,28 @@ describe("shell parsing", () => {
 			});
 		});
 	}
+});
+
+describe("shell init scripts", () => {
+	it("does not run bash keybindings in non-interactive shells", () => {
+		const script = bashShellHelper.getInitScript({ build: ["Ctrl+E"] });
+		expect(script).toContain(`bind -x '"\\C-e": _scute_build'`);
+
+		const result = spawnSync("bash", ["-c", script], { encoding: "utf8" });
+
+		expect(result.error).toBeUndefined();
+		expect(result.status).toBe(0);
+		expect(result.stderr).toBe("");
+	});
+
+	it("does not run sh keybindings in non-interactive shells", () => {
+		const script = shShellHelper.getInitScript({ build: ["Ctrl+E"] });
+		expect(script).toContain(`bind -x '"\\C-e": _scute_build'`);
+
+		const result = spawnSync("sh", ["-c", script], { encoding: "utf8" });
+
+		expect(result.error).toBeUndefined();
+		expect(result.status).toBe(0);
+		expect(result.stderr).toBe("");
+	});
 });
