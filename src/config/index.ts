@@ -2,7 +2,7 @@ import "dotenv/config";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import yaml from "js-yaml";
+import { load as yamlLoad } from "js-yaml";
 import { SUPPORTED_PROVIDERS } from "../core/constants";
 import { getEnv, resetEnvGetter, setEnvGetter } from "../core/environment";
 import type { TokenType } from "../core/shells/common";
@@ -31,7 +31,7 @@ export function loadConfig(): Config {
 
 	try {
 		const fileContents = fs.readFileSync(CONFIG_FILE, "utf8");
-		const data = yaml.load(fileContents);
+		const data = yamlLoad(fileContents);
 		return ConfigSchema.parse(data);
 	} catch (error) {
 		console.error(`Error loading config from ${CONFIG_FILE}:`, error);
@@ -48,7 +48,7 @@ export function loadConfigFromPath(configFile: string): Config {
 
 	try {
 		const fileContents = fs.readFileSync(configFile, "utf8");
-		const data = yaml.load(fileContents);
+		const data = yamlLoad(fileContents);
 		return ConfigSchema.parse(data);
 	} catch (error) {
 		const message = error instanceof Error ? error.message : "Unknown error";

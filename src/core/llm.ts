@@ -1,8 +1,8 @@
 import { chat } from "@tanstack/ai";
-import { anthropicText } from "@tanstack/ai-anthropic";
-import { geminiText } from "@tanstack/ai-gemini";
-import { createOllamaChat, type ollamaText } from "@tanstack/ai-ollama";
-import { openaiText } from "@tanstack/ai-openai";
+import { createAnthropicChat } from "@tanstack/ai-anthropic";
+import { createGeminiChat } from "@tanstack/ai-gemini";
+import { createOllamaChat } from "@tanstack/ai-ollama";
+import { createOpenaiChat } from "@tanstack/ai-openai";
 import { z } from "zod";
 import {
 	getPromptConfig,
@@ -80,37 +80,64 @@ function getAdapter(promptName: PromptName, model: string) {
 	const providerName = promptConfig.provider;
 
 	const resolvedApiKey = resolveApiKey(promptName);
-
 	const resolvedBaseUrl = resolveBaseUrl(promptName);
 
 	switch (providerName) {
 		case "anthropic":
 			logDebug(`Using Anthropics adapter with model: ${model}`);
-			return anthropicText(model as Parameters<typeof anthropicText>[0], {
-				apiKey: resolvedApiKey,
-				baseUrl: resolvedBaseUrl,
-			});
+			return createAnthropicChat(
+				model as Parameters<typeof createAnthropicChat>[0],
+				resolvedApiKey ?? "",
+				{
+					baseURL: resolvedBaseUrl,
+				},
+			);
 		case "openai":
 			logDebug(`Using OpenAI adapter with model: ${model}`);
-			return openaiText(model as Parameters<typeof openaiText>[0], {
-				apiKey: resolvedApiKey,
-				baseUrl: resolvedBaseUrl,
-			});
+			return createOpenaiChat(
+				model as Parameters<typeof createOpenaiChat>[0],
+				resolvedApiKey ?? "",
+				{
+					baseURL: resolvedBaseUrl,
+				},
+			);
 		case "gemini":
 			logDebug(`Using Gemini adapter with model: ${model}`);
-			return geminiText(model as Parameters<typeof geminiText>[0], {
-				apiKey: resolvedApiKey,
-				baseUrl: resolvedBaseUrl,
-			});
+			// Gemini adapter doesn't support baseURL; pass apiKey as second arg, no config object
+			return createGeminiChat(
+				model as Parameters<typeof createGeminiChat>[0],
+				resolvedApiKey ?? "",
+			);
 		case "ollama":
 			logDebug(`Using Ollama adapter with model: ${model}`);
-			return createOllamaChat(
-				model as Parameters<typeof ollamaText>[0],
-				resolvedBaseUrl,
-			);
+			return createOllamaChat(model, resolvedBaseUrl);
 		default:
 			throw new Error(`Unsupported provider: ${providerName}`);
 	}
+}
+
+/**
+ * Build provider-specific model options from generic config values.
+ */
+function buildModelOptions(
+	promptName: PromptName,
+): Record<string, unknown> | undefined {
+	const promptConfig = getPromptConfig(promptName);
+	const options: Record<string, unknown> = {};
+
+	if (promptConfig.temperature !== undefined) {
+		options.temperature = promptConfig.temperature;
+	}
+	if (promptConfig.maxTokens !== undefined) {
+		// Provider-specific naming: Anthropic/OpenAI use max_tokens,
+		// Gemini uses maxOutputTokens, Ollama uses options.num_predict
+		// We pass both forms so the provider picks the right one.
+		options.max_tokens = promptConfig.maxTokens;
+		options.maxOutputTokens = promptConfig.maxTokens;
+		options.options = { num_predict: promptConfig.maxTokens };
+	}
+
+	return Object.keys(options).length > 0 ? options : undefined;
 }
 
 /**
@@ -131,6 +158,7 @@ async function generateText(
 	);
 
 	const adapter = getAdapter(promptName, model);
+	const modelOptions = buildModelOptions(promptName);
 
 	const content = await chat({
 		adapter,
@@ -138,8 +166,7 @@ async function generateText(
 		...(fullUserPrompt === ""
 			? {}
 			: { messages: [{ role: "user", content: fullUserPrompt }] }),
-		temperature: promptConfig.temperature,
-		maxTokens: promptConfig.maxTokens,
+		modelOptions,
 		stream: false,
 	});
 
