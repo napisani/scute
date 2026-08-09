@@ -1,0 +1,166 @@
+import { describe, expect, it } from "bun:test";
+import { spawnSync } from "node:child_process";
+import { bashShellHelper } from "../src/core/shells/bash";
+import { shShellHelper } from "../src/core/shells/sh";
+import { withMockedEnv } from "./utils/env";
+
+const shells = ["bash", "zsh", "sh"] as const;
+
+async function loadShellModule(shell: string) {
+	return await import(`../src/core/shells/index.ts?${shell}`);
+}
+
+describe("shell parsing", () => {
+	for (const shell of shells) {
+		describe(shell, () => {
+			it("identifies shell and tokenizes", async () => {
+				await withMockedEnv(
+					{ env: { SCUTE_SHELL: shell, SHELL: `/bin/${shell}` } },
+					async () => {
+						const module = await loadShellModule(shell);
+						module.resetShellCache();
+						expect(module.identifyShell()).toBe(shell);
+						const tokens = module.tokenizeInput('echo "hello world"');
+						expect(tokens).toEqual(["echo", '"hello world"']);
+					},
+				);
+			});
+
+			it("preserves quotes and escapes when joining", async () => {
+				await withMockedEnv(
+					{ env: { SCUTE_SHELL: shell, SHELL: `/bin/${shell}` } },
+					async () => {
+						const module = await loadShellModule(shell);
+						module.resetShellCache();
+						const command = 'echo "test" && echo foo\\ bar';
+						const tokens = module.tokenizeInput(command);
+						expect(tokens).toEqual([
+							"echo",
+							'"test"',
+							"&&",
+							"echo",
+							"foo\\ bar",
+						]);
+						expect(module.joinTokens(tokens)).toBe(command);
+					},
+				);
+			});
+
+			it("rebuilds parsed command from tokens", async () => {
+				await withMockedEnv(
+					{ env: { SCUTE_SHELL: shell, SHELL: `/bin/${shell}` } },
+					async () => {
+						const module = await loadShellModule(shell);
+						module.resetShellCache();
+						const command = 'echo "test" && echo foo\\ bar';
+						const parsed = module.buildParsedCommand(command);
+						expect(parsed.originalCommand).toBe(command);
+						expect(parsed.tokens).toEqual(module.tokenizeInput(command));
+						const rebuilt = module.rebuildParsedCommandFromTokens(
+							parsed.tokens,
+						);
+						expect(rebuilt.originalCommand).toBe(command);
+						expect(rebuilt.tokens).toEqual(parsed.tokens);
+					},
+				);
+			});
+
+			it("parses options and arguments", async () => {
+				await withMockedEnv(
+					{ env: { SCUTE_SHELL: shell, SHELL: `/bin/${shell}` } },
+					async () => {
+						const module = await loadShellModule(shell);
+						module.resetShellCache();
+						const tokens = module.tokenizeInput("grep -f file pattern");
+						const parsed = module.parseTokens(tokens);
+						expect(parsed.map((token: { type: string }) => token.type)).toEqual(
+							["command", "option", "argument", "argument"],
+						);
+						expect(parsed[1]).toMatchObject({ value: "-f" });
+						expect(parsed[2]).toMatchObject({ value: "file" });
+						expect(parsed[3]).toMatchObject({ value: "pattern" });
+					},
+				);
+			});
+
+			it("parses pipes, control operators, and redirects", async () => {
+				await withMockedEnv(
+					{ env: { SCUTE_SHELL: shell, SHELL: `/bin/${shell}` } },
+					async () => {
+						const module = await loadShellModule(shell);
+						module.resetShellCache();
+						const tokens = module.tokenizeInput(
+							"cat file | grep foo && echo done > out.txt",
+						);
+						const parsed = module.parseTokens(tokens);
+						expect(parsed.map((token: { type: string }) => token.type)).toEqual(
+							[
+								"command",
+								"argument",
+								"pipe",
+								"command",
+								"argument",
+								"controlOperator",
+								"command",
+								"argument",
+								"redirect",
+								"argument",
+							],
+						);
+					},
+				);
+			});
+
+			it("exposes readline helpers", async () => {
+				await withMockedEnv(
+					{
+						env: {
+							SCUTE_SHELL: shell,
+							SHELL: `/bin/${shell}`,
+							READLINE_LINE: "ls -la",
+						},
+					},
+					async () => {
+						const module = await loadShellModule(shell);
+						module.resetShellCache();
+						expect(module.getReadlineLine()).toBe("ls -la");
+						expect(module.hasReadlineLine()).toBe(true);
+					},
+				);
+				await withMockedEnv(
+					{ env: { SCUTE_SHELL: shell, SHELL: `/bin/${shell}` } },
+					async () => {
+						const module = await loadShellModule(shell);
+						module.resetShellCache();
+						expect(module.getReadlineLine()).toBeNull();
+						expect(module.hasReadlineLine()).toBe(false);
+					},
+				);
+			});
+		});
+	}
+});
+
+describe("shell init scripts", () => {
+	it("does not run bash keybindings in non-interactive shells", () => {
+		const script = bashShellHelper.getInitScript({ build: ["Ctrl+E"] });
+		expect(script).toContain(`bind -x '"\\C-e": _scute_build'`);
+
+		const result = spawnSync("bash", ["-c", script], { encoding: "utf8" });
+
+		expect(result.error).toBeUndefined();
+		expect(result.status).toBe(0);
+		expect(result.stderr).toBe("");
+	});
+
+	it("does not run sh keybindings in non-interactive shells", () => {
+		const script = shShellHelper.getInitScript({ build: ["Ctrl+E"] });
+		expect(script).toContain(`bind -x '"\\C-e": _scute_build'`);
+
+		const result = spawnSync("sh", ["-c", script], { encoding: "utf8" });
+
+		expect(result.error).toBeUndefined();
+		expect(result.status).toBe(0);
+		expect(result.stderr).toBe("");
+	});
+});
