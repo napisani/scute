@@ -1,0 +1,13 @@
+prompts:
+  explain:
+    provider: openai
+    model: gpt-4o-mini
+  suggest:
+    provider: openai
+    model: gpt-4o-mini
+  generate:
+    provider: openai
+    model: gpt-4o-mini
+  describeTokens:
+    provider: openai
+    model: gpt-4o-mini

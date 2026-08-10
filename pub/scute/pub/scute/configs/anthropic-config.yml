@@ -1,0 +1,13 @@
+prompts:
+  explain:
+    provider: anthropic
+    model: claude-3-haiku-20240307
+  suggest:
+    provider: anthropic
+    model: claude-3-haiku-20240307
+  generate:
+    provider: anthropic
+    model: claude-3-haiku-20240307
+  describeTokens:
+    provider: anthropic
+    model: claude-3-haiku-20240307

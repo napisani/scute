@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+RUNNER="$ROOT_DIR/scripts/agent/pty_runner.py"
+SCENARIOS_DIR="$ROOT_DIR/scripts/agent/scenarios"
+
+PASS=0
+FAIL=0
+SKIP=0
+RESULTS=()
+
+# Collect scenarios (only top-level .json files, not legacy/)
+SCENARIOS=()
+for scenario in "$SCENARIOS_DIR"/*.json; do
+    [ -f "$scenario" ] || continue
+    SCENARIOS+=("$scenario")
+done
+
+if [ ${#SCENARIOS[@]} -eq 0 ]; then
+    echo "No scenarios found in $SCENARIOS_DIR" >&2
+    exit 1
+fi
+
+echo "Running ${#SCENARIOS[@]} scenario(s)..." >&2
+echo "" >&2
+
+for scenario in "${SCENARIOS[@]}"; do
+    name="$(basename "$scenario" .json)"
+    log="/tmp/scute-pty-${name}.log"
+
+    if python3 "$RUNNER" --scenario "$scenario" --log "$log" "$@"; then
+        RESULTS+=("PASS  $name")
+        ((PASS++)) || true
+    else
+        RESULTS+=("FAIL  $name")
+        ((FAIL++)) || true
+    fi
+    echo "" >&2
+done
+
+echo "================================" >&2
+echo "Results: $PASS passed, $FAIL failed" >&2
+echo "================================" >&2
+for r in "${RESULTS[@]}"; do
+    echo "  $r" >&2
+done
+
+if [ "$FAIL" -gt 0 ]; then
+    exit 1
+fi

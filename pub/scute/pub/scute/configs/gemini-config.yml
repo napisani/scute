@@ -1,0 +1,13 @@
+prompts:
+  explain:
+    provider: gemini
+    model: gemini-1.5-flash
+  suggest:
+    provider: gemini
+    model: gemini-1.5-flash
+  generate:
+    provider: gemini
+    model: gemini-1.5-flash
+  describeTokens:
+    provider: gemini
+    model: gemini-1.5-flash

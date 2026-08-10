@@ -1,0 +1,38 @@
+{
+	"prompt": "scute-test$ ",
+	"steps": [
+		{ "send_line": "export PS1=\"scute-test$ \"" },
+		{ "wait_for_prompt": true },
+		{ "send_line": "eval \"$({scute_bin} --config {config} init {shell})\"" },
+		{ "wait_for_prompt": true },
+		{ "clear_buffer": true },
+		{
+			"send_line": "{scute_bin} --config {config} build \"ls -la\""
+		},
+		{ "sleep": 2.0 },
+		{ "wait_for_text": "ls", "timeout": 10 },
+		{ "sleep": 1.0 },
+		{ "send_text": "c" },
+		{ "sleep": 1.0 },
+		{ "wait_for_text": "INSERT", "timeout": 5 },
+		{ "sleep": 0.5 },
+		{ "send_text": "e" },
+		{ "sleep": 0.2 },
+		{ "send_text": "c" },
+		{ "sleep": 0.2 },
+		{ "send_text": "h" },
+		{ "sleep": 0.2 },
+		{ "send_text": "o" },
+		{ "sleep": 1.0 },
+		{ "drain": true, "idle_ms": 500 },
+		{ "send_keys": ["ENTER"] },
+		{ "sleep": 1.5 },
+		{ "drain": true, "idle_ms": 500 },
+		{ "clear_buffer": true },
+		{ "send_text": " " },
+		{ "send_keys": ["ENTER"] },
+		{ "wait_for_prompt": true, "timeout": 10 },
+		{ "assert_output_contains": "echo -la" },
+		{ "send_line": "exit" }
+	]
+}
