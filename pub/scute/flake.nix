@@ -44,7 +44,7 @@
         devShells.default = pkgs.mkShell {
           packages = [
             bun
-            pkgs.nodejs_latest
+            pkgs.nodePackages_latest.nodejs
             pkgs.git
           ];
         };
