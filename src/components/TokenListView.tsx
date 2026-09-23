@@ -3,14 +3,12 @@ import { useEffect, useRef } from "react";
 import { getThemeColorFor } from "../config";
 import type { ColoredToken } from "../hooks/useColoredTokens";
 import type { TokenWidths } from "../hooks/useTokenWidth";
-import type { VimMode } from "../hooks/useVimMode";
 import { TokenDisplay } from "./TokenDisplay";
 
 interface TokenListViewProps {
 	coloredTokens: ColoredToken[];
 	descriptions: string[];
 	tokenWidths: TokenWidths;
-	mode: VimMode;
 	selectedIndex: number;
 	editingTokenIndex: number | null;
 	editingValue: string;
@@ -21,7 +19,6 @@ export function TokenListView({
 	coloredTokens,
 	descriptions,
 	tokenWidths,
-	mode,
 	selectedIndex,
 	editingTokenIndex,
 	editingValue,
@@ -68,7 +65,9 @@ export function TokenListView({
 						const label = token.value;
 						const typeLabel = token.type;
 						const key = `${token.type}-${label}-${index}`;
-						const isEditing = mode === "insert" && editingTokenIndex === index;
+						// editingTokenIndex is only ever non-null while in insert mode
+						// (see useVimMode.ts), so no mode check is needed here.
+						const isEditing = editingTokenIndex === index;
 
 						return (
 							<box key={key} style={{ flexDirection: "row" }}>

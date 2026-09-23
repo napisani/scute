@@ -1,11 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
 	getConfigSnapshot,
-	getProviderApiKey,
-	getProviderBaseUrl,
-	getProviderConfig,
-	getProviders,
-	loadConfigFromPath,
 	resetConfigOverride,
 	resetEnvGetter,
 	setConfigOverride,

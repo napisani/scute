@@ -3,17 +3,21 @@
 import { createHash } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { z } from "zod";
 
-interface ReleaseAsset {
-	id: number;
-	name: string;
-	browser_download_url: string;
-}
+const releaseAssetSchema = z.object({
+	id: z.number(),
+	name: z.string(),
+	browser_download_url: z.string(),
+});
 
-interface ReleaseInfo {
-	tag_name: string;
-	assets: ReleaseAsset[];
-}
+const releaseInfoSchema = z.object({
+	tag_name: z.string(),
+	assets: z.array(releaseAssetSchema),
+});
+
+type ReleaseAsset = z.infer<typeof releaseAssetSchema>;
+type ReleaseInfo = z.infer<typeof releaseInfoSchema>;
 
 const REPO = "napisani/scute";
 const FORMULA_PATH = resolve(import.meta.dir, "..", "Formula", "scute.rb");
@@ -69,7 +73,7 @@ async function fetchRelease(versionArg: string): Promise<ReleaseInfo> {
 			`Failed to fetch release info (${response.status} ${response.statusText})`,
 		);
 	}
-	return (await response.json()) as ReleaseInfo;
+	return releaseInfoSchema.parse(await response.json());
 }
 
 function ensureTag(version: string): string {

@@ -42,9 +42,9 @@ zle -N scute-build _scute_build
 # --- end scute integration ---
 `;
 
-const ZSH_ACTION_WIDGETS: Record<ShellKeybindingAction, string> = {
+const ZSH_ACTION_WIDGETS = {
 	build: "scute-build",
-};
+} satisfies Record<ShellKeybindingAction, string>;
 
 function renderZshKeybindings(bindings: ShellKeybindings): string {
 	const lines: string[] = [];

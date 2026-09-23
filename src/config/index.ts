@@ -7,8 +7,8 @@ import { SUPPORTED_PROVIDERS } from "../core/constants";
 import { getEnv, resetEnvGetter, setEnvGetter } from "../core/environment";
 import type { TokenType } from "../core/shells/common";
 import type {
+	ProviderConfig,
 	PromptName,
-	PromptOverridesConfig,
 	ShellKeybindingAction,
 	ThemeConfig,
 } from "./schema";
@@ -84,14 +84,14 @@ function applyEnvOverrides(baseConfig: Config): Config {
 			continue;
 		}
 		const index = mergedProviders.findIndex((entry) => entry.name === provider);
-		const updated = {
+		const updated: ProviderConfig = {
 			name: provider,
 			...(provider === "ollama" ? { baseUrl: envValue } : { apiKey: envValue }),
 		};
 		if (index >= 0) {
 			mergedProviders[index] = { ...mergedProviders[index], ...updated };
 		} else {
-			mergedProviders.push(updated as (typeof mergedProviders)[0]);
+			mergedProviders.push(updated);
 		}
 	}
 	return { ...baseConfig, providers: mergedProviders };
@@ -140,7 +140,7 @@ export type LeaderKeybindingAction =
 	| "generate"
 	| "history";
 
-const defaultNormalKeybindings: Record<NormalKeybindingAction, string[]> = {
+const defaultNormalKeybindings = {
 	up: ["up"],
 	down: ["down"],
 	left: ["left", "h"],
@@ -159,9 +159,9 @@ const defaultNormalKeybindings: Record<NormalKeybindingAction, string[]> = {
 	deleteLine: ["D"],
 	exitInsert: ["escape"],
 	save: ["return"],
-};
+} satisfies Record<NormalKeybindingAction, string[]>;
 
-const defaultLeaderKeybindings: Record<LeaderKeybindingAction, string[]> = {
+const defaultLeaderKeybindings = {
 	explain: ["e"],
 	toggleView: ["m"],
 	quit: ["q"],
@@ -169,9 +169,9 @@ const defaultLeaderKeybindings: Record<LeaderKeybindingAction, string[]> = {
 	suggest: ["s"],
 	generate: ["g"],
 	history: ["r"],
-};
+} satisfies Record<LeaderKeybindingAction, string[]>;
 
-const defaultTokenColors: Record<TokenType, string> = {
+const defaultTokenColors = {
 	command: "#A6E3A1",
 	option: "#FAB387",
 	argument: "#89B4FA",
@@ -180,7 +180,7 @@ const defaultTokenColors: Record<TokenType, string> = {
 	controlOperator: "#F38BA8",
 	redirect: "#CDD6F4",
 	unknown: "#6C7086",
-};
+} satisfies Record<TokenType, string>;
 
 const defaultTheme: ThemeConfig = {
 	tokenColors: defaultTokenColors,
@@ -193,9 +193,9 @@ const defaultTheme: ThemeConfig = {
 	cursorColor: "#F5E0DC",
 };
 
-const defaultShellKeybindings: Record<ShellKeybindingAction, string[]> = {
+const defaultShellKeybindings = {
 	build: ["Ctrl+E"],
-};
+} satisfies Record<ShellKeybindingAction, string[]>;
 
 export function getNormalKeybindings(action: NormalKeybindingAction): string[] {
 	const configured = config.normalKeybindings?.[action];
@@ -230,7 +230,7 @@ export function getThemeColorFor(attr: ThemeColorAttribute): string {
 
 export function getPromptConfig(name: PromptName) {
 	const defaults = config.promptDefaults;
-	const overrides = config.prompts[name] as PromptOverridesConfig;
+	const overrides = config.prompts[name];
 	return { ...defaults, ...overrides };
 }
 
@@ -238,7 +238,7 @@ export function getShellKeybindings(): Record<ShellKeybindingAction, string[]> {
 	const configured = config.shellKeybindings ?? {};
 	const resolve = (action: ShellKeybindingAction) => {
 		const value = configured[action];
-		if (!value) return [...defaultShellKeybindings[action]];
+		if (!value) {return [...defaultShellKeybindings[action]];}
 		return Array.isArray(value) ? [...value] : [value];
 	};
 	return ShellKeybindingActions.reduce(
@@ -246,6 +246,9 @@ export function getShellKeybindings(): Record<ShellKeybindingAction, string[]> {
 			acc[action] = resolve(action);
 			return acc;
 		},
+		// SAFETY: every key of ShellKeybindingAction is assigned by this reduce
+		// (it iterates ShellKeybindingActions itself), so the accumulator is fully
+		// populated before it is ever read.
 		{} as Record<ShellKeybindingAction, string[]>,
 	);
 }
@@ -282,7 +285,7 @@ export function getReadlineLine(): string | undefined {
 
 export function hasReadlineLine(): boolean {
 	const line = getReadlineLine();
-	return !!line && line.length > 0;
+	return line !== undefined && line.length > 0;
 }
 
 export function getInitialViewMode(): "annotated" | "list" {

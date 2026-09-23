@@ -1,5 +1,5 @@
 import { useTerminalDimensions } from "@opentui/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Footer } from "../components/Footer";
 import { HistoryPicker } from "../components/HistoryPicker";
 import { SuggestInput } from "../components/SuggestInput";
@@ -17,11 +17,12 @@ import {
 	tokenizeInput,
 } from "../core/shells";
 import type { ParsedCommand } from "../core/shells/common";
+import { useAsyncAction } from "../hooks/useAsyncAction";
 import { useColoredTokens } from "../hooks/useColoredTokens";
 import { useParsedCommand } from "../hooks/useParsedCommand";
 import { useTokenDescriptions } from "../hooks/useTokenDescriptions";
 import { useTokenWidth } from "../hooks/useTokenWidth";
-import { useVimMode } from "../hooks/useVimMode";
+import { useVimMode, type ViewMode, type VimMode } from "../hooks/useVimMode";
 import { calculateTokenPositions } from "../utils/tokenPositions";
 
 type BuildAppProps = {
@@ -83,6 +84,224 @@ export function applyTokenDelete(
 	return rebuildParsedCommandFromTokens(splicedTokens);
 }
 
+interface BuildContentProps {
+	mode: VimMode;
+	suggestValue: string;
+	generateValue: string;
+	updateSuggestValue: (value: string) => void;
+	updateGenerateValue: (value: string) => void;
+	mainHeight: number;
+	historyEntries: string[] | null;
+	isLoadingHistory: boolean;
+	handleHistorySelect: (command: string) => void;
+	handleHistoryCancel: () => void;
+	parsedTokens: ReturnType<typeof parseTokens>;
+	viewMode: ViewMode;
+	tokenPositions: ReturnType<typeof calculateTokenPositions>;
+	selectedIndex: number;
+	editingTokenIndex: number | null;
+	editingValue: string;
+	updateEditingValue: (value: string) => void;
+	viewHeight: number;
+	coloredTokens: ReturnType<typeof useColoredTokens>;
+	descriptions: ReturnType<typeof useTokenDescriptions>["descriptions"];
+	tokenWidths: ReturnType<typeof useTokenWidth>;
+	explanationLabelColor: string;
+	explanationTextColor: string;
+	explanationWidth: number;
+	explanationLabel: string;
+	explanationText: string;
+}
+
+function EmptyCommandContent({
+	mode,
+	editingTokenIndex,
+	editingValue,
+	updateEditingValue,
+}: Pick<BuildContentProps, "mode" | "editingTokenIndex" | "editingValue" | "updateEditingValue">) {
+	if (mode === "insert" && editingTokenIndex !== null) {
+		return (
+			<TokenEditor
+				value={editingValue}
+				color={getThemeColorFor("tokenDescription")}
+				onChange={updateEditingValue}
+			/>
+		);
+	}
+	return (
+		<>
+			<text fg={getThemeColorFor("hintLabelColor")}>No command yet</text>
+			<text fg={getThemeColorFor("hintLabelColor")}>
+				Press i to type, space for actions
+			</text>
+		</>
+	);
+}
+
+function TokenContent({
+	mainHeight,
+	viewMode,
+	tokenPositions,
+	selectedIndex,
+	editingTokenIndex,
+	editingValue,
+	updateEditingValue,
+	viewHeight,
+	coloredTokens,
+	descriptions,
+	tokenWidths,
+	explanationLabelColor,
+	explanationTextColor,
+	explanationWidth,
+	explanationLabel,
+	explanationText,
+}: Pick<BuildContentProps, "mainHeight" | "viewMode" | "tokenPositions" | "selectedIndex" | "editingTokenIndex" | "editingValue" | "updateEditingValue" | "viewHeight" | "coloredTokens" | "descriptions" | "tokenWidths" | "explanationLabelColor" | "explanationTextColor" | "explanationWidth" | "explanationLabel" | "explanationText">) {
+	return (
+		<box width="100%" height={mainHeight} flexDirection="column">
+			<box
+				height={viewHeight}
+				width="100%"
+				justifyContent="center"
+				alignItems="center"
+			>
+				{viewMode === "annotated" ? (
+					<TokenAnnotatedView
+						tokenPositions={tokenPositions}
+						selectedIndex={selectedIndex}
+						editingTokenIndex={editingTokenIndex}
+						editingValue={editingValue}
+						onTokenChange={updateEditingValue}
+					/>
+				) : (
+					<TokenListView
+						coloredTokens={coloredTokens}
+						descriptions={descriptions}
+						tokenWidths={tokenWidths}
+						selectedIndex={selectedIndex}
+						editingTokenIndex={editingTokenIndex}
+						editingValue={editingValue}
+						onTokenChange={updateEditingValue}
+					/>
+				)}
+			</box>
+			<box flexDirection="column" width="100%">
+				<text fg={explanationLabelColor}>
+					{fitLine(explanationLabel, explanationWidth)}
+				</text>
+				<text fg={explanationTextColor}>
+					{fitLine(explanationText, explanationWidth)}
+				</text>
+			</box>
+		</box>
+	);
+}
+
+type MainBuildContentProps = Omit<
+	BuildContentProps,
+	"suggestValue" | "generateValue" | "updateSuggestValue" | "updateGenerateValue"
+>;
+
+function MainBuildContent({
+	mode,
+	mainHeight,
+	historyEntries,
+	isLoadingHistory,
+	handleHistorySelect,
+	handleHistoryCancel,
+	parsedTokens,
+	viewMode,
+	tokenPositions,
+	selectedIndex,
+	editingTokenIndex,
+	editingValue,
+	updateEditingValue,
+	viewHeight,
+	coloredTokens,
+	descriptions,
+	tokenWidths,
+	explanationLabelColor,
+	explanationTextColor,
+	explanationWidth,
+	explanationLabel,
+	explanationText,
+}: MainBuildContentProps) {
+	if (mode === "history") {
+		return (
+			<box width="100%" height={mainHeight}>
+				<HistoryPicker
+					history={historyEntries ?? []}
+					isLoading={isLoadingHistory}
+					onSelect={handleHistorySelect}
+					onCancel={handleHistoryCancel}
+				/>
+			</box>
+		);
+	}
+	if (!parsedTokens.length) {
+		return (
+			<box
+				width="100%"
+				height={mainHeight}
+				flexDirection="column"
+				justifyContent="center"
+				alignItems="center"
+			>
+				<EmptyCommandContent
+					mode={mode}
+					 editingTokenIndex={editingTokenIndex}
+					 editingValue={editingValue}
+					 updateEditingValue={updateEditingValue}
+				/>
+			</box>
+		);
+	}
+	return (
+		<TokenContent
+			mainHeight={mainHeight}
+			viewMode={viewMode}
+			tokenPositions={tokenPositions}
+			selectedIndex={selectedIndex}
+			 editingTokenIndex={editingTokenIndex}
+			 editingValue={editingValue}
+			 updateEditingValue={updateEditingValue}
+			viewHeight={viewHeight}
+			coloredTokens={coloredTokens}
+			descriptions={descriptions}
+			tokenWidths={tokenWidths}
+			explanationLabelColor={explanationLabelColor}
+			explanationTextColor={explanationTextColor}
+			explanationWidth={explanationWidth}
+			explanationLabel={explanationLabel}
+			explanationText={explanationText}
+		/>
+	);
+}
+
+function BuildContent({
+	mode,
+	suggestValue,
+	generateValue,
+	updateSuggestValue,
+	updateGenerateValue,
+	...contentProps
+}: BuildContentProps) {
+	return (
+		<>
+			{mode === "suggest" && (
+				<SuggestInput value={suggestValue} onChange={updateSuggestValue} />
+			)}
+			{mode === "generate" && (
+				<SuggestInput
+					value={generateValue}
+					onChange={updateGenerateValue}
+					title="Generate"
+				/>
+			)}
+			<MainBuildContent mode={mode} {...contentProps} />
+		</>
+	);
+}
+
 export function BuildApp({ command, onExit }: BuildAppProps) {
 	const { width: terminalWidth, height: terminalHeight } =
 		useTerminalDimensions();
@@ -108,16 +327,12 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 	);
 	const [historyEntries, setHistoryEntries] = useState<string[] | null>(null);
 	const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-	const [isLoadingExplain, setIsLoadingExplain] = useState(false);
-	const [explainError, setExplainError] = useState<string | null>(null);
-	const explainRequestIdRef = useRef(0);
+	const explainAction = useAsyncAction<string>("Explain failed");
 
 	const resetExplanation = useCallback(() => {
 		setCommandExplanation(null);
-		setIsLoadingExplain(false);
-		setExplainError(null);
-		explainRequestIdRef.current += 1;
-	}, []);
+		explainAction.reset();
+	}, [explainAction.reset]);
 
 	// Handle token edits by updating the parsed command
 	const handleTokenEdit = useCallback(
@@ -163,7 +378,7 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 	);
 
 	const handleExplain = useCallback(() => {
-		if (isLoadingExplain) {
+		if (explainAction.isLoading) {
 			return;
 		}
 		const currentCommand = parsedCommand.originalCommand.trim();
@@ -171,97 +386,57 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 			return;
 		}
 		loadDescriptions();
-		const requestId = explainRequestIdRef.current + 1;
-		explainRequestIdRef.current = requestId;
-		setIsLoadingExplain(true);
-		setExplainError(null);
 		setCommandExplanation("Explaining command...");
-		explain(currentCommand)
-			.then((result) => {
-				if (explainRequestIdRef.current !== requestId) {
-					return;
-				}
-				if (result) {
-					setCommandExplanation(result);
-				} else {
-					setExplainError("Explain returned no result");
-					setCommandExplanation(null);
-				}
-			})
-			.catch(() => {
-				if (explainRequestIdRef.current !== requestId) {
-					return;
-				}
-				setExplainError("Explain failed");
-				setCommandExplanation(null);
-			})
-			.finally(() => {
-				if (explainRequestIdRef.current !== requestId) {
-					return;
-				}
-				setIsLoadingExplain(false);
-			});
-	}, [isLoadingExplain, loadDescriptions, parsedCommand.originalCommand]);
+		explainAction.run(() => explain(currentCommand), {
+			onSuccess: setCommandExplanation,
+			onError: () => setCommandExplanation(null),
+			emptyResultMessage: "Explain returned no result",
+		});
+	}, [
+		explainAction.isLoading,
+		explainAction.run,
+		loadDescriptions,
+		parsedCommand.originalCommand,
+	]);
 
-	const [isLoadingSuggest, setIsLoadingSuggest] = useState(false);
-	const [suggestError, setSuggestError] = useState<string | null>(null);
+	const suggestAction = useAsyncAction<string>("Suggest failed");
 
 	const handleSuggestSubmit = useCallback(
 		(prompt: string) => {
 			const currentCommand = parsedCommand.originalCommand;
 			const commandWithHint = `${currentCommand} # ${prompt}`;
-			setIsLoadingSuggest(true);
-			setSuggestError(null);
-			suggest(commandWithHint)
-				.then((result) => {
-					if (result) {
-						resetDescriptions();
-						resetExplanation();
-						setParsedCommand(buildParsedCommand(result));
-					} else {
-						setSuggestError("Suggest returned no result");
-					}
-				})
-				.catch(() => {
-					setSuggestError("Suggest failed");
-				})
-				.finally(() => {
-					setIsLoadingSuggest(false);
-				});
+			suggestAction.run(() => suggest(commandWithHint), {
+				onSuccess: (result) => {
+					resetDescriptions();
+					resetExplanation();
+					setParsedCommand(buildParsedCommand(result));
+				},
+				emptyResultMessage: "Suggest returned no result",
+			});
 		},
 		[
 			parsedCommand.originalCommand,
 			resetDescriptions,
 			resetExplanation,
 			setParsedCommand,
+			suggestAction.run,
 		],
 	);
 
-	const [isLoadingGenerate, setIsLoadingGenerate] = useState(false);
-	const [generateError, setGenerateError] = useState<string | null>(null);
+	const generateAction = useAsyncAction<string>("Generate failed");
 
 	const handleGenerateSubmit = useCallback(
 		(prompt: string) => {
-			setIsLoadingGenerate(true);
-			setGenerateError(null);
-			generateCommand(prompt)
-				.then((result) => {
-					if (result) {
-						resetDescriptions();
-						resetExplanation();
-						setParsedCommand(buildParsedCommand(result));
-					} else {
-						setGenerateError("Generate returned no result");
-					}
-				})
-				.catch(() => {
-					setGenerateError("Generate failed");
-				})
-				.finally(() => {
-					setIsLoadingGenerate(false);
-				});
+			generateAction.run(() => generateCommand(prompt), {
+				onSuccess: (result) => {
+					resetDescriptions();
+					resetExplanation();
+					setParsedCommand(buildParsedCommand(result));
+				},
+				emptyResultMessage: "Generate returned no result",
+			});
 		},
-		[resetDescriptions, resetExplanation, setParsedCommand],
+		[resetDescriptions, resetExplanation, setParsedCommand, generateAction.run],
 	);
 
 	const {
@@ -323,12 +498,13 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 		setHistoryEntries(null);
 	}, [exitHistoryMode]);
 
-	const displayError = suggestError ?? generateError ?? explainError ?? error;
+	const displayError =
+		suggestAction.error ?? generateAction.error ?? explainAction.error ?? error;
 	const displayLoading =
 		isLoading ||
-		isLoadingSuggest ||
-		isLoadingGenerate ||
-		isLoadingExplain ||
+		suggestAction.isLoading ||
+		generateAction.isLoading ||
+		explainAction.isLoading ||
 		isLoadingHistory;
 	const explanationLabelColor = getThemeColorFor("hintLabelColor");
 	const explanationTextColor = getThemeColorFor("tokenDescription");
@@ -348,7 +524,6 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 	const mainHeight = Math.max(1, viewHeight + explanationHeight);
 	const explanationLabel = commandExplanation ? "Explanation" : "";
 	const explanationText = commandExplanation ?? "";
-
 	return (
 		<box
 			border
@@ -358,90 +533,34 @@ export function BuildApp({ command, onExit }: BuildAppProps) {
 			width="100%"
 			padding={1}
 		>
-			{mode === "suggest" && (
-				<SuggestInput value={suggestValue} onChange={updateSuggestValue} />
-			)}
-			{mode === "generate" && (
-				<SuggestInput
-					value={generateValue}
-					onChange={updateGenerateValue}
-					title="Generate"
-				/>
-			)}
-			{isHistoryMode ? (
-				<box width="100%" height={mainHeight}>
-					<HistoryPicker
-						history={historyEntries ?? []}
-						isLoading={isLoadingHistory}
-						onSelect={handleHistorySelect}
-						onCancel={handleHistoryCancel}
-					/>
-				</box>
-			) : !parsedTokens.length ? (
-				<box
-					width="100%"
-					height={mainHeight}
-					flexDirection="column"
-					justifyContent="center"
-					alignItems="center"
-				>
-					{mode === "insert" && editingTokenIndex !== null ? (
-						<TokenEditor
-							value={editingValue}
-							color={getThemeColorFor("tokenDescription")}
-							onChange={updateEditingValue}
-						/>
-					) : (
-						<>
-							<text fg={getThemeColorFor("hintLabelColor")}>
-								No command yet
-							</text>
-							<text fg={getThemeColorFor("hintLabelColor")}>
-								Press i to type, space for actions
-							</text>
-						</>
-					)}
-				</box>
-			) : (
-				<box width="100%" height={mainHeight} flexDirection="column">
-					<box
-						height={viewHeight}
-						width="100%"
-						justifyContent="center"
-						alignItems="center"
-					>
-						{viewMode === "annotated" ? (
-							<TokenAnnotatedView
-								tokenPositions={tokenPositions}
-								selectedIndex={selectedIndex}
-								mode={mode}
-								editingTokenIndex={editingTokenIndex}
-								editingValue={editingValue}
-								onTokenChange={updateEditingValue}
-							/>
-						) : (
-							<TokenListView
-								coloredTokens={coloredTokens}
-								descriptions={descriptions}
-								tokenWidths={tokenWidths}
-								mode={mode}
-								selectedIndex={selectedIndex}
-								editingTokenIndex={editingTokenIndex}
-								editingValue={editingValue}
-								onTokenChange={updateEditingValue}
-							/>
-						)}
-					</box>
-					<box flexDirection="column" width="100%">
-						<text fg={explanationLabelColor}>
-							{fitLine(explanationLabel, explanationWidth)}
-						</text>
-						<text fg={explanationTextColor}>
-							{fitLine(explanationText, explanationWidth)}
-						</text>
-					</box>
-				</box>
-			)}
+			<BuildContent
+				mode={mode}
+				suggestValue={suggestValue}
+				generateValue={generateValue}
+				updateSuggestValue={updateSuggestValue}
+				updateGenerateValue={updateGenerateValue}
+				mainHeight={mainHeight}
+				historyEntries={historyEntries}
+				isLoadingHistory={isLoadingHistory}
+				handleHistorySelect={handleHistorySelect}
+				handleHistoryCancel={handleHistoryCancel}
+				parsedTokens={parsedTokens}
+				viewMode={viewMode}
+				tokenPositions={tokenPositions}
+				selectedIndex={selectedIndex}
+				editingTokenIndex={editingTokenIndex}
+				editingValue={editingValue}
+				updateEditingValue={updateEditingValue}
+				viewHeight={viewHeight}
+				coloredTokens={coloredTokens}
+				descriptions={descriptions}
+				tokenWidths={tokenWidths}
+				explanationLabelColor={explanationLabelColor}
+				explanationTextColor={explanationTextColor}
+				explanationWidth={explanationWidth}
+				explanationLabel={explanationLabel}
+				explanationText={explanationText}
+			/>
 			<Footer
 				mode={mode}
 				viewMode={viewMode}

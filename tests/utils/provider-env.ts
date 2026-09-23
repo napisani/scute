@@ -8,34 +8,42 @@ const DEFAULT_SHELL_ENV = {
 	SCUTE_DEBUG: "1",
 };
 
-const PROVIDER_MODELS: Record<SupportedProvider, string> = {
+const PROVIDER_MODELS = {
 	openai: "gpt-4o-mini",
 	anthropic: "claude-3-haiku-20240307",
 	gemini: "gemini-2.5-flash",
 	ollama: "qwen3:0.6b",
 	// ollama: "qwen3:1.7b",
-};
+} satisfies Record<SupportedProvider, string>;
 
 export function hasProviderEnv(provider: SupportedProvider): boolean {
 	if (provider === "openai") {
-		return !!process.env.OPENAI_API_KEY;
+		return Boolean(process.env.OPENAI_API_KEY);
 	}
 	if (provider === "anthropic") {
-		return !!process.env.ANTHROPIC_API_KEY;
+		return Boolean(process.env.ANTHROPIC_API_KEY);
 	}
 	if (provider === "gemini") {
-		return !!process.env.GEMINI_API_KEY;
+		return Boolean(process.env.GEMINI_API_KEY);
 	}
 	if (provider === "ollama") {
-		return !!process.env.OLLAMA_BASE_URL;
+		return Boolean(process.env.OLLAMA_BASE_URL);
 	}
 	return false;
 }
 
-export function buildProviderEnv(
-	provider: SupportedProvider,
-): Record<string, string | undefined> {
-	const env = { ...DEFAULT_SHELL_ENV } as Record<string, string | undefined>;
+type ProviderEnvVars = {
+	SCUTE_SHELL: string;
+	SHELL: string;
+	SCUTE_DEBUG: string;
+	OPENAI_API_KEY?: string;
+	ANTHROPIC_API_KEY?: string;
+	GEMINI_API_KEY?: string;
+	OLLAMA_BASE_URL?: string;
+};
+
+export function buildProviderEnv(provider: SupportedProvider): ProviderEnvVars {
+	const env: ProviderEnvVars = { ...DEFAULT_SHELL_ENV };
 	if (provider === "openai") {
 		env.OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 	}
@@ -88,7 +96,7 @@ export function buildProviderTestContext(
 	provider: SupportedProvider,
 	prompt: "suggest" | "describeTokens" | "explain",
 	modelOverride?: string,
-): { env: Record<string, string | undefined>; config: Config } {
+) {
 	return {
 		env: buildProviderEnv(provider),
 		config: buildProviderConfig(provider, prompt, modelOverride),

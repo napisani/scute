@@ -9,12 +9,12 @@ type DebugOutput = {
 
 export function configDebug(): void {
 	const resolvedConfig = getConfigSnapshot();
-	const environment: DebugOutput["environment"] = SUPPORTED_ENV_VARS.reduce(
+	const environment = SUPPORTED_ENV_VARS.reduce<DebugOutput["environment"]>(
 		(acc, varName) => {
 			acc[varName] = getEnv(varName);
 			return acc;
 		},
-		{} as Record<string, string | undefined>,
+		{},
 	);
 
 	const payload: DebugOutput = {

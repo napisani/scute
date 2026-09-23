@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { getThemeColorFor } from "../config";
-import type { VimMode } from "../hooks/useVimMode";
 import {
 	buildTokenStartPositions,
 	getTokenValueLength,
@@ -12,7 +11,6 @@ import { TokenBox } from "./TokenBox";
 interface TokenRowProps {
 	row: TokenPosition[];
 	selectedIndex: number;
-	mode: VimMode;
 	editingTokenIndex: number | null;
 	editingValue: string;
 	onTokenChange: (value: string) => void;
@@ -22,7 +20,6 @@ interface TokenRowProps {
 export function TokenRow({
 	row,
 	selectedIndex,
-	mode,
 	editingTokenIndex,
 	editingValue,
 	onTokenChange,
@@ -72,7 +69,7 @@ export function TokenRow({
 						key={tp.index}
 						tp={tp}
 						isSelected={tp.index === selectedIndex}
-						isEditing={mode === "insert" && editingTokenIndex === tp.index}
+						isEditing={editingTokenIndex === tp.index}
 						editingValue={editingValue}
 						onTokenChange={onTokenChange}
 					/>

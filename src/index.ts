@@ -18,9 +18,9 @@ program
 	.option("-c, --config [file]", "Path to config YAML file");
 
 program.hook("preAction", (thisCommand) => {
-	const { config } = thisCommand.optsWithGlobals() as {
+	const { config } = thisCommand.optsWithGlobals<{
 		config?: boolean | string;
-	};
+	}>();
 	if (!config) {
 		return;
 	}

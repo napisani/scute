@@ -86,24 +86,36 @@ function getAdapter(promptName: PromptName, model: string) {
 	switch (providerName) {
 		case "anthropic":
 			logDebug(`Using Anthropics adapter with model: ${model}`);
+			// SAFETY: model is a free-form config/env value (see PromptDefaultsSchema.model);
+			// the adapter narrows it to its own literal union of known model ids, but users may
+			// legitimately point at newer models this package's types don't list yet.
 			return anthropicText(model as Parameters<typeof anthropicText>[0], {
 				apiKey: resolvedApiKey,
 				baseUrl: resolvedBaseUrl,
 			});
 		case "openai":
 			logDebug(`Using OpenAI adapter with model: ${model}`);
+			// SAFETY: model is a free-form config/env value (see PromptDefaultsSchema.model);
+			// the adapter narrows it to its own literal union of known model ids, but users may
+			// legitimately point at newer models this package's types don't list yet.
 			return openaiText(model as Parameters<typeof openaiText>[0], {
 				apiKey: resolvedApiKey,
 				baseUrl: resolvedBaseUrl,
 			});
 		case "gemini":
 			logDebug(`Using Gemini adapter with model: ${model}`);
+			// SAFETY: model is a free-form config/env value (see PromptDefaultsSchema.model);
+			// the adapter narrows it to its own literal union of known model ids, but users may
+			// legitimately point at newer models this package's types don't list yet.
 			return geminiText(model as Parameters<typeof geminiText>[0], {
 				apiKey: resolvedApiKey,
 				baseUrl: resolvedBaseUrl,
 			});
 		case "ollama":
 			logDebug(`Using Ollama adapter with model: ${model}`);
+			// SAFETY: model is a free-form config/env value (see PromptDefaultsSchema.model);
+			// Ollama serves arbitrary locally-installed model names that can't be enumerated
+			// in this package's literal union.
 			return createOllamaChat(
 				model as Parameters<typeof ollamaText>[0],
 				resolvedBaseUrl,
@@ -132,16 +144,21 @@ async function generateText(
 
 	const adapter = getAdapter(promptName, model);
 
-	const content = await chat({
+	const baseChatOptions = {
 		adapter,
 		systemPrompts: [systemPrompt],
-		...(fullUserPrompt === ""
-			? {}
-			: { messages: [{ role: "user", content: fullUserPrompt }] }),
 		temperature: promptConfig.temperature,
 		maxTokens: promptConfig.maxTokens,
-		stream: false,
-	});
+		stream: false as const,
+	};
+
+	const content =
+		fullUserPrompt === ""
+			? await chat(baseChatOptions)
+			: await chat({
+					...baseChatOptions,
+					messages: [{ role: "user", content: fullUserPrompt }],
+				});
 
 	logDebug(`generateText:success bytes=${content.length}`);
 	logDebug(`generateText:content="${content}"`);
@@ -175,7 +192,7 @@ export async function suggest(commandLine: string): Promise<string | null> {
 		);
 		return sanitizeCommandOutput(raw);
 	} catch (error) {
-		logDebug("suggest:error", error);
+		logDebug("suggest:error", error instanceof Error ? error : new Error(String(error)));
 		return null;
 	}
 }
@@ -217,7 +234,7 @@ export async function explain(commandLine: string): Promise<string | null> {
 		const explanation = normalizeSingleSentence(raw);
 		return explanation.length ? explanation : raw.trim() || null;
 	} catch (error) {
-		logDebug("explain:error", error);
+		logDebug("explain:error", error instanceof Error ? error : new Error(String(error)));
 		return null;
 	}
 }
@@ -240,7 +257,7 @@ export async function generateCommand(prompt: string): Promise<string | null> {
 		);
 		return sanitizeCommandOutput(raw);
 	} catch (error) {
-		logDebug("generate:error", error);
+		logDebug("generate:error", error instanceof Error ? error : new Error(String(error)));
 		return null;
 	}
 }
@@ -325,7 +342,7 @@ async function requestJsonFromLlm(
 		}
 		return alignment;
 	} catch (e: unknown) {
-		logDebug("requestJsonFromLlm:error", e);
+		logDebug("requestJsonFromLlm:error", e instanceof Error ? e : new Error(String(e)));
 		return null;
 	}
 }

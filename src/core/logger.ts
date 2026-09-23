@@ -3,24 +3,24 @@ import { isDebugMode } from "../config";
 
 const LOG_PATH = "/tmp/scute.log";
 const TRACE_LOG_PATH = "/tmp/scute-trace.log";
-const TRACE_STRING_LIMIT = 200;
+const TRACE_ENTRY_LIMIT = 4_000;
 
-function formatArg(arg: unknown): string {
+/**
+ * Everything logDebug ever receives across the codebase: literal debug strings
+ * and caught errors (callers normalize thrown values to `Error` before logging,
+ * so this function never has to guess at an unparsed shape).
+ */
+export type LogArgument = string | number | boolean | null | undefined | Error;
+
+function formatArg(arg: LogArgument): string {
 	if (arg instanceof Error) {
 		const stack = arg.stack ? `\n${arg.stack}` : "";
 		return `${arg.message}${stack}`.trim();
 	}
-	if (typeof arg === "string") {
-		return arg;
-	}
-	try {
-		return JSON.stringify(arg);
-	} catch {
-		return String(arg);
-	}
+	return String(arg);
 }
 
-export function logDebug(...args: unknown[]): void {
+export function logDebug(...args: LogArgument[]): void {
 	if (!isDebugMode()) {
 		return;
 	}
@@ -30,37 +30,27 @@ export function logDebug(...args: unknown[]): void {
 
 	try {
 		fs.appendFileSync(LOG_PATH, entry, { encoding: "utf8" });
-	} catch (error) {
+	} catch {
 		// Swallow logging errors to avoid breaking the CLI behavior.
 	}
 }
 
-function sanitizeTracePayload(
-	payload: Record<string, unknown>,
-): Record<string, unknown> {
-	const result: Record<string, unknown> = {};
-	for (const [key, value] of Object.entries(payload)) {
-		if (typeof value === "string" && value.length > TRACE_STRING_LIMIT) {
-			result[key] = `${value.slice(0, TRACE_STRING_LIMIT)}…`;
-			continue;
-		}
-		result[key] = value;
-	}
-	return result;
+/** A trace payload value, as actually passed by every `logTrace` call site: a primitive. */
+export type TracePrimitive = string | number | boolean | null;
+export type TracePayload = Record<string, TracePrimitive>;
+
+function truncate(text: string, maxLength: number): string {
+	return text.length > maxLength ? `${text.slice(0, maxLength)}…` : text;
 }
 
-export function logTrace(
-	scope: string,
-	payload: Record<string, unknown> = {},
-): void {
+export function logTrace(scope: string, payload: TracePayload = {}): void {
 	if (!isDebugMode()) {
 		return;
 	}
 
-	const safePayload = sanitizeTracePayload(payload);
-	let serialized = "";
+	let serialized: string;
 	try {
-		serialized = JSON.stringify(safePayload);
+		serialized = truncate(JSON.stringify(payload), TRACE_ENTRY_LIMIT);
 	} catch {
 		serialized = JSON.stringify({ error: "trace_payload_not_serializable" });
 	}
@@ -68,7 +58,7 @@ export function logTrace(
 
 	try {
 		fs.appendFileSync(TRACE_LOG_PATH, entry, { encoding: "utf8" });
-	} catch (error) {
+	} catch {
 		// Ignore trace logging errors to avoid affecting runtime behaviour.
 	}
 }

@@ -3,6 +3,8 @@ import { writeFileSync } from "node:fs";
 import path from "node:path";
 
 const pkgPath = path.resolve(process.cwd(), "package.json");
+// SAFETY: package.json is this project's own manifest, checked into the repo
+// with a "version" string field; JSON.parse types it as any only because it's JSON.
 const pkg = JSON.parse(await Bun.file(pkgPath).text()) as { version: string };
 const version = pkg.version;
 

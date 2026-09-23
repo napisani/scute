@@ -42,6 +42,9 @@ export function getCachedDescriptions(
 		 WHERE command = ? AND source_hash = ?
 		 ORDER BY token_index ASC`,
 	);
+	// SAFETY: token_index and description are both declared NOT NULL in the
+	// token_descriptions table created in getDb(), and this query only selects
+	// those two columns, so bun:sqlite's untyped row shape matches exactly.
 	const rows = query.all(parsedCommand.originalCommand, sourceHash) as Array<{
 		token_index: number;
 		description: string;

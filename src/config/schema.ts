@@ -11,7 +11,7 @@ import { getEnv } from "../core/environment";
 function isSupportedProviderName(
 	value: string,
 ): value is (typeof SUPPORTED_PROVIDERS)[number] {
-	return (SUPPORTED_PROVIDERS as readonly string[]).includes(value);
+	return SUPPORTED_PROVIDERS.some((provider) => provider === value);
 }
 
 function resolveDefaultProvider(): (typeof SUPPORTED_PROVIDERS)[number] {

@@ -7,7 +7,11 @@ import type { KeyboardHandler, KeyboardKey } from "../../src/hooks/useVimMode";
 // Set up JSDOM before importing React
 const dom = new JSDOM("<!DOCTYPE html><html><body></body></html>");
 global.document = dom.window.document;
-global.window = dom.window as unknown as Window & typeof globalThis;
+const domWindow: unknown = dom.window;
+// SAFETY: jsdom's Window is a structural superset of the DOM globals the React
+// testing utilities expect; this is the standard jsdom-in-Node bootstrap used to
+// give hook tests a browser-like global scope.
+global.window = domWindow as Window & typeof globalThis;
 
 // Track keyboard handlers - only keep the most recent ones
 // The hook registers 2 handlers: insert/suggest interception + normal mode

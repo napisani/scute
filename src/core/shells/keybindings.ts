@@ -17,7 +17,7 @@ export function parseKeybinding(value: string): ParsedKeybinding | null {
 		.split("+")
 		.map((part) => part.trim())
 		.filter((part) => part.length > 0);
-	if (!parts.length) return null;
+	if (!parts.length) {return null;}
 
 	const modifiers = {
 		ctrl: false,
@@ -55,22 +55,22 @@ export function parseKeybinding(value: string): ParsedKeybinding | null {
 		key = part;
 	}
 
-	if (!key) return null;
+	if (!key) {return null;}
 	return { key, modifiers };
 }
 
 export function normalizeKey(key: string, shift: boolean): string | null {
 	const trimmed = key.trim();
-	if (!trimmed) return null;
+	if (!trimmed) {return null;}
 	const normalized = trimmed.toLowerCase();
-	if (normalized === "space") return " ";
-	if (normalized.length !== 1) return null;
+	if (normalized === "space") {return " ";}
+	if (normalized.length !== 1) {return null;}
 	return shift ? normalized.toUpperCase() : normalized;
 }
 
 export function toReadlineSequence(binding: ParsedKeybinding): string | null {
 	const key = normalizeKey(binding.key, binding.modifiers.shift);
-	if (!key) return null;
+	if (!key) {return null;}
 	let sequence = key;
 	if (binding.modifiers.ctrl) {
 		sequence = key === " " ? "\\C-@" : `\\C-${key}`;
@@ -83,7 +83,7 @@ export function toReadlineSequence(binding: ParsedKeybinding): string | null {
 
 export function toZshSequence(binding: ParsedKeybinding): string | null {
 	const key = normalizeKey(binding.key, binding.modifiers.shift);
-	if (!key) return null;
+	if (!key) {return null;}
 	let sequence = key;
 	if (binding.modifiers.ctrl) {
 		sequence = key === " " ? "^@" : `^${key.toUpperCase()}`;

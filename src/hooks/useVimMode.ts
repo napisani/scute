@@ -325,7 +325,6 @@ export function useVimMode({
 		selectedIndex,
 		setSelectedIndex,
 		viewMode,
-		setViewMode,
 		handleLeaderKey,
 		enterInsertMode,
 		onTokenDelete: handleTokenDelete,

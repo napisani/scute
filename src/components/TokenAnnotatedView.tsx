@@ -1,12 +1,10 @@
 import { useTerminalDimensions } from "@opentui/react";
-import type { VimMode } from "../hooks/useVimMode";
 import type { TokenPosition } from "../utils/tokenPositions";
 import { AnnotatedCommand } from "./AnnotatedCommand";
 
 interface TokenAnnotatedViewProps {
 	tokenPositions: TokenPosition[];
 	selectedIndex: number;
-	mode: VimMode;
 	editingTokenIndex: number | null;
 	editingValue: string;
 	onTokenChange: (value: string) => void;
@@ -15,7 +13,6 @@ interface TokenAnnotatedViewProps {
 export function TokenAnnotatedView({
 	tokenPositions,
 	selectedIndex,
-	mode,
 	editingTokenIndex,
 	editingValue,
 	onTokenChange,
@@ -29,7 +26,6 @@ export function TokenAnnotatedView({
 				<AnnotatedCommand
 					tokenPositions={tokenPositions}
 					selectedIndex={selectedIndex}
-					mode={mode}
 					editingTokenIndex={editingTokenIndex}
 					editingValue={editingValue}
 					onTokenChange={onTokenChange}

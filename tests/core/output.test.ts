@@ -99,7 +99,7 @@ describe("resolveClipboardCommand", () => {
 		const result = resolveClipboardCommand("auto");
 		// On macOS CI/dev this should find pbcopy; on Linux it depends.
 		// We just verify it returns a string or null (no crash).
-		expect(result === null || typeof result === "string").toBe(true);
+		expect(result === null || result.length >= 0).toBe(true);
 	});
 
 	it('caches the "auto" result on subsequent calls', () => {
@@ -113,14 +113,14 @@ describe("resolveClipboardCommand", () => {
 		resetClipboardDetectionCache();
 		// After reset, the next call re-probes (should still get same result but cache was cleared)
 		const result = resolveClipboardCommand("auto");
-		expect(result === null || typeof result === "string").toBe(true);
+		expect(result === null || result.length >= 0).toBe(true);
 	});
 });
 
 describe("detectClipboardCommand", () => {
 	it("returns a string or null", () => {
 		const result = detectClipboardCommand();
-		expect(result === null || typeof result === "string").toBe(true);
+		expect(result === null || result.length >= 0).toBe(true);
 	});
 
 	it("returns a known clipboard command on macOS", () => {

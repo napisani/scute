@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import type { VimMode } from "../hooks/useVimMode";
 import { buildTokenRows } from "../utils/annotatedRenderer.utils";
 import type { TokenPosition } from "../utils/tokenPositions";
 import { TokenRow } from "./TokenRow";
@@ -7,7 +6,6 @@ import { TokenRow } from "./TokenRow";
 interface AnnotatedCommandProps {
 	tokenPositions: TokenPosition[];
 	selectedIndex: number;
-	mode: VimMode;
 	editingTokenIndex: number | null;
 	editingValue: string;
 	onTokenChange: (value: string) => void;
@@ -17,7 +15,6 @@ interface AnnotatedCommandProps {
 export function AnnotatedCommand({
 	tokenPositions,
 	selectedIndex,
-	mode,
 	editingTokenIndex,
 	editingValue,
 	onTokenChange,
@@ -29,7 +26,7 @@ export function AnnotatedCommand({
 		[tokenPositions, maxWidth, editingTokenIndex, editingValue],
 	);
 
-	if (tokenPositions.length === 0) return null;
+	if (tokenPositions.length === 0) {return null;}
 
 	return (
 		<box
@@ -44,7 +41,6 @@ export function AnnotatedCommand({
 					key={`row-${row[0]?.index ?? 0}`}
 					row={row}
 					selectedIndex={selectedIndex}
-					mode={mode}
 					editingTokenIndex={editingTokenIndex}
 					editingValue={editingValue}
 					onTokenChange={onTokenChange}

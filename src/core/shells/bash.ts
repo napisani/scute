@@ -39,9 +39,9 @@ _scute_build() {
 # --- end scute integration ---
 `;
 
-const BASH_ACTION_FUNCTIONS: Record<ShellKeybindingAction, string> = {
+const BASH_ACTION_FUNCTIONS = {
 	build: "_scute_build",
-};
+} satisfies Record<ShellKeybindingAction, string>;
 
 function renderBashKeybindings(bindings: ShellKeybindings): string {
 	const lines: string[] = [];

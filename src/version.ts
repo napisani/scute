@@ -6,6 +6,8 @@ let resolvedVersion = GENERATED_VERSION;
 if (resolvedVersion === "__SCUTE_VERSION__") {
 	try {
 		const require = createRequire(import.meta.url);
+		// SAFETY: package.json is this project's own manifest, checked into the repo
+		// with a "version" string field; require() types it as any only because it's JSON.
 		const pkg = require("../package.json") as { version?: string };
 		if (pkg?.version) {
 			resolvedVersion = pkg.version;

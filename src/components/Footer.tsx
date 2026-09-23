@@ -16,6 +16,109 @@ interface FooterProps {
 	error?: string | null;
 }
 
+type KeyHint = { key: string; label: string };
+
+function getModeColor(mode: VimMode): string {
+	if (mode === "insert" || mode === "suggest" || mode === "generate") {
+		return getThemeColorFor("modeInsertColor");
+	}
+	return getThemeColorFor("modeNormalColor");
+}
+
+function getModeText(mode: VimMode): string {
+	if (mode === "insert" || mode === "suggest" || mode === "generate") {
+		return "-- INSERT --";
+	}
+	if (mode === "history") {
+		return "-- HISTORY --";
+	}
+	return "-- NORMAL --";
+}
+
+function getViewModeHelp(mode: VimMode, viewMode: ViewMode): string {
+	if (mode === "history") {
+		return "";
+	}
+	if (viewMode === "annotated") {
+		return "h/l: move, w/b: word, 0/$: line";
+	}
+	return "j/k: move, gg/G: jump";
+}
+
+interface KeyHintOptions {
+	mode: VimMode;
+	leaderActive: boolean;
+	leaderKey: string;
+	toggleViewKey: string;
+	explainKey: string;
+	quitKey: string;
+	submitKey: string;
+	insertKey: string;
+	appendKey: string;
+	changeKey: string;
+	suggestKey: string;
+	generateKey: string;
+	historyKey: string;
+	exitInsertKey: string;
+	saveKey: string;
+}
+
+function getKeyHints({
+	mode,
+	leaderActive,
+	leaderKey,
+	toggleViewKey,
+	explainKey,
+	quitKey,
+	submitKey,
+	insertKey,
+	appendKey,
+	changeKey,
+	suggestKey,
+	generateKey,
+	historyKey,
+	exitInsertKey,
+	saveKey,
+}: KeyHintOptions): KeyHint[] {
+	if (mode === "suggest" || mode === "generate") {
+		return [
+			{ key: "enter", label: "submit" },
+			{ key: "esc", label: "cancel" },
+		];
+	}
+	if (mode === "history") {
+		return [
+			{ key: "up/k", label: "older" },
+			{ key: "down/j", label: "newer" },
+			{ key: "enter", label: "select" },
+			{ key: "esc", label: "cancel" },
+		];
+	}
+	if (mode === "insert") {
+		return [
+			{ key: exitInsertKey, label: "cancel" },
+			{ key: saveKey, label: "save" },
+		];
+	}
+	if (leaderActive) {
+		return [
+			{ key: toggleViewKey, label: "change view" },
+			{ key: explainKey, label: "explain tokens" },
+			{ key: suggestKey, label: "suggest" },
+			{ key: generateKey, label: "generate" },
+			{ key: historyKey, label: "history" },
+			{ key: submitKey, label: "submit" },
+			{ key: quitKey, label: "quit" },
+		];
+	}
+	return [
+		{ key: leaderKey, label: "leader" },
+		{ key: insertKey, label: "insert" },
+		{ key: appendKey, label: "append" },
+		{ key: changeKey, label: "change" },
+	];
+}
+
 export function Footer({
 	mode,
 	viewMode,
@@ -23,16 +126,7 @@ export function Footer({
 	isLoading = false,
 	error = null,
 }: FooterProps) {
-	const isInsertLike =
-		mode === "insert" || mode === "suggest" || mode === "generate";
-	const modeColor = isInsertLike
-		? getThemeColorFor("modeInsertColor")
-		: getThemeColorFor("modeNormalColor");
-	const modeText = isInsertLike
-		? "-- INSERT --"
-		: mode === "history"
-			? "-- HISTORY --"
-			: "-- NORMAL --";
+	const modeColor = getModeColor(mode);
 	const leaderKey = getLeaderKey()[0] ?? "space";
 	const toggleViewKey = getLeaderKeybindings("toggleView")[0] ?? "m";
 	const explainKey = getLeaderKeybindings("explain")[0] ?? "e";
@@ -46,57 +140,28 @@ export function Footer({
 	const historyKey = getLeaderKeybindings("history")[0] ?? "r";
 	const exitInsertKey = getNormalKeybindings("exitInsert")[0] ?? "escape";
 	const saveKey = getNormalKeybindings("save")[0] ?? "return";
-
-	const viewModeHelp =
-		mode === "history"
-			? ""
-			: viewMode === "annotated"
-				? "h/l: move, w/b: word, 0/$: line"
-				: "j/k: move, gg/G: jump";
-
-	const keyHints = (() => {
-		if (mode === "suggest" || mode === "generate") {
-			return [
-				{ key: "enter", label: "submit" },
-				{ key: "esc", label: "cancel" },
-			];
-		}
-		if (mode === "history") {
-			return [
-				{ key: "up/k", label: "older" },
-				{ key: "down/j", label: "newer" },
-				{ key: "enter", label: "select" },
-				{ key: "esc", label: "cancel" },
-			];
-		}
-		if (mode === "insert") {
-			return [
-				{ key: exitInsertKey, label: "cancel" },
-				{ key: saveKey, label: "save" },
-			];
-		}
-		if (leaderActive) {
-			return [
-				{ key: toggleViewKey, label: "change view" },
-				{ key: explainKey, label: "explain tokens" },
-				{ key: suggestKey, label: "suggest" },
-				{ key: generateKey, label: "generate" },
-				{ key: historyKey, label: "history" },
-				{ key: submitKey, label: "submit" },
-				{ key: quitKey, label: "quit" },
-			];
-		}
-		return [
-			{ key: leaderKey, label: "leader" },
-			{ key: insertKey, label: "insert" },
-			{ key: appendKey, label: "append" },
-			{ key: changeKey, label: "change" },
-		];
-	})();
+	const viewModeHelp = getViewModeHelp(mode, viewMode);
+	const keyHints = getKeyHints({
+		mode,
+		leaderActive,
+		leaderKey,
+		toggleViewKey,
+		explainKey,
+		quitKey,
+		submitKey,
+		insertKey,
+		appendKey,
+		changeKey,
+		suggestKey,
+		generateKey,
+		historyKey,
+		exitInsertKey,
+		saveKey,
+	});
 
 	return (
 		<box height={1} flexDirection="row" gap={2}>
-			<text fg={modeColor}>{modeText}</text>
+			<text fg={modeColor}>{getModeText(mode)}</text>
 			{error ? (
 				<text fg={getThemeColorFor("errorColor")}>{error}</text>
 			) : (

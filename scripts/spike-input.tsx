@@ -19,6 +19,8 @@ import { createRoot, useKeyboard } from "@opentui/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type Mode = "normal" | "insert";
+type SpikeRenderer = Awaited<ReturnType<typeof createCliRenderer>>;
+type SpikeGlobal = typeof globalThis & { __spikeRenderer?: SpikeRenderer };
 
 interface TestResult {
 	test: string;
@@ -35,7 +37,6 @@ function App({ onResults }: { onResults: (results: TestResult[]) => void }) {
 	modeRef.current = mode;
 
 	const results = useRef<TestResult[]>([]);
-	const stepRef = useRef(0);
 
 	const addResult = useCallback(
 		(test: string, passed: boolean, detail: string) => {
@@ -81,18 +82,38 @@ function App({ onResults }: { onResults: (results: TestResult[]) => void }) {
 
 	// Programmatic test sequence using the renderer's key input
 	useEffect(() => {
-		const renderer = (globalThis as any).__spikeRenderer;
-		if (!renderer) return;
+		// SAFETY: main() below is the only writer of __spikeRenderer, and it always
+		// sets it before rendering <App>, so this effect (which only runs after
+		// mount) observes it already populated.
+		const renderer = (globalThis as SpikeGlobal).__spikeRenderer;
+		if (!renderer) {return;}
 
 		const keyHandler = renderer.keyInput;
-		if (!keyHandler) return;
+		if (!keyHandler) {return;}
+
+		type SyntheticKeyEvent = {
+			name: string;
+			sequence: string;
+			ctrl: boolean;
+			meta: boolean;
+			shift: boolean;
+			option: boolean;
+			alt: boolean;
+			eventType: string;
+			repeated: boolean;
+			defaultPrevented: boolean;
+			propagationStopped: boolean;
+			preventDefault(): void;
+			stopPropagation(): void;
+		};
+		type EmitWithPriorityFn = (event: "keypress", data: SyntheticKeyEvent) => void;
 
 		function sendKey(
 			name: string,
 			sequence?: string,
-			opts?: Record<string, boolean>,
+			opts?: Partial<SyntheticKeyEvent>,
 		) {
-			const event = {
+			const event: SyntheticKeyEvent = {
 				name,
 				sequence: sequence ?? name,
 				ctrl: false,
@@ -112,7 +133,14 @@ function App({ onResults }: { onResults: (results: TestResult[]) => void }) {
 				},
 				...opts,
 			};
-			keyHandler.emitWithPriority("keypress", event);
+			// Reaches into KeyHandler's private emitWithPriority to simulate a
+			// keypress programmatically — there's no public API for this.
+			const looselyTypedHandler: unknown = keyHandler;
+			// SAFETY: emitWithPriority is marked `private` only to keep it out of
+			// KeyHandler's public API surface; OpenTUI provides no supported way to
+			// synthesize a keypress, which is exactly what this spike needs to probe.
+			const emitter = looselyTypedHandler as { emitWithPriority: EmitWithPriorityFn };
+			emitter.emitWithPriority("keypress", event);
 		}
 
 		function sendChar(char: string) {
@@ -264,7 +292,10 @@ async function main() {
 	}, 10000).unref();
 
 	const renderer = await createCliRenderer();
-	(globalThis as any).__spikeRenderer = renderer;
+	// SAFETY: SpikeGlobal only adds an optional __spikeRenderer field on top of
+	// globalThis's real shape; this is the single place that populates it, before
+	// <App> (which reads it) is ever rendered.
+	(globalThis as SpikeGlobal).__spikeRenderer = renderer;
 
 	let exitCode = 0;
 

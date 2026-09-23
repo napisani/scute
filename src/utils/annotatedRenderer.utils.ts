@@ -48,7 +48,7 @@ export function buildTokenStartPositions(
 	rowTokens: TokenPosition[],
 	editingTokenIndex: number | null,
 	editingValue: string,
-): Record<number, number> {
+) {
 	const positions: Record<number, number> = {};
 	let cursor = 0;
 	for (let i = 0; i < rowTokens.length; i++) {
@@ -145,8 +145,8 @@ export function buildConnectorLine(
 // ---------------------------------------------------------------------------
 
 export function wrapText(value: string, maxWidth: number): string[] {
-	if (!value) return [""];
-	if (maxWidth <= 0) return [""];
+	if (!value) {return [""];}
+	if (maxWidth <= 0) {return [""];}
 	const words = value.split(" ");
 	const lines: string[] = [];
 	let current = "";

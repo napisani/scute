@@ -7,15 +7,26 @@ import {
 import { logDebug } from "./logger";
 import { extractManSections, getManPage, type ManPage } from "./manpage";
 import { parseTokens } from "./shells";
-import type { ParsedCommand, ParsedToken } from "./shells/common";
+import type { ParsedCommand, ParsedToken, TokenType } from "./shells/common";
 
-const STATIC_DESCRIPTIONS: Record<string, string> = {
-	pipe: "Pipe output to the next command",
-	controlOperator: "Control command execution flow",
-	redirect: "Redirect input or output",
-	assignment: "Set an environment variable",
-	unknown: "Unknown token",
-};
+function staticDescriptionForTokenType(type: TokenType): string | null {
+	switch (type) {
+		case "pipe":
+			return "Pipe output to the next command";
+		case "controlOperator":
+			return "Control command execution flow";
+		case "redirect":
+			return "Redirect input or output";
+		case "assignment":
+			return "Set an environment variable";
+		case "unknown":
+			return "Unknown token";
+		case "command":
+		case "option":
+		case "argument":
+			return null;
+	}
+}
 
 export type TokenDescriptionsDiagnostics = {
 	tokenCount: number;
@@ -40,7 +51,7 @@ export function getStaticTokenDescription(
 	index: number,
 	allTokens: ParsedToken[],
 ): string | null {
-	const baseDescription = STATIC_DESCRIPTIONS[token.type];
+	const baseDescription = staticDescriptionForTokenType(token.type);
 	if (baseDescription) {
 		return baseDescription;
 	}
@@ -89,7 +100,7 @@ export async function fetchTokenDescriptions(
 			const manPage = getManPage(commandName);
 			return manPage ? extractManSections(commandName, manPage) : null;
 		})
-		.filter((page): page is ManPage => !!page);
+		.filter((page): page is ManPage => Boolean(page));
 	const sourceHash = hashSource(
 		manPages.flatMap((page) => [page.name, page.synopsis, page.description]),
 	);
@@ -105,7 +116,7 @@ export async function fetchTokenDescriptions(
 	const hasMissing = rawDescriptions.some((description) => !description);
 	const diagnostics: TokenDescriptionsDiagnostics = {
 		tokenCount: rawDescriptions.length,
-		staticCount: rawDescriptions.filter((description) => !!description).length,
+		staticCount: rawDescriptions.filter((description) => Boolean(description)).length,
 		llmAttempted: false,
 		llmReceivedLength: null,
 		llmRepaired: false,

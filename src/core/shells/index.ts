@@ -23,18 +23,15 @@ function identifyShell(): ShellName | null {
 	const shell = getShellName() || "";
 	// get the last part of the shell path
 	// If SHELL is /bin/bash, we want bash
-	identifiedShell = shell as ShellName;
-	if (!supportedShells.includes(identifiedShell)) {
-		return null;
-	}
+	identifiedShell = supportedShells.find((candidate) => candidate === shell) ?? null;
 	return identifiedShell;
 }
 
-const shellRegistry: Record<ShellName, ShellHelper> = {
+const shellRegistry = {
 	zsh: zshShellHelper,
 	bash: bashShellHelper,
 	sh: shShellHelper,
-};
+} satisfies Record<ShellName, ShellHelper>;
 
 function getShellHelperByName(shell: ShellName): ShellHelper {
 	return shellRegistry[shell];
@@ -85,7 +82,7 @@ function getReadlineLine(): string | null {
 }
 function hasReadlineLine(): boolean {
 	const line = getReadlineLine();
-	return !!line && typeof line === "string" && line.length > 0;
+	return line !== null && line.length > 0;
 }
 
 function getShellHistoryFilePath(): string | null {

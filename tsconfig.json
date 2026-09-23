@@ -26,5 +26,8 @@
 		"noUnusedLocals": false,
 		"noUnusedParameters": false,
 		"noPropertyAccessFromIndexSignature": false
-	}
+	},
+	// Vendored third-party plugin source (see lint/anti-slop at the monorepo
+	// root) — held to upstream's own standards, not ours.
+	"exclude": ["tools/oxlint/anti-slop"]
 }

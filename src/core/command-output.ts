@@ -90,11 +90,11 @@ function stripWrappingBackticks(line: string): string {
 function pickCommandLine(lines: string[]): string {
 	for (let i = 0; i < lines.length; i += 1) {
 		const line = lines[i];
-		if (!line) continue;
+		if (!line) {continue;}
 		const trimmed = line.trim();
-		if (!trimmed) continue;
-		if (trimmed.startsWith("```")) continue;
-		if (isLabelLine(trimmed)) continue;
+		if (!trimmed) {continue;}
+		if (trimmed.startsWith("```")) {continue;}
+		if (isLabelLine(trimmed)) {continue;}
 		const normalized = stripWrappingBackticks(stripLinePrefix(trimmed));
 		if (normalized) {
 			return normalized;
@@ -108,7 +108,7 @@ function normalizeCommandLine(line: string): string {
 }
 
 export function sanitizeCommandOutput(text: string): string | null {
-	if (!text) return null;
+	if (!text) {return null;}
 	const withoutAnsi = stripAnsiSequences(text);
 	const withoutControl = stripControlCharacters(withoutAnsi);
 	const content = extractFencedContent(withoutControl);
