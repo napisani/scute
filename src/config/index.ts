@@ -3,8 +3,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import yaml from "js-yaml";
-import { SUPPORTED_PROVIDERS } from "../core/constants";
-import { getEnv, resetEnvGetter, setEnvGetter } from "../core/environment";
+import { SUPPORTED_PROVIDERS, type SupportedProvider } from "../core/constants";
+import { type EnvVarName, getEnv, resetEnvGetter, setEnvGetter } from "../core/environment";
 import type { TokenType } from "../core/shells/common";
 import type {
 	ProviderConfig,
@@ -70,16 +70,14 @@ function loadRuntimeEnv(): RuntimeEnv {
 
 function applyEnvOverrides(baseConfig: Config): Config {
 	const mergedProviders = [...baseConfig.providers];
+	const envNames = {
+		openai: "OPENAI_API_KEY",
+		anthropic: "ANTHROPIC_API_KEY",
+		gemini: "GEMINI_API_KEY",
+		ollama: "OLLAMA_BASE_URL",
+	} satisfies Record<SupportedProvider, EnvVarName>;
 	for (const provider of SUPPORTED_PROVIDERS) {
-		const envValue = getEnv(
-			provider === "openai"
-				? "OPENAI_API_KEY"
-				: provider === "anthropic"
-					? "ANTHROPIC_API_KEY"
-					: provider === "gemini"
-						? "GEMINI_API_KEY"
-						: "OLLAMA_BASE_URL",
-		);
+		const envValue = getEnv(envNames[provider]);
 		if (!envValue) {
 			continue;
 		}

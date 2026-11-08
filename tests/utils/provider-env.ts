@@ -68,13 +68,13 @@ export function buildProviderConfig(
 	const providerEntry = {
 		name: provider,
 		apiKey:
-			provider === "openai"
-				? process.env.OPENAI_API_KEY
-				: provider === "anthropic"
-					? process.env.ANTHROPIC_API_KEY
-					: provider === "gemini"
-						? process.env.GEMINI_API_KEY
-						: undefined,
+			provider === "ollama"
+				? undefined
+				: process.env[{
+					openai: "OPENAI_API_KEY",
+					anthropic: "ANTHROPIC_API_KEY",
+					gemini: "GEMINI_API_KEY",
+				}[provider]],
 		baseUrl: provider === "ollama" ? process.env.OLLAMA_BASE_URL : undefined,
 	};
 	const model = modelOverride ?? PROVIDER_MODELS[provider];

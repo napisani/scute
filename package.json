@@ -37,11 +37,12 @@
     "LICENSE"
   ],
   "scripts": {
+    "nix:deps": "bun scripts/generate-nix-deps.ts",
     "build": "bun run build:bin",
     "build:bin": "bun scripts/build-bin.ts",
     "clean": "rm -rf dist",
     "lint": "oxlint .",
-    "typecheck": "bunx tsc --noEmit",
+    "typecheck": "bun scripts/generate-nix-deps.ts --check && bunx tsc --noEmit",
     "test": "bun test tests/",
     "test:coverage": "bun test tests/ --coverage",
     "test:unit": "bun test tests/",
@@ -77,7 +78,9 @@
     "@types/shell-quote": "^1.7.5",
     "happy-dom": "^20.13.2",
     "jsdom": "^28.1.0",
-    "oxlint": "^1.81.0"
+    "oxlint": "^1.81.0",
+    "react-dom": "19.2.8",
+    "zod": "4.3.6"
   },
   "peerDependencies": {
     "typescript": "^5"
